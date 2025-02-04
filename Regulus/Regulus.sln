@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35707.178 d17.12
+VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Regulus", "Regulus\Regulus.csproj", "{62334371-3CF6-4C99-AD30-9A1DFAA9EDE6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{CF51F28F-79D6-4389-B530-EFF0B0E85B53}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestLibrary", "TestLibrary\TestLibrary.csproj", "{09432D98-2E75-4EAF-B467-1226007C2105}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{CF51F28F-79D6-4389-B530-EFF0B0E85B53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF51F28F-79D6-4389-B530-EFF0B0E85B53}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CF51F28F-79D6-4389-B530-EFF0B0E85B53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09432D98-2E75-4EAF-B467-1226007C2105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09432D98-2E75-4EAF-B467-1226007C2105}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09432D98-2E75-4EAF-B467-1226007C2105}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09432D98-2E75-4EAF-B467-1226007C2105}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,14 +1,36 @@
 ﻿using Regulus.Core;
+using System.Reflection;
+using Mono.Cecil;
+using Regulus.Core.Ssa;
 
 namespace Regulus
 {
+    public class Test
+    {
+        public static int count = 0;
+    }
     public class Program
     {
         public static void Main(string[] args)
         {
-            object obj1 = new VirtualMachine();
-            object obj2 = new VirtualMachine();
-            Console.WriteLine(obj2 == obj1);
+            ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
+            TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
+
+            MethodDefinition methodDef = typeDef.Methods.First(method => { return method.Name.Contains("Add"); });
+            foreach (var i in methodDef.Body.Instructions)
+            {
+                Console.WriteLine(i);
+            }
+            Console.WriteLine("=====");
+
+            ControlFlowGraph cfg = new ControlFlowGraph(methodDef);
+            foreach (BasicBlock block in cfg.Blocks)
+            {
+                Console.WriteLine(block);
+            }
+
+           
+
         }
     }
 }

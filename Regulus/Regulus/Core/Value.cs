@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Regulus.Core
 {
-    public enum ValueType
+    public enum ValueKind
     {
         Integer,
         Long,

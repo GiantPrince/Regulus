@@ -40,6 +40,58 @@ namespace Regulus.Test
             return newABCInstruction + 1;
         }
 
+        public static void* AddABPInstruction(void* start, OpCode op, byte registerA, byte registerB, int operand = 0)
+        {
+            ABPInstruction* newABPInstruction = (ABPInstruction*)start; 
+            newABPInstruction->Op = op;
+            newABPInstruction->RegisterA = registerA;
+            newABPInstruction->RegisterB = registerB;
+            newABPInstruction->Operand = operand;
+            return newABPInstruction + 1;
+        }
+
+        public static void PatchBranchInstruction(void* start, int offset)
+        {
+            ABPInstruction* newABPInstruction = (ABPInstruction*)start;
+            newABPInstruction->Operand = offset;
+        }
+
+        public static void* AddAPInstruction(void* start, OpCode op, byte registerA, int operand)
+        {
+            APInstruction* newAPInstruction = (APInstruction*)start;
+            newAPInstruction->Op = op;
+            newAPInstruction->RegisterA = registerA;
+            newAPInstruction->Operand = operand;
+            return newAPInstruction + 1;
+        }
+
+        public static void* AddAPInstruction(void* start, OpCode op, byte registerA, long operand)
+        {
+            APInstruction* newAPInstruction = (APInstruction*)start;
+            newAPInstruction->Op = op;
+            newAPInstruction->RegisterA = registerA;
+            newAPInstruction->Operand = operand;
+            return newAPInstruction + 1;
+        }
+
+        public static void* AddAPInstruction(void* start, OpCode op, byte registerA, float operand)
+        {
+            APInstruction* newAPInstruction = (APInstruction*)start;
+            newAPInstruction->Op = op;
+            newAPInstruction->RegisterA = registerA;
+            *(float*)&newAPInstruction->Operand = operand;
+            return newAPInstruction + 1;
+        }
+
+        public static void* AddAPInstruction(void* start, OpCode op, byte registerA, double operand)
+        {
+            APInstruction* newAPInstruction = (APInstruction*)start;
+            newAPInstruction->Op = op;
+            newAPInstruction->RegisterA = registerA;
+            *(double*)&newAPInstruction->Operand = operand;
+            return newAPInstruction + 1;
+        }
+
         public static void* AddInstruction(void* start, OpCode op)
         {
             Instruction* newInstruction = (Instruction*)start;
@@ -56,6 +108,20 @@ namespace Regulus.Test
         {
             Value newValue = new Value();
             *(long*)&newValue.Upper = value;
+            return newValue;
+        }
+
+        public static Value FloatToValue(float value)
+        {
+            Value newValue = new Value();
+            *(float*)&newValue.Lower = value;
+            return newValue;
+        }
+
+        public static Value DoubleToValue(double value)
+        {
+            Value newValue = new Value();
+            *(double*)&newValue.Upper = value;
             return newValue;
         }
 
@@ -147,7 +213,33 @@ namespace Regulus.Test
             start = AddInstruction(start, OpCode.Ret);
             ret = vm.Run((Instruction*)instructions);
             Assert.That(vm.GetRegister(5).Equals(LongToValue(((long)2 + int.MaxValue) / 18)));  // (int.MaxValue + 2) / (int.MaxValue + 1) = 1
+        }
 
+        [Test]
+        public static void BasicLoadTest()
+        {
+            VirtualMachine vm = new VirtualMachine();
+            void* start = instructions;
+            start = AddAPInstruction(start, OpCode.Ldc_Int, 0, 1);
+            start = AddAPInstruction(start, OpCode.Ldc_Float, 1, 0.1f);
+            start = AddAPInstruction(start, OpCode.Ldc_Double, 2, 0.001);
+            start = AddAPInstruction(start, OpCode.Ldc_Long, 3, 10000);
+            start = AddInstruction(start, OpCode.Ret);
+            vm.Run((Instruction*)instructions);
+
+            Assert.That(vm.GetRegister(0).Equals(IntToValue(1)));
+            Assert.That(vm.GetRegister(1).Equals(FloatToValue(0.1f)));
+            Assert.That(vm.GetRegister(2).Equals(DoubleToValue(0.001)));
+            Assert.That(vm.GetRegister(3).Equals(LongToValue(10000)));
+
+
+        }
+
+        [Test]
+        public static void BasicControlFlowTest()
+        {
+            VirtualMachine vm = new VirtualMachine();
+            void* start = instructions;
 
         }
         

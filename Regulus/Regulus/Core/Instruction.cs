@@ -71,8 +71,8 @@ namespace Regulus.Core
 
         // Branch
         Br,
-        Beq_Numeric,
-        Beq_ObjectRef,
+        Beq,
+        Bne,
         Bge_Int,
         Bge_Long,
         Bge_Float,
@@ -89,15 +89,24 @@ namespace Regulus.Core
         Blt_Long,
         Blt_Float,
         Blt_Double,
-        Bne_Numeric,
-        Bne_ObjectRef,
-        Bne_Un_Int,
-        Bne_Un_Long,
         Bge_Un_Int,
-        Bgt_Un,
-        Ble_Un,
-        Blt_Un,
+        Bge_Un_Long,
+        Bgt_Un_Int,
+        Bgt_Un_Long,
+        Ble_Un_Int,
+        Ble_Un_Long,
+        Blt_Un_Int,
+        Blt_Un_Long,
 
+        // Load
+        Ldc_Int,
+        Ldc_Long,
+        Ldc_Float,
+        Ldc_Double,
+        LdStr,
+
+        // Call
+        Call,
         // Return
         Ret,
         Count
@@ -135,7 +144,7 @@ namespace Regulus.Core
         public OpCode Op;
 
         [FieldOffset(1)]
-        public sbyte Offset;
+        public int Offset;
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -148,7 +157,7 @@ namespace Regulus.Core
         public byte RegisterA;
 
         [FieldOffset(2)]
-        public int Operand;
+        public long Operand;
     }
 
     [StructLayout(LayoutKind.Explicit)]
