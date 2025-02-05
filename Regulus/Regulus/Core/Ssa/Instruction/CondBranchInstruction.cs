@@ -12,16 +12,31 @@ namespace Regulus.Core.Ssa.Instruction
         public BasicBlock Target1;
         public BasicBlock Target2;
 
-        public CondBranchInstruction(AbstractOpCode code, Operand cond, BasicBlock target1, BasicBlock target2) : base(code)
+        public CondBranchInstruction(AbstractOpCode code, Operand cond, BasicBlock target1, BasicBlock target2) : base(code, InstructionKind.CondBranch)
         {
             Cond = cond;
             Target1 = target1;
             Target2 = target2;
         }
 
+        public override bool HasLeftHandSideOperand()
+        {
+            return true;
+        }
+
+        public override int LeftHandSideOperandCount()
+        {
+            return 1;
+        }
+
+        public override Operand GetLeftHandSideOperand(int index)
+        {
+            return Cond;
+        }
+
         public override string ToString()
         {
-            return $"{base.ToString()} {Cond} [{Target1.Index}][{Target2.Index}]"; ;
+            return $"{base.ToString()}[{Target1.Index}][{Target2.Index}]"; ;
         }
 
     }

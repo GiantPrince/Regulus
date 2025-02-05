@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 
-namespace Regulus.Core.Ssa
+namespace Regulus.Core.Ssa.Instruction
 {
     public enum AbstractOpCode
     {
@@ -51,7 +52,7 @@ namespace Regulus.Core.Ssa
         Ldind_R4,
         Ldind_R8,
         Ldind_Ref,
-        
+
         Ldloca,
         Ldnull,
         Dup,
@@ -143,23 +144,66 @@ namespace Regulus.Core.Ssa
         Stsfld,
         Throw,
         Unbox,
+        Phi
+    }
 
-
-
-        
+    public enum InstructionKind
+    {
+        Empty,
+        Move,
+        Transform,
+        CmpBranch,
+        UnCondBranch,
+        CondBranch,
+        Call,
+        Return,
+        Switch,
         Phi
     }
     public class AbstractInstruction
     {
-        public AbstractOpCode Op;
-        public AbstractInstruction(AbstractOpCode opcode)
+        public AbstractOpCode Code;
+        public InstructionKind Kind;
+        public AbstractInstruction(AbstractOpCode opcode, InstructionKind kind)
         {
-            Op = opcode;
+            Code = opcode;
+            Kind = kind;
         }
 
-        public override string ToString()
+        public static string GetInstructionKindString(InstructionKind kind)
         {
-            switch (Op)
+            switch (kind)
+            {
+                case InstructionKind.Empty:
+                    return "Empty";
+                case InstructionKind.Move:
+                    return "Move";
+                case InstructionKind.Transform:
+                    return "Transform";
+                case InstructionKind.CmpBranch:
+                    return "CmpBranch";
+                case InstructionKind.UnCondBranch:
+                    return "UnCondBranch";
+                case InstructionKind.CondBranch:
+                    return "CondBranch";
+                case InstructionKind.Call:
+                    return "Call";
+                case InstructionKind.Return:
+                    return "Return";
+                case InstructionKind.Switch:
+                    return "Switch";
+                case InstructionKind.Phi:
+                    return "Phi";
+                
+                default:
+                    return "Unknown InstructionKind";
+            }
+        }
+
+        public static string GetAbstractOpCodeString(AbstractOpCode opcode)
+        {
+           
+            switch (opcode)
             {
                 case AbstractOpCode.Mov: return "Mov";
                 case AbstractOpCode.Add: return "Add";
@@ -192,9 +236,178 @@ namespace Regulus.Core.Ssa
                 case AbstractOpCode.Clt: return "Clt";
                 case AbstractOpCode.Clt_Un: return "Clt_Un";
                 case AbstractOpCode.Ldftn: return "Ldftn";
+                case AbstractOpCode.Ldind_I: return "Ldind_I";
+                case AbstractOpCode.Ldind_I1: return "Ldind_I1";
+                case AbstractOpCode.Ldind_I2: return "Ldind_I2";
+                case AbstractOpCode.Ldind_I4: return "Ldind_I4";
+                case AbstractOpCode.Ldind_I8: return "Ldind_I8";
+                case AbstractOpCode.Ldind_U1: return "Ldind_U1";
+                case AbstractOpCode.Ldind_U2: return "Ldind_U2";
+                case AbstractOpCode.Ldind_U4: return "Ldind_U4";
+                case AbstractOpCode.Ldind_R4: return "Ldind_R4";
+                case AbstractOpCode.Ldind_R8: return "Ldind_R8";
+                case AbstractOpCode.Ldind_Ref: return "Ldind_Ref";
+                case AbstractOpCode.Ldloca: return "Ldloca";
+                case AbstractOpCode.Ldnull: return "Ldnull";
+                case AbstractOpCode.Dup: return "Dup";
+                case AbstractOpCode.Neg: return "Neg";
+                case AbstractOpCode.Not: return "Not";
+                case AbstractOpCode.Or: return "Or";
+                case AbstractOpCode.Shl: return "Shl";
+                case AbstractOpCode.Shr: return "Shr";
+                case AbstractOpCode.Shr_Un: return "Shr_Un";
+                case AbstractOpCode.Xor: return "Xor";
+                case AbstractOpCode.And: return "And";
+                case AbstractOpCode.Conv_I: return "Conv_I";
+                case AbstractOpCode.Conv_I1: return "Conv_I1";
+                case AbstractOpCode.Conv_I2: return "Conv_I2";
+                case AbstractOpCode.Conv_I4: return "Conv_I4";
+                case AbstractOpCode.Conv_I8: return "Conv_I8";
+                case AbstractOpCode.Conv_U1: return "Conv_U1";
+                case AbstractOpCode.Conv_U2: return "Conv_U2";
+                case AbstractOpCode.Conv_U4: return "Conv_U4";
+                case AbstractOpCode.Conv_U8: return "Conv_U8";
+                case AbstractOpCode.Conv_R4: return "Conv_R4";
+                case AbstractOpCode.Conv_R8: return "Conv_R8";
+                case AbstractOpCode.Conv_U: return "Conv_U";
+                case AbstractOpCode.Conv_R_Un: return "Conv_R_Un";
+                case AbstractOpCode.Conv_Ovf_I1: return "Conv_Ovf_I1";
+                case AbstractOpCode.Conv_Ovf_I2: return "Conv_Ovf_I2";
+                case AbstractOpCode.Conv_Ovf_I4: return "Conv_Ovf_I4";
+                case AbstractOpCode.Conv_Ovf_I8: return "Conv_Ovf_I8";
+                case AbstractOpCode.Conv_Ovf_U1: return "Conv_Ovf_U1";
+                case AbstractOpCode.Conv_Ovf_U2: return "Conv_Ovf_U2";
+                case AbstractOpCode.Conv_Ovf_U4: return "Conv_Ovf_U4";
+                case AbstractOpCode.Conv_Ovf_U8: return "Conv_Ovf_U8";
+                case AbstractOpCode.Conv_Ovf_I: return "Conv_Ovf_I";
+                case AbstractOpCode.Conv_Ovf_U: return "Conv_Ovf_U";
+                case AbstractOpCode.Conv_Ovf_I1_Un: return "Conv_Ovf_I1_Un";
+                case AbstractOpCode.Conv_Ovf_I2_Un: return "Conv_Ovf_I2_Un";
+                case AbstractOpCode.Conv_Ovf_I4_Un: return "Conv_Ovf_I4_Un";
+                case AbstractOpCode.Conv_Ovf_I8_Un: return "Conv_Ovf_I8_Un";
+                case AbstractOpCode.Conv_Ovf_U1_Un: return "Conv_Ovf_U1_Un";
+                case AbstractOpCode.Conv_Ovf_U2_Un: return "Conv_Ovf_U2_Un";
+                case AbstractOpCode.Conv_Ovf_U4_Un: return "Conv_Ovf_U4_Un";
+                case AbstractOpCode.Conv_Ovf_U8_Un: return "Conv_Ovf_U8_Un";
+                case AbstractOpCode.Conv_Ovf_I_Un: return "Conv_Ovf_I_Un";
+                case AbstractOpCode.Conv_Ovf_U_Un: return "Conv_Ovf_U_Un";
+                case AbstractOpCode.Switch: return "Switch";
+                case AbstractOpCode.Box: return "Box";
+                case AbstractOpCode.Callvirt: return "Callvirt";
+                case AbstractOpCode.Castclass: return "Castclass";
+                case AbstractOpCode.Initobj: return "Initobj";
+                case AbstractOpCode.Isinst: return "Isinst";
+                case AbstractOpCode.Ldelem: return "Ldelem";
+                case AbstractOpCode.Ldelem_I: return "Ldelem_I";
+                case AbstractOpCode.Ldelem_I1: return "Ldelem_I1";
+                case AbstractOpCode.Ldelem_I2: return "Ldelem_I2";
+                case AbstractOpCode.Ldelem_I4: return "Ldelem_I4";
+                case AbstractOpCode.Ldelem_I8: return "Ldelem_I8";
+                case AbstractOpCode.Ldelem_U1: return "Ldelem_U1";
+                case AbstractOpCode.Ldelem_U2: return "Ldelem_U2";
+                case AbstractOpCode.Ldelem_U4: return "Ldelem_U4";
+                case AbstractOpCode.Ldelem_U8: return "Ldelem_U8";
+                case AbstractOpCode.Ldelem_R4: return "Ldelem_R4";
+                case AbstractOpCode.Ldelem_R8: return "Ldelem_R8";
+                case AbstractOpCode.Ldelem_Ref: return "Ldelem_Ref";
+                case AbstractOpCode.Ldelema: return "Ldelema";
+                case AbstractOpCode.Ldfld: return "Ldfld";
+                case AbstractOpCode.Ldflda: return "Ldflda";
+                case AbstractOpCode.Ldlen: return "Ldlen";
+                case AbstractOpCode.Ldobj: return "Ldobj";
+                case AbstractOpCode.Ldsfld: return "Ldsfld";
+                case AbstractOpCode.Ldsflda: return "Ldsflda";
+                case AbstractOpCode.Ldtoken: return "Ldtoken";
+                case AbstractOpCode.Ldvirtftn: return "Ldvirtftn";
+                case AbstractOpCode.Newarr: return "Newarr";
+                case AbstractOpCode.Newobj: return "Newobj";
+                case AbstractOpCode.Rethrow: return "Rethrow";
+                case AbstractOpCode.Sizeof: return "Sizeof";
+                case AbstractOpCode.Stelem: return "Stelem";
+                case AbstractOpCode.Stelem_I: return "Stelem_I";
+                case AbstractOpCode.Stelem_I1: return "Stelem_I1";
+                case AbstractOpCode.Stelem_I2: return "Stelem_I2";
+                case AbstractOpCode.Stelem_I4: return "Stelem_I4";
+                case AbstractOpCode.Stelem_I8: return "Stelem_I8";
+                case AbstractOpCode.Stelem_R4: return "Stelem_R4";
+                case AbstractOpCode.Stelem_R8: return "Stelem_R8";
+                case AbstractOpCode.Stelem_Ref: return "Stelem_Ref";
+                case AbstractOpCode.Stfld: return "Stfld";
+                case AbstractOpCode.Stobj: return "Stobj";
+                case AbstractOpCode.Stsfld: return "Stsfld";
+                case AbstractOpCode.Throw: return "Throw";
+                case AbstractOpCode.Unbox: return "Unbox";
                 case AbstractOpCode.Phi: return "Phi";
-                default: return "Unknown";
+                default:
+                    return "Unknown OpCode";
             }
+        
+        }
+
+        public override string ToString()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append($"[{GetInstructionKindString(Kind)}|{GetAbstractOpCodeString(Code)}] ");
+            if (HasMetaOperand())
+            {
+                stringBuilder.Append($"${GetMetaOperand()}$");
+            }
+            int leftCount = LeftHandSideOperandCount();
+            int rightCount = RightHandSideOperandCount();
+            for (int i = 0; i < leftCount; i++)
+            {
+                stringBuilder.Append(GetLeftHandSideOperand(i));
+                stringBuilder.Append(' ');
+            }
+            stringBuilder.Append("=> ");
+            for (int i = 0; i < rightCount; i++)
+            {
+                stringBuilder.Append(GetRightHandSideOperand(i));
+                stringBuilder.Append(" ");
+            }
+            return stringBuilder.ToString();
+            
+        }
+
+        public virtual bool HasLeftHandSideOperand()
+        {
+            return LeftHandSideOperandCount() > 0;
+        }
+
+        public virtual int LeftHandSideOperandCount()
+        {
+            return 0;
+        }
+
+        public virtual int RightHandSideOperandCount()
+        {
+            return 0;
+        }
+
+        public virtual bool HasRightHandSideOperand()
+        {
+            return RightHandSideOperandCount() > 0;
+        }
+
+        public virtual Operand GetLeftHandSideOperand(int index)
+        {
+            return null;
+        }
+
+        public virtual Operand GetRightHandSideOperand(int index)
+        {
+            return null;
+        }
+
+
+        public virtual bool HasMetaOperand()
+        {
+            return GetMetaOperand() != null;
+        }
+
+        public virtual MetaOperand GetMetaOperand()
+        {
+            return null;
         }
     }
 }

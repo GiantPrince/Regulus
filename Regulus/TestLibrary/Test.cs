@@ -4,17 +4,16 @@
     {
         public static int Add(int a, int b)
         {
-            int sum = a + b;
+            int c = a + b;
             for (int i = 0; i < a; i++)
             {
-                sum = sum + b;
-                sum = sum * a;
-                sum = sum / b;
-                sum = sum % b;
-                
+                c += a;
+                for (int j = 0; j < b; j++)
+                {
+                    c += b;
+                }
             }
-            Console.WriteLine(sum);
-            return sum;
+            return c;
         }
 
     }

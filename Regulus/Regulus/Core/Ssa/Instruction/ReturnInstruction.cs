@@ -3,20 +3,35 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Mono.Cecil;
 
 namespace Regulus.Core.Ssa.Instruction
 {
     public class ReturnInstruction : AbstractInstruction
     {
-        public Operand Op;
-        public ReturnInstruction(AbstractOpCode code, Operand op) : base(code)
+        private Operand _op;
+        bool _returnVoid;
+        public ReturnInstruction(AbstractOpCode code, bool returnVoid, Operand op) : base(code, InstructionKind.Return)
         {
-            Op = op;
+            _op = op;
+            _returnVoid = returnVoid;
         }
 
-        public override string ToString()
+        public override bool HasLeftHandSideOperand()
         {
-            return $"{base.ToString()} {Op}";
+            return !_returnVoid;
         }
+
+        public override int LeftHandSideOperandCount()
+        {
+            return _returnVoid ? 0 : 1;
+        }
+
+        public override Operand GetLeftHandSideOperand(int index)
+        {
+            return _op;
+        }
+
+        
     }
 }

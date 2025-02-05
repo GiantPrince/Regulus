@@ -4,21 +4,48 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Regulus.Core.Ssa
+namespace Regulus.Core.Ssa.Instruction
 {
     public class MoveInstruction : AbstractInstruction
     {
-        Operand Op1;
-        Operand Op2;
-        public MoveInstruction(AbstractOpCode op, Operand op1, Operand op2) : base(op)
+        private Operand _op1;
+        private Operand _op2;
+        public MoveInstruction(AbstractOpCode op, Operand op1, Operand op2) : base(op, InstructionKind.Move)
         {
-            Op1 = op1;
-            Op2 = op2;
+            _op1 = op1;
+            _op2 = op2;
         }
 
-        public override string ToString()
+        public override bool HasLeftHandSideOperand()
         {
-            return $"{base.ToString()} {Op1} {Op2}";
+            return true;
         }
+
+        public override int LeftHandSideOperandCount()
+        {
+            return 1;
+        }
+
+        public override Operand GetLeftHandSideOperand(int index)
+        {
+            return _op1;
+        }
+
+        public override bool HasRightHandSideOperand()
+        {
+            return true;
+        }
+
+        public override int RightHandSideOperandCount()
+        {
+            return 1;
+        }
+
+        public override Operand GetRightHandSideOperand(int index)
+        {
+            return _op2;
+        }
+
+       
     }
 }

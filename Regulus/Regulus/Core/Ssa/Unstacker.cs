@@ -34,10 +34,10 @@ namespace Regulus.Core.Ssa
             stackInfo.Push(new BasicBlockStackInfo() { Index = 0, StackDepth = 0 }); ;
             while (stackInfo.Count > 0)
             {
-
                 BasicBlockStackInfo info = stackInfo.Pop();
                 Visited[info.Index] = true;
                 int nextDepth = UnstackBasicBlock(cfg.Method, cfg.Blocks[info.Index], info.StackDepth);
+                cfg.Blocks[info.Index].LiveInStackSize = info.StackDepth;
                 foreach (int successorIndex in cfg.Blocks[info.Index].Successors)
                 {
                     if (!Visited[successorIndex])
@@ -89,6 +89,194 @@ namespace Regulus.Core.Ssa
                 default:
                     return ValueOperandType.Object;
             }
+        }
+
+        public AbstractOpCode ToAbstractOpCode(Code code)
+        {
+
+            switch (code)
+            {
+                case Code.Add: return AbstractOpCode.Add;
+                case Code.Add_Ovf: return AbstractOpCode.Add_Ovf;
+                case Code.Add_Ovf_Un: return AbstractOpCode.Add_Ovf_Un;
+                case Code.Sub: return AbstractOpCode.Sub;
+                case Code.Sub_Ovf: return AbstractOpCode.Sub_Ovf;
+                case Code.Sub_Ovf_Un: return AbstractOpCode.Sub_Ovf_Un;
+                case Code.Mul: return AbstractOpCode.Mul;
+                case Code.Mul_Ovf: return AbstractOpCode.Mul_Ovf;
+                case Code.Mul_Ovf_Un: return AbstractOpCode.Mul_Ovf_Un;
+                case Code.Div: return AbstractOpCode.Div;
+                case Code.Div_Un: return AbstractOpCode.Div_Un;
+                case Code.Rem: return AbstractOpCode.Rem;
+                case Code.Rem_Un: return AbstractOpCode.Rem_Un;
+                case Code.Beq:
+                case Code.Beq_S:
+                    return AbstractOpCode.Beq;
+                case Code.Bne_Un: 
+                case Code.Bne_Un_S: 
+                    return AbstractOpCode.Bne;
+                case Code.Bgt:
+                case Code.Bgt_S:
+                    return AbstractOpCode.Bgt;
+                case Code.Bge:
+                case Code.Bge_S:
+                    return AbstractOpCode.Bge;
+                case Code.Blt:
+                case Code.Blt_S:
+                    return AbstractOpCode.Blt;
+                case Code.Ble:
+                case Code.Ble_S:
+                    return AbstractOpCode.Ble;
+                case Code.Br:
+                case Code.Br_S:
+                    return AbstractOpCode.Br;
+                case Code.Brfalse:
+                case Code.Brfalse_S:
+                    return AbstractOpCode.BrFalse;
+                case Code.Brtrue:
+                case Code.Brtrue_S:
+                    return AbstractOpCode.BrTrue;
+                case Code.Call: return AbstractOpCode.Call;
+                case Code.Ret: return AbstractOpCode.Ret;
+                case Code.Ceq: return AbstractOpCode.Ceq;
+                case Code.Cgt: return AbstractOpCode.Cgt;
+                case Code.Cgt_Un: return AbstractOpCode.Cgt_Un;
+                case Code.Clt: return AbstractOpCode.Clt;
+                case Code.Clt_Un: return AbstractOpCode.Clt_Un;
+                case Code.Ldftn: return AbstractOpCode.Ldftn;
+                case Code.Ldind_I: return AbstractOpCode.Ldind_I;
+                case Code.Ldind_I1: return AbstractOpCode.Ldind_I1;
+                case Code.Ldind_I2: return AbstractOpCode.Ldind_I2;
+                case Code.Ldind_I4: return AbstractOpCode.Ldind_I4;
+                case Code.Ldind_I8: return AbstractOpCode.Ldind_I8;
+                case Code.Ldind_U1: return AbstractOpCode.Ldind_U1;
+                case Code.Ldind_U2: return AbstractOpCode.Ldind_U2;
+                case Code.Ldind_U4: return AbstractOpCode.Ldind_U4;
+                case Code.Ldind_R4: return AbstractOpCode.Ldind_R4;
+                case Code.Ldind_R8: return AbstractOpCode.Ldind_R8;
+                case Code.Ldind_Ref: return AbstractOpCode.Ldind_Ref;
+                case Code.Ldloca: return AbstractOpCode.Ldloca;
+                case Code.Ldnull: return AbstractOpCode.Ldnull;
+                case Code.Dup: return AbstractOpCode.Dup;
+                case Code.Neg: return AbstractOpCode.Neg;
+                case Code.Not: return AbstractOpCode.Not;
+                case Code.Or: return AbstractOpCode.Or;
+                case Code.Shl: return AbstractOpCode.Shl;
+                case Code.Shr: return AbstractOpCode.Shr;
+                case Code.Shr_Un: return AbstractOpCode.Shr_Un;
+                case Code.Xor: return AbstractOpCode.Xor;
+                case Code.And: return AbstractOpCode.And;
+                case Code.Conv_I: return AbstractOpCode.Conv_I;
+                case Code.Conv_I1: return AbstractOpCode.Conv_I1;
+                case Code.Conv_I2: return AbstractOpCode.Conv_I2;
+                case Code.Conv_I4: return AbstractOpCode.Conv_I4;
+                case Code.Conv_I8: return AbstractOpCode.Conv_I8;
+                case Code.Conv_U1: return AbstractOpCode.Conv_U1;
+                case Code.Conv_U2: return AbstractOpCode.Conv_U2;
+                case Code.Conv_U4: return AbstractOpCode.Conv_U4;
+                case Code.Conv_U8: return AbstractOpCode.Conv_U8;
+                case Code.Conv_R4: return AbstractOpCode.Conv_R4;
+                case Code.Conv_R8: return AbstractOpCode.Conv_R8;
+                case Code.Conv_U: return AbstractOpCode.Conv_U;
+                case Code.Conv_R_Un: return AbstractOpCode.Conv_R_Un;
+                case Code.Conv_Ovf_I1: return AbstractOpCode.Conv_Ovf_I1;
+                case Code.Conv_Ovf_I2: return AbstractOpCode.Conv_Ovf_I2;
+                case Code.Conv_Ovf_I4: return AbstractOpCode.Conv_Ovf_I4;
+                case Code.Conv_Ovf_I8: return AbstractOpCode.Conv_Ovf_I8;
+                case Code.Conv_Ovf_U1: return AbstractOpCode.Conv_Ovf_U1;
+                case Code.Conv_Ovf_U2: return AbstractOpCode.Conv_Ovf_U2;
+                case Code.Conv_Ovf_U4: return AbstractOpCode.Conv_Ovf_U4;
+                case Code.Conv_Ovf_U8: return AbstractOpCode.Conv_Ovf_U8;
+                case Code.Conv_Ovf_I: return AbstractOpCode.Conv_Ovf_I;
+                case Code.Conv_Ovf_U: return AbstractOpCode.Conv_Ovf_U;
+                case Code.Conv_Ovf_I1_Un: return AbstractOpCode.Conv_Ovf_I1_Un;
+                case Code.Conv_Ovf_I2_Un: return AbstractOpCode.Conv_Ovf_I2_Un;
+                case Code.Conv_Ovf_I4_Un: return AbstractOpCode.Conv_Ovf_I4_Un;
+                case Code.Conv_Ovf_I8_Un: return AbstractOpCode.Conv_Ovf_I8_Un;
+                case Code.Conv_Ovf_U1_Un: return AbstractOpCode.Conv_Ovf_U1_Un;
+                case Code.Conv_Ovf_U2_Un: return AbstractOpCode.Conv_Ovf_U2_Un;
+                case Code.Conv_Ovf_U4_Un: return AbstractOpCode.Conv_Ovf_U4_Un;
+                case Code.Conv_Ovf_U8_Un: return AbstractOpCode.Conv_Ovf_U8_Un;
+                case Code.Conv_Ovf_I_Un: return AbstractOpCode.Conv_Ovf_I_Un;
+                case Code.Conv_Ovf_U_Un: return AbstractOpCode.Conv_Ovf_U_Un;
+                case Code.Switch: return AbstractOpCode.Switch;
+                case Code.Box: return AbstractOpCode.Box;
+                case Code.Callvirt: return AbstractOpCode.Callvirt;
+                case Code.Castclass: return AbstractOpCode.Castclass;
+                case Code.Initobj: return AbstractOpCode.Initobj;
+                case Code.Isinst: return AbstractOpCode.Isinst;
+                case Code.Ldelem_Any: return AbstractOpCode.Ldelem;
+                case Code.Ldelem_I: return AbstractOpCode.Ldelem_I;
+                case Code.Ldelem_I1: return AbstractOpCode.Ldelem_I1;
+                case Code.Ldelem_I2: return AbstractOpCode.Ldelem_I2;
+                case Code.Ldelem_I4: return AbstractOpCode.Ldelem_I4;
+                case Code.Ldelem_I8: return AbstractOpCode.Ldelem_I8;
+                case Code.Ldelem_U1: return AbstractOpCode.Ldelem_U1;
+                case Code.Ldelem_U2: return AbstractOpCode.Ldelem_U2;
+                case Code.Ldelem_U4: return AbstractOpCode.Ldelem_U4;
+               
+                case Code.Ldelem_R4: return AbstractOpCode.Ldelem_R4;
+                case Code.Ldelem_R8: return AbstractOpCode.Ldelem_R8;
+                case Code.Ldelem_Ref: return AbstractOpCode.Ldelem_Ref;
+                case Code.Ldelema: return AbstractOpCode.Ldelema;
+                case Code.Ldfld: return AbstractOpCode.Ldfld;
+                case Code.Ldflda: return AbstractOpCode.Ldflda;
+                case Code.Ldlen: return AbstractOpCode.Ldlen;
+                case Code.Ldobj: return AbstractOpCode.Ldobj;
+                case Code.Ldsfld: return AbstractOpCode.Ldsfld;
+                case Code.Ldsflda: return AbstractOpCode.Ldsflda;
+                case Code.Ldtoken: return AbstractOpCode.Ldtoken;
+                case Code.Ldvirtftn: return AbstractOpCode.Ldvirtftn;
+                case Code.Newarr: return AbstractOpCode.Newarr;
+                case Code.Newobj: return AbstractOpCode.Newobj;
+                case Code.Rethrow: return AbstractOpCode.Rethrow;
+                case Code.Sizeof: return AbstractOpCode.Sizeof;
+                case Code.Stelem_Any: return AbstractOpCode.Stelem;
+                case Code.Stelem_I: return AbstractOpCode.Stelem_I;
+                case Code.Stelem_I1: return AbstractOpCode.Stelem_I1;
+                case Code.Stelem_I2: return AbstractOpCode.Stelem_I2;
+                case Code.Stelem_I4: return AbstractOpCode.Stelem_I4;
+                case Code.Stelem_I8: return AbstractOpCode.Stelem_I8;
+                case Code.Stelem_R4: return AbstractOpCode.Stelem_R4;
+                case Code.Stelem_R8: return AbstractOpCode.Stelem_R8;
+                case Code.Stelem_Ref: return AbstractOpCode.Stelem_Ref;
+                case Code.Stfld: return AbstractOpCode.Stfld;
+                case Code.Stobj: return AbstractOpCode.Stobj;
+                case Code.Stsfld: return AbstractOpCode.Stsfld;
+                case Code.Throw: return AbstractOpCode.Throw;
+                case Code.Unbox: return AbstractOpCode.Unbox;
+                default: return AbstractOpCode.Mov; // default case to handle any unrecognized codes
+            }
+        }
+
+        public TransformInstruction CreateStackTransformInstruction(Code code, int popDelta, int pushDelta, ref int stackDepth)
+        {
+            TransformInstruction transformInstruction = new TransformInstruction(ToAbstractOpCode(code));
+            for (int i = 0; i < popDelta; i++)
+            {
+                transformInstruction.AddLeftOperand(new Operand(OperandKind.Stack, --stackDepth));
+            }
+            for (int i = 0; i < pushDelta; i++)
+            {
+                transformInstruction.AddRightOperand(new Operand(OperandKind.Stack, stackDepth++));
+            }
+            return transformInstruction;
+        }
+
+        public CallInstruction CreateCallInstruction(Code code, MethodReference method, ref int stackDepth)
+        {
+            int argCount = method.Parameters.Count;
+            stackDepth -= argCount;
+            CallInstruction call = new CallInstruction(ToAbstractOpCode(code), method, argCount);
+            for (int i = 0; i < argCount; i++)
+            {
+                call.AddArgument(new Operand(OperandKind.Stack, stackDepth + i));
+            }
+            if (call.HasRightHandSideOperand())
+            {
+                call.SetReturnOperand(new Operand(OperandKind.Stack, stackDepth++));
+            }
+            return call;
         }
         public AbstractInstruction TranslateToAbstractInstruction(
             MethodDefinition method, 
@@ -155,48 +343,18 @@ namespace Regulus.Core.Ssa
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Const, constantCounter++, (double)instruction.Operand),
                         new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Ldind_I:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_I,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
+                case Code.Ldind_I:    
                 case Code.Ldind_I1:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_I1,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_I2:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_I2,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_I4:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_I4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_I8:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_I8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_U1:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_U1,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_U2:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_U2,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_U4:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_U4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_R4:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_R4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_R8:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_R8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldind_Ref:
-                    return new UnaryInstruction(AbstractOpCode.Ldind_Ref,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth);
 
                 case Code.Ldarg_S:
                 case Code.Ldarg:
@@ -283,101 +441,55 @@ namespace Regulus.Core.Ssa
                         new ValueOperand(OperandKind.Local, 3,
                         StringToValueType(method.Body.Variables[3].VariableType.Name)));
                 case Code.Add:
-                    return new BinaryInstruction(AbstractOpCode.Add,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Add_Ovf:
-                    return new BinaryInstruction(AbstractOpCode.Add_Ovf,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Add_Ovf_Un:
-                    return new BinaryInstruction(AbstractOpCode.Add_Ovf_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Sub:
-                    return new BinaryInstruction(AbstractOpCode.Sub,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Sub_Ovf:
-                    return new BinaryInstruction(AbstractOpCode.Sub_Ovf,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Sub_Ovf_Un:
-                    return new BinaryInstruction(AbstractOpCode.Sub_Ovf_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Mul:
-                    return new BinaryInstruction(AbstractOpCode.Mul,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Mul_Ovf:
-                    return new BinaryInstruction(AbstractOpCode.Mul_Ovf,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Mul_Ovf_Un:
-                    return new BinaryInstruction(AbstractOpCode.Mul_Ovf_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Div:
-                    return new BinaryInstruction(AbstractOpCode.Div,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Div_Un:
-                    return new BinaryInstruction(AbstractOpCode.Div_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Rem:
-                    return new BinaryInstruction(AbstractOpCode.Rem,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Rem_Un:
-                    return new BinaryInstruction(AbstractOpCode.Rem_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
+                case Code.Ceq:
+                case Code.Cgt:
+                case Code.Cgt_Un:
+                case Code.Clt:
+                case Code.Clt_Un:
+                case Code.And:
+                case Code.Or:
+                case Code.Xor:
+                case Code.Shl:
+                case Code.Shr:
+                case Code.Shr_Un:
+                case Code.Ldelem_Any:
+                case Code.Ldelem_I:
+                case Code.Ldelem_I1:
+                case Code.Ldelem_I2:
+                case Code.Ldelem_I4:
+                case Code.Ldelem_I8:
+                case Code.Ldelem_R4:
+                case Code.Ldelem_R8:
+                case Code.Ldelem_Ref:
+                case Code.Ldelem_U1:
+                case Code.Ldelem_U2:
+                case Code.Ldelem_U4:
+                case Code.Ldelema:
+
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth);
                 case Code.Beq:
-                case Code.Beq_S:
-                    return new CmpBranchInstruction(AbstractOpCode.Beq,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
-                        Blocks[basicBlock.Index + 1]);
+                case Code.Beq_S:   
                 case Code.Blt: 
-                case Code.Blt_S:
-                    return new CmpBranchInstruction(AbstractOpCode.Blt,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
-                        Blocks[basicBlock.Index + 1]);
+                case Code.Blt_S:   
                 case Code.Bge:
                 case Code.Bge_S:
-                    return new CmpBranchInstruction(AbstractOpCode.Bge,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
-                        Blocks[basicBlock.Index + 1]);
                 case Code.Ble: 
-                case Code.Ble_S:
-                    return new CmpBranchInstruction(AbstractOpCode.Ble,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
-                        Blocks[basicBlock.Index + 1]);
+                case Code.Ble_S:   
                 case Code.Bne_Un:
                 case Code.Bne_Un_S:
-                    return new CmpBranchInstruction(AbstractOpCode.Bne,
+                    return new CmpBranchInstruction(ToAbstractOpCode(instruction.OpCode.Code),
                         new Operand(OperandKind.Stack, --stackDepth),
                         new Operand(OperandKind.Stack, --stackDepth),
                         Blocks[basicBlock.Successors.First()],
@@ -398,35 +510,10 @@ namespace Regulus.Core.Ssa
                         new Operand(OperandKind.Stack, --stackDepth),
                         Blocks[basicBlock.Successors.First()],
                         Blocks[basicBlock.Index + 1]);
-                case Code.Ceq:
-                    return new BinaryInstruction(AbstractOpCode.Ceq,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Cgt:
-                    return new BinaryInstruction(AbstractOpCode.Cgt,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Cgt_Un:
-                    return new BinaryInstruction(AbstractOpCode.Cgt_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Clt:
-                    return new BinaryInstruction(AbstractOpCode.Clt,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Clt_Un:
-                    return new BinaryInstruction(AbstractOpCode.Clt_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
+                
                 case Code.Ldftn:
-                    return new MoveInstruction(AbstractOpCode.Ldftn,
-                        new MetaOperand(methodReferenceCounter++, (MethodReference)instruction.Operand),
-                        new Operand(OperandKind.Stack, stackDepth++));
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 0, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(methodReferenceCounter++, (MethodReference)instruction.Operand));
                 case Code.Ldloca:
                 case Code.Ldloca_S:
                     return new MoveInstruction(AbstractOpCode.Ldloca,
@@ -444,417 +531,143 @@ namespace Regulus.Core.Ssa
                         new Operand(OperandKind.Stack, stackDepth - 1),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Neg:
-                    return new UnaryInstruction(AbstractOpCode.Neg,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
+                    
                 case Code.Not:
-                    return new UnaryInstruction(AbstractOpCode.Not,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-                case Code.And:
-                    return new BinaryInstruction(AbstractOpCode.And,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Or:
-                    return new BinaryInstruction(AbstractOpCode.Or,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Xor:
-                    return new BinaryInstruction(AbstractOpCode.Xor,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Shl:
-                    return new BinaryInstruction(AbstractOpCode.Shl,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Shr:
-                    return new BinaryInstruction(AbstractOpCode.Shr,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Shr_Un:
-                    return new BinaryInstruction(AbstractOpCode.Shr_Un,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
+                    
+                
                 case Code.Conv_I:
-                    return new UnaryInstruction(AbstractOpCode.Conv_I,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
+                    
                 case Code.Conv_I1:
-                    return new UnaryInstruction(AbstractOpCode.Conv_I1,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_I2:
-                    return new UnaryInstruction(AbstractOpCode.Conv_I2,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_I4:
-                    return new UnaryInstruction(AbstractOpCode.Conv_I4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_I8:
-                    return new UnaryInstruction(AbstractOpCode.Conv_I8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_U1:
-                    return new UnaryInstruction(AbstractOpCode.Conv_U1,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_U2:
-                    return new UnaryInstruction(AbstractOpCode.Conv_U2,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_U4:
-                    return new UnaryInstruction(AbstractOpCode.Conv_U4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_U8:
-                    return new UnaryInstruction(AbstractOpCode.Conv_U8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_R4:
-                    return new UnaryInstruction(AbstractOpCode.Conv_R4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_R8:
-                    return new UnaryInstruction(AbstractOpCode.Conv_R8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Conv_U:
-                    return new UnaryInstruction(AbstractOpCode.Conv_U,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_R_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_R_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I1:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I1,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I2:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I2,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Conv_Ovf_I4:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I8:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U1:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U1,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U2:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U2,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U4:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U4,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U8:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U8,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I1_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I1_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I2_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I2_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I4_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I4_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I8_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I8_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U1_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U1_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U2_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U2_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                   
                 case Code.Conv_Ovf_U4_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U4_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U8_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U8_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_I_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_I_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
+                    
                 case Code.Conv_Ovf_U_Un:
-                    return new UnaryInstruction(AbstractOpCode.Conv_Ovf_U_Un,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth);
                 case Code.Call:
-                    MethodReference methodCall = (MethodReference)instruction.Operand;
-                    int argCount = methodCall.Parameters.Count;
-                    int start = stackDepth - argCount;
-                    if (methodCall.ReturnType.Name == "Void")
-                    {
-                        stackDepth = start;
-                    }
-                    else
-                    {
-                        stackDepth = start + 1;
-                    }
-                    return new CallInstruction(AbstractOpCode.Call,
-                        (MethodReference)instruction.Operand,
-                        new Operand(OperandKind.Stack, stackDepth),
-                        argCount);
+                case Code.Newobj:
+                    return CreateCallInstruction(instruction.OpCode.Code, (MethodReference)instruction.Operand, ref stackDepth);
+
                 case Code.Switch:
                     return new SwitchInstruction(AbstractOpCode.Switch,
                         Blocks.Where(bb => basicBlock.Successors.Contains(bb.Index)).ToList());
                 case Code.Box:
-                    return new UnaryInstruction(AbstractOpCode.Box,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
                 case Code.Castclass:
-                    return new UnaryInstruction(AbstractOpCode.Castclass,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-                case Code.Initobj:
-                    return new UnaryInstruction(AbstractOpCode.Initobj,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
                 case Code.Isinst:
-                    return new UnaryInstruction(AbstractOpCode.Isinst,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-                case Code.Ldelem_I:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_I,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Ldelem_I1:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_I1,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_I2:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_I2,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_I4:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_I4,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_I8:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_I8,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_U1:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_U1,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_U2:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_U2,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_U4:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_U4,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Ldelem_R4:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_R4,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_R8:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_R8,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldelem_Ref:
-                    return new BinaryInstruction(AbstractOpCode.Ldelem_Ref,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-
-                case Code.Ldelema:
-                    return new BinaryInstruction(AbstractOpCode.Ldelema,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, stackDepth++));
-
-                case Code.Ldfld:
-                    return new UnaryInstruction(AbstractOpCode.Ldfld,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-
-                case Code.Ldflda:
-                    return new UnaryInstruction(AbstractOpCode.Ldflda,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-
-                case Code.Ldlen:
-                    return new UnaryInstruction(AbstractOpCode.Ldlen,
-                        new Operand(OperandKind.Stack, stackDepth - 1));
-
                 case Code.Ldobj:
-                    return new UnaryInstruction(AbstractOpCode.Ldobj,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-
-                case Code.Ldsfld:
-                    return new UnaryInstruction(AbstractOpCode.Ldsfld,
-                        new Operand(OperandKind.Stack, stackDepth++),
-                        new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-                case Code.Ldsflda:
-                    return new UnaryInstruction(AbstractOpCode.Ldsflda,
-                        new Operand(OperandKind.Stack, stackDepth++),
-                        new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-                case Code.Ldtoken:
-                    return new UnaryInstruction(AbstractOpCode.Ldtoken,
-                        new Operand(OperandKind.Stack, stackDepth++),
-                        new MetaOperand(fieldReferenceCounter++, (TypeReference)instruction.Operand));
-                case Code.Ldvirtftn:
-                    return new UnaryInstruction(AbstractOpCode.Ldvirtftn,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(methodReferenceCounter++, (MethodReference)instruction.Operand));
                 case Code.Newarr:
-                    return new UnaryInstruction(AbstractOpCode.Newarr,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-                case Code.Newobj:
-                    MethodReference ctor = (MethodReference)instruction.Operand;
-                    int ctorArgCount = ctor.Parameters.Count;
-                    stackDepth = stackDepth - ctorArgCount;
-                    return new UnaryInstruction(AbstractOpCode.Newarr,
-                        new Operand(OperandKind.Stack, stackDepth++),
-                        new MetaOperand(methodReferenceCounter++, ctor));
-                case Code.Stelem_I:
-                    return new TripleInstruction(AbstractOpCode.Stelem_I,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-                
-                case Code.Stelem_I1:
-                    return new TripleInstruction(AbstractOpCode.Stelem_I1,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-                case Code.Stelem_I2:
-                    return new TripleInstruction(AbstractOpCode.Stelem_I2,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-
-                case Code.Stelem_I4:
-                    return new TripleInstruction(AbstractOpCode.Stelem_I4,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-
-                case Code.Stelem_I8:
-                    return new TripleInstruction(AbstractOpCode.Stelem_I8,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-
-                case Code.Stelem_R4:
-                    return new TripleInstruction(AbstractOpCode.Stelem_R4,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-
-                case Code.Stelem_R8:
-                    return new TripleInstruction(AbstractOpCode.Stelem_R8,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-
-                case Code.Stelem_Ref:
-                    return new TripleInstruction(AbstractOpCode.Stelem_Ref,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-
-                case Code.Stelem_Any:
-                    return new TripleInstruction(AbstractOpCode.Stelem,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth));
-                case Code.Stfld:
-                    return new BinaryInstruction(AbstractOpCode.Stfld,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-                case Code.Stobj:
-                    return new BinaryInstruction(AbstractOpCode.Stobj,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-                case Code.Stsfld:
-                    return new UnaryInstruction(AbstractOpCode.Stsfld,
-                        new Operand(OperandKind.Stack, --stackDepth),
-                        new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-                case Code.Throw:
-                    return new UnaryInstruction(AbstractOpCode.Throw,
-                        new Operand(OperandKind.Stack, --stackDepth));
                 case Code.Unbox:
                 case Code.Unbox_Any:
-                    return new UnaryInstruction(AbstractOpCode.Unbox,
-                        new Operand(OperandKind.Stack, stackDepth - 1),
-                        new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
+                case Code.Initobj:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 0, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
+                
+                case Code.Ldfld:
+                case Code.Ldflda:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth)
+                       .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
 
+                case Code.Ldlen:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth);
+                case Code.Ldsfld:
+                case Code.Ldsflda:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 0, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
+                case Code.Ldtoken:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 0, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
 
+                
+                case Code.Ldvirtftn:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(methodReferenceCounter++, (MethodReference)instruction.Operand));
 
-
-
-
-
-
-
-
-
-
-
+               
+                case Code.Stelem_I:
+                case Code.Stelem_I1:  
+                case Code.Stelem_I2:   
+                case Code.Stelem_I4:  
+                case Code.Stelem_I8:
+                case Code.Stelem_R4:    
+                case Code.Stelem_R8:  
+                case Code.Stelem_Ref:
+                case Code.Stelem_Any:  
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 3, 0, ref stackDepth);
+                case Code.Stfld:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
+                case Code.Stobj:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
+                    .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
+                  
+                case Code.Stsfld:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 0, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
+                case Code.Throw:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 0, ref stackDepth);
                 case Code.Nop:
                     return null;
                 case Code.Ret:
                     return new ReturnInstruction(AbstractOpCode.Ret,
+                        method.ReturnType.Name.ToLower() == "void",
                         new Operand(OperandKind.Stack, --stackDepth));
-                
-
                 default:
                     throw new NotImplementedException();
             }

@@ -32,7 +32,7 @@ namespace Regulus.Core.Ssa.Instruction
             return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
         }
 
-
+        
 
         public override string ToString()
         {

@@ -9,7 +9,7 @@ namespace Regulus.Core.Ssa.Instruction
     public class UnCondBranchInstruction : AbstractInstruction
     {
         public BasicBlock Target;
-        public UnCondBranchInstruction(AbstractOpCode code, BasicBlock target) : base(code)
+        public UnCondBranchInstruction(AbstractOpCode code, BasicBlock target) : base(code, InstructionKind.UnCondBranch)
         {
             Target = target;
         }

@@ -105,6 +105,17 @@ namespace Regulus.Core.Ssa
                         Blocks[targetBlockIndex].Predecessors.Add(i);
                     }
                 }
+                else
+                {
+                    // fall through
+                    if (basicBlock.Index + 1 < Blocks.Count)
+                    {
+                        int targetBlockIndex = basicBlock.Index + 1;
+                        basicBlock.Successors.Add(targetBlockIndex);
+                        Blocks[targetBlockIndex].Predecessors.Add(i);
+                    }
+                    
+                }
 
                 
                 

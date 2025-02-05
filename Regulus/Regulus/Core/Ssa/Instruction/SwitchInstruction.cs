@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Regulus.Core.Ssa
+namespace Regulus.Core.Ssa.Instruction
 {
     public class SwitchInstruction : AbstractInstruction
     {
         List<BasicBlock> JumpTable;
-        public SwitchInstruction(AbstractOpCode code, List<BasicBlock> jumpTable) : base(code)
+        public SwitchInstruction(AbstractOpCode code, List<BasicBlock> jumpTable) : base(code, InstructionKind.Switch)
         {
             JumpTable = jumpTable;
         }

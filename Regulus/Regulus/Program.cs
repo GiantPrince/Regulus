@@ -23,8 +23,8 @@ namespace Regulus
             }
             Console.WriteLine("=====");
 
-            ControlFlowGraph cfg = new ControlFlowGraph(methodDef);
-            foreach (BasicBlock block in cfg.Blocks)
+            SsaBuilder ssaBuilder = new SsaBuilder(methodDef);
+            foreach (BasicBlock block in ssaBuilder.GetBlocks())
             {
                 Console.WriteLine(block);
             }
