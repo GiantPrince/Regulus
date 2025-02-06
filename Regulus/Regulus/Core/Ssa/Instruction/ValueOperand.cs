@@ -39,15 +39,16 @@ namespace Regulus.Core.Ssa.Instruction
             ValueType = ValueOperandType.Long;
         }
 
-        public unsafe ValueOperand(OperandKind type, int index, float value) : base(type, index)
+        public ValueOperand(OperandKind type, int index, float value) : base(type, index)
         {
-            *(float*)_value = value;
+
+            _value = BitConverter.ToInt64(BitConverter.GetBytes(value));
             ValueType = ValueOperandType.Float;
         }
 
         public unsafe ValueOperand(OperandKind type, int index, double value) : base(type, index)
         {
-            *(double*)_value = value;
+            _value = BitConverter.ToInt64(BitConverter.GetBytes(value));
             ValueType = ValueOperandType.Double;
         }
 
@@ -56,6 +57,26 @@ namespace Regulus.Core.Ssa.Instruction
             _value = 0;
             ValueType = ValueOperandType.Null;
 
+        }
+
+        public override unsafe Operand Clone()
+        {
+            switch (ValueType)
+            {
+                case ValueOperandType.Null:
+                    return new ValueOperand(Type, Index);
+                case ValueOperandType.Integer:
+                    return new ValueOperand(Type, Index, (int)_value);
+                case ValueOperandType.Long:
+                    return new ValueOperand(Type, Index, _value);
+                case ValueOperandType.Float:
+                    return new ValueOperand(Type, Index, BitConverter.ToSingle(BitConverter.GetBytes(_value)));
+                case ValueOperandType.Double:
+                    return new ValueOperand(Type, Index, BitConverter.ToSingle(BitConverter.GetBytes(_value)));
+                default:
+                    return new ValueOperand(Type, Index);
+
+            }
         }
 
         public unsafe override string ToString()

@@ -34,6 +34,11 @@ namespace Regulus.Core.Ssa.Instruction
             return Cond;
         }
 
+        public override void SetLeftHandSideOperand(int index, Operand operand)
+        {
+            Cond = operand;
+        }
+
         public override string ToString()
         {
             return $"{base.ToString()}[{Target1.Index}][{Target2.Index}]"; ;

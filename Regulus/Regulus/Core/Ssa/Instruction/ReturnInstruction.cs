@@ -32,6 +32,9 @@ namespace Regulus.Core.Ssa.Instruction
             return _op;
         }
 
-        
+        public override void SetLeftHandSideOperand(int index, Operand operand)
+        {
+            _op = operand;
+        }
     }
 }

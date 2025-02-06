@@ -29,7 +29,17 @@ namespace Regulus
                 Console.WriteLine(block);
             }
 
-           
+            ssaBuilder.PrintUseDefChain();
+
+            Console.WriteLine("==== optimized ====");
+            Optimizer optimizer = new Optimizer(ssaBuilder);
+            foreach (BasicBlock block in ssaBuilder.GetBlocks())
+            {
+                Console.WriteLine(block);
+            }
+
+
+
 
         }
     }

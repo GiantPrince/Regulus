@@ -26,13 +26,18 @@ namespace Regulus.Core.Ssa.Instruction
             Index = index;
             Version = version;
         }
+
+        public virtual Operand Clone()
+        {
+            return new Operand(Type, Index, Version);
+        }
         // Helper method to build the string representation
         private string FormatOperand(string type, int index, int version)
         {
             return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
         }
 
-        
+      
 
         public override string ToString()
         {

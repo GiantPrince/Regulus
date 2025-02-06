@@ -10,6 +10,7 @@ namespace Regulus.Core.Ssa.Instruction
 {
     public enum AbstractOpCode
     {
+        Nop,
         Mov,
         Add,
         Add_Ovf,
@@ -205,6 +206,7 @@ namespace Regulus.Core.Ssa.Instruction
            
             switch (opcode)
             {
+                case AbstractOpCode.Nop: return "Nop";
                 case AbstractOpCode.Mov: return "Mov";
                 case AbstractOpCode.Add: return "Add";
                 case AbstractOpCode.Add_Ovf: return "Add_Ovf";
@@ -344,6 +346,19 @@ namespace Regulus.Core.Ssa.Instruction
         
         }
 
+        public bool IsControlFlowInstruction()
+        {
+            switch(Kind)
+            {
+                case InstructionKind.UnCondBranch:
+                case InstructionKind.CondBranch:
+                case InstructionKind.CmpBranch:
+                case InstructionKind.Switch:
+                    return true;
+            }
+            return false;
+        }
+
         public override string ToString()
         {
             StringBuilder stringBuilder = new StringBuilder();
@@ -397,6 +412,16 @@ namespace Regulus.Core.Ssa.Instruction
         public virtual Operand GetRightHandSideOperand(int index)
         {
             return null;
+        }
+
+        public virtual void SetLeftHandSideOperand(int index, Operand operand)
+        {
+
+        }
+
+        public virtual void SetRightHandSideOperand(int index, Operand operand)
+        {
+
         }
 
 

@@ -9,28 +9,46 @@ using Regulus.Core.Ssa.Instruction;
 
 namespace Regulus.Core.Ssa
 {
-    public struct Variable
-    {
-        public OperandKind Kind;
-        public int Index;
-    }
 
-    public struct Use
+    public class Use
     {
+        public Use(AbstractInstruction instruction, int index)
+        {
+            Instruction = instruction;
+            OperandIndex = index;
+        }
         public AbstractInstruction Instruction;
         public int OperandIndex;
     }
 
+    
     public class SsaBuilder
     {
         private class VariableStack
         {
-            private Dictionary<Variable, int> _counters = new Dictionary<Variable, int>();
-            private Dictionary<Variable, Stack<int>> _stacks = new Dictionary<Variable, Stack<int>>();
-            private Variable OperandToVariable(Operand op)
+            private struct Variable
             {
-                return new Variable { Index = op.Index, Kind = op.Type };
+                public Variable(Operand op)
+                {
+                    Kind = op.Type;
+                    Index = op.Index;
+                }
+                public OperandKind Kind;
+                public int Index;
             }
+            private class StackItem
+            {
+                public StackItem(int v, AbstractInstruction inst)
+                {
+                    Version = v;
+                    DefInstruction = inst;
+                }
+                public int Version;
+                public AbstractInstruction DefInstruction;
+            }
+            private Dictionary<Variable, int> _counters = new Dictionary<Variable, int>();
+            private Dictionary<Variable, Stack<StackItem>> _stacks = new Dictionary<Variable, Stack<StackItem>>();
+            private static StackItem s_emptyStackItem = new StackItem(-1, new AbstractInstruction(AbstractOpCode.Nop, InstructionKind.Empty));
 
             private int GetCounter(Variable v)
             {
@@ -47,16 +65,16 @@ namespace Regulus.Core.Ssa
                 _counters[v]++;
             }
 
-            private void PushToStack(Variable v, int newVersion)
+            private void PushToStack(Variable v, AbstractInstruction instruction, int newVersion)
             {
                 if (_stacks.ContainsKey(v))
                 {
-                    _stacks[v].Push(newVersion);
+                    _stacks[v].Push(new StackItem(newVersion, instruction));
                 }
                 else
                 {
-                    Stack<int> stack = new Stack<int>();
-                    stack.Push(newVersion);
+                    Stack<StackItem> stack = new Stack<StackItem>();
+                    stack.Push(new StackItem(newVersion, instruction));
                     _stacks.Add(v, stack);
                 }
             }
@@ -69,19 +87,19 @@ namespace Regulus.Core.Ssa
                 }
             }
 
-            private int GetStackTop(Variable v)
+            private StackItem GetStackTop(Variable v)
             {
-                if (_stacks.TryGetValue(v, out Stack<int> stack))
+                if (_stacks.TryGetValue(v, out Stack<StackItem> stack))
                 {
                     return stack.Peek();
                 }
-                return -1;
+                return s_emptyStackItem;
             }
 
-            private int NewName(Variable v)
+            private int NewName(Variable v, AbstractInstruction instruction)
             {
                 int i = GetCounter(v);
-                PushToStack(v, i);
+                PushToStack(v, instruction, i);
                 IncrementCounter(v);
                 return i;
             }
@@ -89,17 +107,22 @@ namespace Regulus.Core.Ssa
             
             public int Top(Operand op)
             {
-                return GetStackTop(OperandToVariable(op));
+                return GetStackTop(new Variable(op)).Version;
             }
 
-            public int GenerateName(Operand op)
+            public AbstractInstruction TopDef(Operand op)
             {
-                return NewName(OperandToVariable(op));
+                return GetStackTop(new Variable(op)).DefInstruction;
+            }
+
+            public int GenerateName(Operand op, AbstractInstruction instruction)
+            {
+                return NewName(new Variable(op), instruction);
             }
 
             public void Pop(Operand op)
             {
-                PopFromStack(OperandToVariable(op));
+                PopFromStack(new Variable(op));
             }
         }
 
@@ -107,12 +130,13 @@ namespace Regulus.Core.Ssa
         private DomTree _domTree;
         private DomFrontier _domFrontier;
         private VariableStack _variableStack;
-
+        private Dictionary<AbstractInstruction, List<Use>> _uses;
         
 
         public SsaBuilder(MethodDefinition method) 
         {
             _variableStack = new VariableStack();
+            _uses = new Dictionary<AbstractInstruction, List<Use>>();
             
             _cfg = new ControlFlowGraph(method);
             _domTree = new DomTree(_cfg.Blocks);
@@ -128,11 +152,30 @@ namespace Regulus.Core.Ssa
             return _cfg.Blocks;
         }
 
+        public List<Use> GetUses(AbstractInstruction instruction)
+        {
+            if (_uses.TryGetValue(instruction, out var use)) 
+                return use;
+            return new List<Use>();
+        }
+
+        public void PrintUseDefChain()
+        {
+            Console.WriteLine("== Use-Def Chain ==");
+            foreach (KeyValuePair<AbstractInstruction, List<Use>> keyValuePair in _uses)
+            {
+                Console.WriteLine($"{keyValuePair.Key}");
+                foreach (Use use in keyValuePair.Value)
+                {
+                    Console.WriteLine($"└──{use.Instruction}[{use.OperandIndex}]");
+                }
+            }
+        }
       
 
-        private void GenerateName(Operand op)
+        private void GenerateName(Operand op, AbstractInstruction instruction)
         {
-            op.Version = _variableStack.GenerateName(op);
+            op.Version = _variableStack.GenerateName(op, instruction);
         }
 
         private void PopName(Operand op)
@@ -140,9 +183,23 @@ namespace Regulus.Core.Ssa
             _variableStack.Pop(op);
         }
 
-        private void ReplaceWithTopName(Operand op)
+        private void ReplaceWithTopName(int operandIndex, Operand op, AbstractInstruction instruction)
         {
             op.Version = _variableStack.Top(op);
+            if (op.Version == -1)
+                return;
+            AbstractInstruction defInstruction = _variableStack.TopDef(op);
+            if (_uses.TryGetValue(defInstruction, out List<Use> uses))
+            {
+                uses.Add(new Use(instruction, operandIndex));
+            }
+            else
+            {
+                List<Use> newUse = new List<Use>();
+                newUse.Add(new Use(instruction, operandIndex));
+                _uses.Add(defInstruction, newUse);
+            }
+
         }
 
         private void Rename(BasicBlock block, bool[] visited)
@@ -153,20 +210,20 @@ namespace Regulus.Core.Ssa
             foreach (PhiInstruction phi in block.PhiInstructions)
             {
                 Operand op = phi.GetRightHandSideOperand(0);
-                GenerateName(op);
+                GenerateName(op, phi);
             }
             foreach (AbstractInstruction instruction in block.Instructions)
             {
                 int leftCount = instruction.LeftHandSideOperandCount();
                 for (int i = 0; i < leftCount; i++)
                 {
-                    ReplaceWithTopName(instruction.GetLeftHandSideOperand(i));
+                    ReplaceWithTopName(i, instruction.GetLeftHandSideOperand(i), instruction);
                 }
 
                 int rightCount = instruction.RightHandSideOperandCount();
                 for (int i = 0; i < rightCount; i++)
                 {
-                    GenerateName(instruction.GetRightHandSideOperand(i));
+                    GenerateName(instruction.GetRightHandSideOperand(i), instruction);
                 }
             }
             foreach (int succ in block.Successors)
@@ -176,7 +233,7 @@ namespace Regulus.Core.Ssa
                 {
                     int index = phiInstruction.GetBlockIndex(block);
                     
-                    ReplaceWithTopName(phiInstruction.GetLeftHandSideOperand(index));
+                    ReplaceWithTopName(index, phiInstruction.GetLeftHandSideOperand(index), phiInstruction);
                 }
             }
             foreach (DomTreeNode child in _domTree.GetNode(block.Index).Children)

@@ -35,6 +35,18 @@ namespace Regulus.Core.Ssa.Instruction
             return index == 0 ? _op1 : _op2;
         }
 
+        public override void SetLeftHandSideOperand(int index, Operand operand)
+        {
+            if (index == 0)
+            {
+                _op1 = operand;
+            }
+            else
+            {
+                _op2 = operand;
+            }
+        }
+
         public override string ToString()
         {
             return $"{base.ToString()}[{Target1.Index}][{Target2.Index}]";

@@ -56,6 +56,16 @@ namespace Regulus.Core.Ssa.Instruction
             return _returnVal;
         }
 
+        public override void SetRightHandSideOperand(int index, Operand operand)
+        {
+            _returnVal = operand;
+        }
+
+        public override void SetLeftHandSideOperand(int index, Operand operand)
+        {
+            _args[index] = operand;
+        }
+
         public void AddArgument(Operand arg)
         {
             _args.Add(arg);

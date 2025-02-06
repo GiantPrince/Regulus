@@ -38,6 +38,11 @@ namespace Regulus.Core.Ssa.Instruction
             return _pairs.Count - 1;
         }
 
+        public BasicBlock GetSourceBlock(int index)
+        {
+            return _pairs[index].Block;
+        }
+
         public override int LeftHandSideOperandCount()
         {
             return _pairs.Count;
@@ -58,10 +63,28 @@ namespace Regulus.Core.Ssa.Instruction
             return _op;
         }
 
+        public override void SetLeftHandSideOperand(int index, Operand operand)
+        {
+            _pairs[index].Op = operand;
+        }
+
+        public override void SetRightHandSideOperand(int index, Operand operand)
+        {
+            _op = operand;
+        }
+
         public override string ToString()
         {
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append("[Phi|Phi] ");
+            if (Code == AbstractOpCode.Nop)
+            {
+                stringBuilder.Append("[Empty|Nop] ");
+            }
+            else
+            {
+                stringBuilder.Append("[Phi|Phi] ");
+            }
+            
             int leftCount = LeftHandSideOperandCount();
             for (int i = 0; i < leftCount; i++)
             {

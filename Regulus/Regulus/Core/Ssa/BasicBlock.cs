@@ -83,10 +83,14 @@ namespace Regulus.Core.Ssa
             stringBuilder.AppendLine();
             foreach (PhiInstruction phiInstruction in PhiInstructions)
             {
+                if (phiInstruction.Code == AbstractOpCode.Nop)
+                    continue;
                 stringBuilder.AppendLine($"{phiInstruction}");
             }
             foreach (AbstractInstruction i in Instructions)
             {
+                if (i.Code == AbstractOpCode.Nop)
+                    continue;
                 stringBuilder.AppendLine(i.ToString());
             }
             return stringBuilder.ToString();

@@ -46,6 +46,16 @@ namespace Regulus.Core.Ssa.Instruction
             return _meta;
         }
 
+        public override void SetLeftHandSideOperand(int index, Operand operand)
+        {
+            _leftOps[index] = operand;
+        }
+
+        public override void SetRightHandSideOperand(int index, Operand operand)
+        {
+            _rightOps[index] = operand;
+        }
+
         public TransformInstruction AddLeftOperand(Operand operand)
         {
             _leftOps.Add(operand);
