@@ -14,43 +14,92 @@ namespace Regulus.Core.Ssa
         public OperandKind Kind;
         public int Index;
     }
+
+    public struct Use
+    {
+        public AbstractInstruction Instruction;
+        public int OperandIndex;
+    }
+
     public class SsaBuilder
     {
         private class VariableStack
         {
-            private Dictionary<Variable, int> _stacks = new Dictionary<Variable, int>();
+            private Dictionary<Variable, int> _counters = new Dictionary<Variable, int>();
+            private Dictionary<Variable, Stack<int>> _stacks = new Dictionary<Variable, Stack<int>>();
             private Variable OperandToVariable(Operand op)
             {
                 return new Variable { Index = op.Index, Kind = op.Type };
             }
 
-            private Variable CheckExistence(Operand op)
+            private int GetCounter(Variable v)
             {
-                Variable v = OperandToVariable(op);
-                if (!_stacks.ContainsKey(v))
+                if (_counters.TryGetValue(v, out int counter))
                 {
-                    _stacks.Add(v, -1);
+                    return counter;
                 }
-                return v;
-            }
-            public int GetTop(Operand op)
-            {
-                return _stacks[CheckExistence(op)];
+                _counters.Add(v, 0);
+                return 0;
             }
 
-            public void Push(Operand op)
+            private void IncrementCounter(Variable v)
             {
-                _stacks[CheckExistence(op)]++;
+                _counters[v]++;
+            }
+
+            private void PushToStack(Variable v, int newVersion)
+            {
+                if (_stacks.ContainsKey(v))
+                {
+                    _stacks[v].Push(newVersion);
+                }
+                else
+                {
+                    Stack<int> stack = new Stack<int>();
+                    stack.Push(newVersion);
+                    _stacks.Add(v, stack);
+                }
+            }
+
+            private void PopFromStack(Variable v)
+            {
+                if (_stacks.ContainsKey(v))
+                {
+                    _stacks[v].Pop();
+                }
+            }
+
+            private int GetStackTop(Variable v)
+            {
+                if (_stacks.TryGetValue(v, out Stack<int> stack))
+                {
+                    return stack.Peek();
+                }
+                return -1;
+            }
+
+            private int NewName(Variable v)
+            {
+                int i = GetCounter(v);
+                PushToStack(v, i);
+                IncrementCounter(v);
+                return i;
+            }
+
+            
+            public int Top(Operand op)
+            {
+                return GetStackTop(OperandToVariable(op));
+            }
+
+            public int GenerateName(Operand op)
+            {
+                return NewName(OperandToVariable(op));
             }
 
             public void Pop(Operand op)
             {
-                Variable v = CheckExistence(op);
-                if (_stacks[v] == 0)
-                {
-                    return;
-                }
-                _stacks[v]--;
+                PopFromStack(OperandToVariable(op));
             }
         }
 
@@ -58,6 +107,7 @@ namespace Regulus.Core.Ssa
         private DomTree _domTree;
         private DomFrontier _domFrontier;
         private VariableStack _variableStack;
+
         
 
         public SsaBuilder(MethodDefinition method) 
@@ -82,9 +132,7 @@ namespace Regulus.Core.Ssa
 
         private void GenerateName(Operand op)
         {
-            
-            _variableStack.Push(op);
-            op.Version = _variableStack.GetTop(op);
+            op.Version = _variableStack.GenerateName(op);
         }
 
         private void PopName(Operand op)
@@ -94,7 +142,7 @@ namespace Regulus.Core.Ssa
 
         private void ReplaceWithTopName(Operand op)
         {
-            op.Version = _variableStack.GetTop(op);
+            op.Version = _variableStack.Top(op);
         }
 
         private void Rename(BasicBlock block, bool[] visited)

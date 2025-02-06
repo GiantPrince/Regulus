@@ -2,18 +2,25 @@
 {
     public class Test
     {
-        public static int Add(int a, int b)
+        public static int Add()
         {
-            int c = a + b;
-            for (int i = 0; i < a; i++)
+            int i = 1;
+            int j = 1;
+            int k = 0;
+            while (k < 100)
             {
-                c += a;
-                for (int j = 0; j < b; j++)
+                if (j < 20)
                 {
-                    c += b;
+                    j = k;
+                    k = k + 2;
+                }
+                else
+                {
+                    j = i;
+                    k = k + 1;
                 }
             }
-            return c;
+            return j;
         }
 
     }
