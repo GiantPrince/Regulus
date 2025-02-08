@@ -11,7 +11,7 @@ namespace Regulus
     }
     public class Program
     {
-        public static void Main(string[] args)
+        public unsafe static void Main(string[] args)
         {
             ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
@@ -37,6 +37,17 @@ namespace Regulus
             {
                 Console.WriteLine(block);
             }
+
+            Compiler compiler = new Compiler();
+            compiler.Compile(ssaBuilder.GetBlocks(), methodDef.Parameters.Count, methodDef.Body.Variables.Count, methodDef.Body.MaxStackSize);
+
+            fixed(byte* ip = compiler.GetByteCode())
+            {
+                VirtualMachine virtualMachine = new VirtualMachine();
+
+                virtualMachine.Run((Instruction*)ip);
+            }
+            
 
 
 

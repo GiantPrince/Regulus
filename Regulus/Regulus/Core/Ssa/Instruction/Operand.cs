@@ -12,7 +12,8 @@ namespace Regulus.Core.Ssa.Instruction
         Local,
         Const,
         Arg,
-        Meta
+        Meta,
+        Tmp
     }
     public class Operand
     {
@@ -31,7 +32,11 @@ namespace Regulus.Core.Ssa.Instruction
         {
             return new Operand(Type, Index, Version);
         }
-        // Helper method to build the string representation
+        
+        public bool IsDefault()
+        {
+            return Version == defaultVersion;
+        }
         private string FormatOperand(string type, int index, int version)
         {
             return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
@@ -54,6 +59,8 @@ namespace Regulus.Core.Ssa.Instruction
                     return FormatOperand("Arg", Index, Version);
                 case OperandKind.Meta:
                     return FormatOperand("Meta", Index, Version);
+                case OperandKind.Tmp:
+                    return FormatOperand("Tmp", Index, Version);
                 default:
                     return FormatOperand("Unknown", Index, Version);
             }

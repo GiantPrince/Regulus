@@ -59,6 +59,11 @@ namespace Regulus.Core.Ssa.Instruction
 
         }
 
+        public byte[] GetValue()
+        {
+            return BitConverter.GetBytes(_value);
+        }
+
         public override unsafe Operand Clone()
         {
             switch (ValueType)

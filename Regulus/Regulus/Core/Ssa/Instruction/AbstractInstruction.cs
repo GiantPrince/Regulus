@@ -424,6 +424,20 @@ namespace Regulus.Core.Ssa.Instruction
 
         }
 
+        public virtual int BranchTargetCount()
+        {
+            return 0;
+        }
+
+        public virtual BasicBlock GetBranchTarget(int index)
+        {
+            return null;
+        }
+
+        public virtual void SetBranchTarget(int index, BasicBlock newTarget)
+        {
+            
+        }
 
         public virtual bool HasMetaOperand()
         {

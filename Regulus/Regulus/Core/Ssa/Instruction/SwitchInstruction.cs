@@ -14,6 +14,21 @@ namespace Regulus.Core.Ssa.Instruction
             JumpTable = jumpTable;
         }
 
+        public override int BranchTargetCount()
+        {
+            return JumpTable.Count;
+        }
+
+        public override BasicBlock GetBranchTarget(int index)
+        {
+            return JumpTable[index];
+        }
+
+        public override void SetBranchTarget(int index, BasicBlock newTarget)
+        {
+            JumpTable[index] = newTarget;
+        }
+
         public override string ToString()
         {
             StringBuilder stringBuilder = new StringBuilder();

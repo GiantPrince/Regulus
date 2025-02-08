@@ -47,6 +47,28 @@ namespace Regulus.Core.Ssa.Instruction
             }
         }
 
+        public override int BranchTargetCount()
+        {
+            return 2;
+        }
+
+        public override BasicBlock GetBranchTarget(int index)
+        {
+            return index == 0 ? Target1 : Target2;
+        }
+
+        public override void SetBranchTarget(int index, BasicBlock newTarget)
+        {
+            if (index == 0)
+            {
+                Target1 = newTarget;
+            }
+            else
+            {
+                Target2 = newTarget;
+            }
+        }
+
         public override string ToString()
         {
             return $"{base.ToString()}[{Target1.Index}][{Target2.Index}]";

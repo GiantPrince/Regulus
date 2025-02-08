@@ -46,8 +46,15 @@ namespace Regulus.Core
                 {
                     case OpCode.Mov:
                         ABInstruction* movInstruction = (ABInstruction*)ip;
-                        Registers[movInstruction->RegisterB] = Registers[movInstruction->RegisterA];
+                        Registers[movInstruction->RegisterA] = Registers[movInstruction->RegisterB];
                         ip += sizeof(ABInstruction);
+                        break;
+                    case OpCode.AddI_Int:
+                        ABPInstruction* addIIntInstruction = (ABPInstruction*)ip;
+                        Registers[addIIntInstruction->RegisterA].Upper = 
+                            Registers[addIIntInstruction->RegisterB].Upper + addIIntInstruction->Operand;
+                        break;
+                    case OpCode.CltI:
                         break;
                     case OpCode.Add_Int:
                         ABCInstruction* addIntInstruction = (ABCInstruction*)ip;
@@ -775,6 +782,11 @@ namespace Regulus.Core
                         {
                             ip = (Instruction*)(bltUnLongInstruction + 1);
                         }
+                        break;
+                    case OpCode.Clt:
+                        ABCInstruction* cltInstruction = (ABCInstruction*)ip;
+                        *(bool*)Registers[cltInstruction->RegisterC].Upper = 
+                            Registers[cltInstruction->RegisterA].Upper < Registers[cltInstruction->RegisterB].Upper;
                         break;
                     case OpCode.Ldc_Int:
                         APInstruction* ldcIntInstruction = (APInstruction*)ip;
