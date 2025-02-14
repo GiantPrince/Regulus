@@ -11,6 +11,7 @@ namespace Regulus.Core
     {
         Nop,
         Mov,
+       
 
         // Calculation
         And_Long,
@@ -69,8 +70,33 @@ namespace Regulus.Core
         Rem_Int_Un,
         Rem_Long_Un,
         //
-        Clt,
-        CltI,
+        Clt_Int,
+        Clt_Long,
+        Clt_Float,
+        Clt_Double,
+        CltI_Int,
+        CltI_Long,
+        CltI_Float,
+        CltI_Double,
+        Clt_Un_Int,
+        Clt_Un_Long,
+        Clt_Un_Float,
+        Clt_Un_Double,
+        Cgt_Int,
+        Cgt_Long,
+        Cgt_Float,
+        Cgt_Double,
+        CgtI_Int,
+        CgtI_Long,
+        CgtI_Float,
+        CgtI_Double,
+        Cgt_Un_Int,
+        Cgt_Un_Long,
+        Cgt_Un_Float,
+        Cgt_Un_Double,
+        Ceq,
+          
+
 
         // Branch
         Br,
@@ -179,13 +205,26 @@ namespace Regulus.Core
     [StructLayout(LayoutKind.Explicit)]
     public struct Instruction
     {
+        public const int Size = 1;
         [FieldOffset(0)]
         public OpCode Op;
     }
 
     [StructLayout(LayoutKind.Explicit)]
+    public struct AInstruction
+    {
+        public const int Size = sizeof(OpCode) + sizeof(byte);
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(1)]
+        public byte RegisterA;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     public struct ABPInstruction
     {
+        public const int Size = 7;
         [FieldOffset(0)]
         public OpCode Op;
 
@@ -200,8 +239,26 @@ namespace Regulus.Core
     }
 
     [StructLayout(LayoutKind.Explicit)]
+    public struct ABLPInstruction
+    {
+        public const int Size = 11;
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(1)]
+        public byte RegisterA;
+
+        [FieldOffset(2)]
+        public byte RegisterB;
+
+        [FieldOffset(3)]
+        public long Operand;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     public struct PInstruction
     {
+        public const int Size = 5;
         [FieldOffset(0)]
         public OpCode Op;
 
@@ -212,6 +269,21 @@ namespace Regulus.Core
     [StructLayout(LayoutKind.Explicit)]
     public struct APInstruction
     {
+        public const int Size = 6;
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(1)]
+        public byte RegisterA;
+
+        [FieldOffset(2)]
+        public int Operand;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct ALPInstruction
+    {
+        public const int Size = 10;
         [FieldOffset(0)]
         public OpCode Op;
 
@@ -225,6 +297,7 @@ namespace Regulus.Core
     [StructLayout(LayoutKind.Explicit)]
     public struct ABInstruction
     {
+        public const int Size = 3;
         [FieldOffset(0)]
         public OpCode Op;
 
@@ -238,6 +311,7 @@ namespace Regulus.Core
     [StructLayout(LayoutKind.Explicit)]
     public struct ABCInstruction
     {
+        public const int Size = 4;
         [FieldOffset(0)]
         public OpCode Op;
 

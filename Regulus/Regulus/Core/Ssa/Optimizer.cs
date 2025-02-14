@@ -19,6 +19,7 @@ namespace Regulus.Core.Ssa
             CopyPropagation();
             //CriticalEdgeSplitting();
             ResolvePhiFunctions();
+            ClearEmptyInstructions();
         }
 
         public Optimizer(MethodDefinition method)
@@ -27,7 +28,13 @@ namespace Regulus.Core.Ssa
             CopyPropagation();
         }
 
-        
+        private void ClearEmptyInstructions()
+        {
+            foreach (BasicBlock block in _ssaBuilder.GetBlocks())
+            {
+                block.Instructions = block.Instructions.Where(i => i.Kind != InstructionKind.Empty).ToList();
+            }
+        }
 
         private void CriticalEdgeSplitting()
         {

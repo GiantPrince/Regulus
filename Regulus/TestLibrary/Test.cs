@@ -7,20 +7,21 @@
             int i = 1;
             int j = 1;
             int k = 0;
-            while (k < 100)
+
+            while (k < 10)
             {
-                if (j < 20)
+                if (i == j)
                 {
-                    j = k;
-                    k = k + 2;
+                    k = i;
+                    i = k + 1;
                 }
                 else
                 {
-                    j = i;
-                    k = k + 1;
+                    k = j;
+                    j = k + 2;
                 }
             }
-            return j;
+            return i;
         }
 
     }

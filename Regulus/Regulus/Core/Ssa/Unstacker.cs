@@ -23,7 +23,7 @@ namespace Regulus.Core.Ssa
             public int Index;
             public int StackDepth;
         }
-        
+
 
         public void Unstack(ControlFlowGraph cfg)
         {
@@ -47,10 +47,10 @@ namespace Regulus.Core.Ssa
                 }
 
             }
-            
+
         }
 
-        
+
 
 
 
@@ -63,7 +63,7 @@ namespace Regulus.Core.Ssa
                 {
                     bb.Instructions.Add(abstractInstruction);
                 }
-                
+
             }
             return stackDepth;
         }
@@ -112,8 +112,8 @@ namespace Regulus.Core.Ssa
                 case Code.Beq:
                 case Code.Beq_S:
                     return AbstractOpCode.Beq;
-                case Code.Bne_Un: 
-                case Code.Bne_Un_S: 
+                case Code.Bne_Un:
+                case Code.Bne_Un_S:
                     return AbstractOpCode.Bne;
                 case Code.Bgt:
                 case Code.Bgt_S:
@@ -214,7 +214,7 @@ namespace Regulus.Core.Ssa
                 case Code.Ldelem_U1: return AbstractOpCode.Ldelem_U1;
                 case Code.Ldelem_U2: return AbstractOpCode.Ldelem_U2;
                 case Code.Ldelem_U4: return AbstractOpCode.Ldelem_U4;
-               
+
                 case Code.Ldelem_R4: return AbstractOpCode.Ldelem_R4;
                 case Code.Ldelem_R8: return AbstractOpCode.Ldelem_R8;
                 case Code.Ldelem_Ref: return AbstractOpCode.Ldelem_Ref;
@@ -279,12 +279,12 @@ namespace Regulus.Core.Ssa
             return call;
         }
         public AbstractInstruction TranslateToAbstractInstruction(
-            MethodDefinition method, 
-            BasicBlock basicBlock, 
-            Mono.Cecil.Cil.Instruction instruction, 
+            MethodDefinition method,
+            BasicBlock basicBlock,
+            Mono.Cecil.Cil.Instruction instruction,
             ref int stackDepth)
         {
-            switch (instruction.OpCode.Code) 
+            switch (instruction.OpCode.Code)
             {
                 case Code.Ldc_I4:
                 case Code.Ldc_I4_S:
@@ -343,7 +343,7 @@ namespace Regulus.Core.Ssa
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Const, constantCounter++, (double)instruction.Operand),
                         new Operand(OperandKind.Stack, stackDepth++));
-                case Code.Ldind_I:    
+                case Code.Ldind_I:
                 case Code.Ldind_I1:
                 case Code.Ldind_I2:
                 case Code.Ldind_I4:
@@ -384,9 +384,9 @@ namespace Regulus.Core.Ssa
                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc:
                 case Code.Ldloc_S:
-                    
+
                     return new MoveInstruction(AbstractOpCode.Mov,
-                        new ValueOperand(OperandKind.Local, ((VariableDefinition)instruction.Operand).Index, 
+                        new ValueOperand(OperandKind.Local, ((VariableDefinition)instruction.Operand).Index,
                         StringToValueType(((VariableDefinition)instruction.Operand).VariableType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc_0:
@@ -413,12 +413,12 @@ namespace Regulus.Core.Ssa
                 case Code.Starg_S:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new Operand(OperandKind.Stack, --stackDepth),
-                       new ValueOperand(OperandKind.Arg, (int)instruction.Operand, 
+                       new ValueOperand(OperandKind.Arg, (int)instruction.Operand,
                        StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)));
                 case Code.Stloc:
                 case Code.Stloc_S:
                     VariableDefinition localVar = (VariableDefinition)instruction.Operand;
-                    
+
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new Operand(OperandKind.Stack, --stackDepth),
                         new ValueOperand(OperandKind.Local, localVar.Index,
@@ -483,13 +483,13 @@ namespace Regulus.Core.Ssa
 
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth);
                 case Code.Beq:
-                case Code.Beq_S:   
-                case Code.Blt: 
-                case Code.Blt_S:   
+                case Code.Beq_S:
+                case Code.Blt:
+                case Code.Blt_S:
                 case Code.Bge:
                 case Code.Bge_S:
-                case Code.Ble: 
-                case Code.Ble_S:   
+                case Code.Ble:
+                case Code.Ble_S:
                 case Code.Bne_Un:
                 case Code.Bne_Un_S:
                     return new CmpBranchInstruction(ToAbstractOpCode(instruction.OpCode.Code),
@@ -497,7 +497,7 @@ namespace Regulus.Core.Ssa
                         new Operand(OperandKind.Stack, --stackDepth),
                         Blocks[basicBlock.Successors.First()],
                         Blocks[basicBlock.Index + 1]);
-                case Code.Br: 
+                case Code.Br:
                 case Code.Br_S:
                     return new UnCondBranchInstruction(AbstractOpCode.Br,
                         Blocks[basicBlock.Successors.First()]);
@@ -507,13 +507,13 @@ namespace Regulus.Core.Ssa
                         new Operand(OperandKind.Stack, --stackDepth),
                         Blocks[basicBlock.Successors.First()],
                         Blocks[basicBlock.Index + 1]);
-                case Code.Brtrue: 
+                case Code.Brtrue:
                 case Code.Brtrue_S:
                     return new CondBranchInstruction(AbstractOpCode.BrTrue,
                         new Operand(OperandKind.Stack, --stackDepth),
                         Blocks[basicBlock.Successors.First()],
                         Blocks[basicBlock.Index + 1]);
-                
+
                 case Code.Ldftn:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 0, 1, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(methodReferenceCounter++, (MethodReference)instruction.Operand));
@@ -534,78 +534,44 @@ namespace Regulus.Core.Ssa
                         new Operand(OperandKind.Stack, stackDepth - 1),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Neg:
-                    
                 case Code.Not:
-                    
-                
                 case Code.Conv_I:
-                    
                 case Code.Conv_I1:
-                    
                 case Code.Conv_I2:
-                    
                 case Code.Conv_I4:
-                    
                 case Code.Conv_I8:
-                    
                 case Code.Conv_U1:
-                    
                 case Code.Conv_U2:
-                    
                 case Code.Conv_U4:
-                    
                 case Code.Conv_U8:
-                    
                 case Code.Conv_R4:
-                    
                 case Code.Conv_R8:
                 case Code.Conv_U:
-                    
                 case Code.Conv_R_Un:
-                    
                 case Code.Conv_Ovf_I1:
-                    
                 case Code.Conv_Ovf_I2:
                 case Code.Conv_Ovf_I4:
-                    
                 case Code.Conv_Ovf_I8:
-                    
                 case Code.Conv_Ovf_U1:
-                    
                 case Code.Conv_Ovf_U2:
-                    
                 case Code.Conv_Ovf_U4:
-                    
                 case Code.Conv_Ovf_U8:
-                    
                 case Code.Conv_Ovf_I:
-                    
                 case Code.Conv_Ovf_U:
-                    
                 case Code.Conv_Ovf_I1_Un:
-                    
                 case Code.Conv_Ovf_I2_Un:
-                    
                 case Code.Conv_Ovf_I4_Un:
-                    
                 case Code.Conv_Ovf_I8_Un:
-                    
                 case Code.Conv_Ovf_U1_Un:
-                    
                 case Code.Conv_Ovf_U2_Un:
-                   
                 case Code.Conv_Ovf_U4_Un:
-                    
                 case Code.Conv_Ovf_U8_Un:
-                    
                 case Code.Conv_Ovf_I_Un:
-                    
                 case Code.Conv_Ovf_U_Un:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth);
                 case Code.Call:
                 case Code.Newobj:
                     return CreateCallInstruction(instruction.OpCode.Code, (MethodReference)instruction.Operand, ref stackDepth);
-
                 case Code.Switch:
                     return new SwitchInstruction(AbstractOpCode.Switch,
                         Blocks.Where(bb => basicBlock.Successors.Contains(bb.Index)).ToList());
@@ -621,12 +587,10 @@ namespace Regulus.Core.Ssa
                 case Code.Initobj:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 0, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-                
                 case Code.Ldfld:
                 case Code.Ldflda:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth)
                        .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
-
                 case Code.Ldlen:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth);
                 case Code.Ldsfld:
@@ -636,22 +600,18 @@ namespace Regulus.Core.Ssa
                 case Code.Ldtoken:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 0, 1, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-
-                
                 case Code.Ldvirtftn:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(methodReferenceCounter++, (MethodReference)instruction.Operand));
-
-               
                 case Code.Stelem_I:
-                case Code.Stelem_I1:  
-                case Code.Stelem_I2:   
-                case Code.Stelem_I4:  
+                case Code.Stelem_I1:
+                case Code.Stelem_I2:
+                case Code.Stelem_I4:
                 case Code.Stelem_I8:
-                case Code.Stelem_R4:    
-                case Code.Stelem_R8:  
+                case Code.Stelem_R4:
+                case Code.Stelem_R8:
                 case Code.Stelem_Ref:
-                case Code.Stelem_Any:  
+                case Code.Stelem_Any:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 3, 0, ref stackDepth);
                 case Code.Stfld:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
@@ -659,7 +619,6 @@ namespace Regulus.Core.Ssa
                 case Code.Stobj:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
                     .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
-                  
                 case Code.Stsfld:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 0, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));

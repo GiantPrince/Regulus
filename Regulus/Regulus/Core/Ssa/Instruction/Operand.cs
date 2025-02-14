@@ -33,7 +33,7 @@ namespace Regulus.Core.Ssa.Instruction
             return new Operand(Type, Index, Version);
         }
         
-        public bool IsDefault()
+        public virtual bool IsDefault()
         {
             return Version == defaultVersion;
         }

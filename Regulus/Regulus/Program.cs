@@ -2,6 +2,7 @@
 using System.Reflection;
 using Mono.Cecil;
 using Regulus.Core.Ssa;
+using System.Collections;
 
 namespace Regulus
 {
@@ -13,6 +14,7 @@ namespace Regulus
     {
         public unsafe static void Main(string[] args)
         {
+            
             ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
 

@@ -67,7 +67,7 @@ namespace Regulus.Test
 
         public static void* AddAPInstruction(void* start, OpCode op, byte registerA, long operand)
         {
-            APInstruction* newAPInstruction = (APInstruction*)start;
+            ALPInstruction* newAPInstruction = (ALPInstruction*)start;
             newAPInstruction->Op = op;
             newAPInstruction->RegisterA = registerA;
             newAPInstruction->Operand = operand;

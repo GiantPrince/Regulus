@@ -10,16 +10,14 @@ namespace Regulus.Core.Ssa
     {
         List<byte> bytecodes;
 
-        
-
         public Emitter()
         {
             bytecodes = new List<byte>();
         }
 
-        public byte[] GetBytes()
+        public List<byte> GetBytes()
         {
-            return bytecodes.ToArray();
+            return bytecodes;
         }
 
         public int GetByteCount()
@@ -35,6 +33,12 @@ namespace Regulus.Core.Ssa
             bytecodes.Add(c);
         }
 
+        public void EmitAInstruction(OpCode opcode, byte a)
+        {
+            bytecodes.Add((byte)opcode);
+            bytecodes.Add(a);
+        }
+
         public void EmitABPInstruction(OpCode opcode, byte a, byte b, int p)
         {
             bytecodes.Add((byte)opcode); 
@@ -42,7 +46,7 @@ namespace Regulus.Core.Ssa
             bytecodes.Add(b);            
 
             byte[] cBytes = BitConverter.GetBytes(p);
-            int tmp = BitConverter.ToInt32 (cBytes, 0);
+            
             bytecodes.AddRange(cBytes);              
         }
 
@@ -64,6 +68,13 @@ namespace Regulus.Core.Ssa
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, int p)
+        {
+            bytecodes.Add((byte)opcode);
+            bytecodes.Add(a);
+            bytecodes.AddRange(BitConverter.GetBytes(p));
+        }
+
+        public void EmitAPInstruction(OpCode opcode, byte a, float p)
         {
             bytecodes.Add((byte)opcode);
             bytecodes.Add(a);

@@ -24,6 +24,7 @@ namespace Regulus.Core.Ssa.Instruction
         {
             _value = 0;
             ValueType = valueType;
+            
         }
 
 
@@ -31,12 +32,14 @@ namespace Regulus.Core.Ssa.Instruction
         {
             _value = value;
             ValueType = ValueOperandType.Integer;
+            
         }
 
         public ValueOperand(OperandKind type, int index, long value) : base(type, index)
         {
             _value = value;
             ValueType = ValueOperandType.Long;
+            
         }
 
         public ValueOperand(OperandKind type, int index, float value) : base(type, index)
@@ -44,24 +47,47 @@ namespace Regulus.Core.Ssa.Instruction
 
             _value = BitConverter.ToInt64(BitConverter.GetBytes(value));
             ValueType = ValueOperandType.Float;
+            
         }
 
         public unsafe ValueOperand(OperandKind type, int index, double value) : base(type, index)
         {
             _value = BitConverter.ToInt64(BitConverter.GetBytes(value));
             ValueType = ValueOperandType.Double;
+            
         }
 
         public ValueOperand(OperandKind type, int index) : base(type, index)
         {
             _value = 0;
             ValueType = ValueOperandType.Null;
+           
 
         }
 
         public byte[] GetValue()
         {
             return BitConverter.GetBytes(_value);
+        }
+
+        public int GetInt()
+        {
+            return (int)_value;
+        }
+
+        public long GetLong()
+        {
+            return _value;
+        }
+
+        public float GetFloat()
+        {
+            return BitConverter.ToSingle(BitConverter.GetBytes(_value));
+        }
+
+        public double GetDouble()
+        {
+            return BitConverter.ToDouble(BitConverter.GetBytes(_value));
         }
 
         public override unsafe Operand Clone()
@@ -102,6 +128,11 @@ namespace Regulus.Core.Ssa.Instruction
                         $"{base.ToString()} [{_value}:Double]" : $"{base.ToString()} [Double]";
             }
             return base.ToString();
+        }
+
+        public override bool IsDefault()
+        {
+            return base.IsDefault() && Type != OperandKind.Const;
         }
 
 
