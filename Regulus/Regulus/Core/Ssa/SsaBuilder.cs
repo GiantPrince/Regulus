@@ -321,7 +321,7 @@ namespace Regulus.Core.Ssa
                         }
                         AlreadyHasPhiFunc.Add(frontier.Index);
                         
-                        frontier.PhiInstructions.Add(new PhiInstruction(new Operand(op.Type, op.Index)));
+                        frontier.PhiInstructions.Add(new PhiInstruction(op.Clone()));
                         
 
                         if (everOnWorkList.Contains(frontier.Index))

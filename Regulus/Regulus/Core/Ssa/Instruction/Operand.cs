@@ -13,6 +13,7 @@ namespace Regulus.Core.Ssa.Instruction
         Const,
         Arg,
         Meta,
+        Reg,
         Tmp
     }
     public class Operand
@@ -42,7 +43,12 @@ namespace Regulus.Core.Ssa.Instruction
             return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
         }
 
-      
+        public void AssignRegister(int index)
+        {
+            Type = OperandKind.Reg;
+            Index = index;
+            Version = defaultVersion;
+        }
 
         public override string ToString()
         {
@@ -61,6 +67,8 @@ namespace Regulus.Core.Ssa.Instruction
                     return FormatOperand("Meta", Index, Version);
                 case OperandKind.Tmp:
                     return FormatOperand("Tmp", Index, Version);
+                case OperandKind.Reg:
+                    return FormatOperand("Reg", Index, Version);
                 default:
                     return FormatOperand("Unknown", Index, Version);
             }

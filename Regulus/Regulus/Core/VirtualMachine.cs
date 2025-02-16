@@ -37,8 +37,18 @@ namespace Regulus.Core
             Registers[index] = value;
         }
 
+        public void ResetRegister()
+        {
+            Value empty = new Value();
+            for (int i = 0; i < MAX_REGISTERS; i++)
+            {
+                Registers[i] = empty;
+            }
+        }
+
         public Value Run(Instruction* ip)
         {
+            ResetRegister();
             while (true)
             {
                 OpCode op = ip->Op;

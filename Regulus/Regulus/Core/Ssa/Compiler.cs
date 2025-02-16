@@ -13,6 +13,29 @@ using Regulus.Core.Ssa.Instruction;
 
 namespace Regulus.Core.Ssa
 {
+    class OperandComparer : IEqualityComparer<Operand>
+    {
+        public bool Equals(Operand x, Operand y)
+        {
+            if (x == null || y == null)
+                return false;
+
+            return x.Index == y.Index && x.Type == y.Type && x.Version == y.Version; 
+        }
+
+        public int GetHashCode(Operand obj)
+        {
+            if (obj == null)
+                return 0;
+
+            int hash = 17;
+            hash = hash * 23 + obj.Index.GetHashCode();
+            hash = hash * 23 + obj.Type.GetHashCode();
+            hash = hash * 23 + obj.Version.GetHashCode();
+
+            return hash;
+        }
+    }
     public class Compiler
     {
         private struct PatchInfo
@@ -46,16 +69,20 @@ namespace Regulus.Core.Ssa
             _backPatchIndex = new List<PatchInfo>();
             //CollectInstructions(blocks);
             List<int> basicBlockStartOffset = new List<int>();
-
-            DoReachingDefinitionAnalysis(blocks,
-                out Dictionary<AbstractInstruction, BitArray> Out,
-                out Dictionary<AbstractInstruction, BitArray> In,
-                out Dictionary<AbstractInstruction, int> decLoc);
-
-            foreach (KeyValuePair<AbstractInstruction, BitArray> kv in Out)
+            List<AbstractInstruction> instructions = new List<AbstractInstruction>();
+            foreach (var bb in blocks) 
             {
-                Console.Write(kv.Key.ToString());
-                PrintBitArray(kv.Value);
+                instructions.AddRange(bb.Instructions);
+            }
+            Dictionary<Operand, List<BitArray>> liveRanges = BuildLiveRanges(blocks);
+
+            Dictionary<Operand, BitArray> splitLiveRanges = ReAllocOperands(liveRanges, instructions);
+            Dictionary<Operand, List<Operand>> edges = BuildInterferenceGraph(instructions, liveRanges);
+            AllocateRegister(edges);
+            
+            foreach (BasicBlock bb in blocks)
+            {
+                Console.WriteLine(bb);
             }
 
             foreach (BasicBlock block in blocks)
@@ -291,9 +318,9 @@ namespace Regulus.Core.Ssa
                     if (op1.Type == OperandKind.Const)
                     {
                         value = op1 as ValueOperand;
-                        _emitter.EmitABPInstruction(OpCode.CgtI_Int,
-                            ComputeRegisterLocation(op3),
+                        _emitter.EmitABPInstruction(OpCode.CltI_Int,
                             ComputeRegisterLocation(op2),
+                            ComputeRegisterLocation(op3),
                             value.GetInt());
                         break;
 
@@ -301,20 +328,29 @@ namespace Regulus.Core.Ssa
                     else if (op2.Type == OperandKind.Const)
                     {
                         value = op2 as ValueOperand;
-                        _emitter.EmitABPInstruction(OpCode.CltI_Int,
+                        _emitter.EmitABPInstruction(OpCode.CgtI_Int,
+                            ComputeRegisterLocation(op1),
                             ComputeRegisterLocation(op3),
-                            ComputeRegisterLocation(op2),
                             value.GetInt());
                         break;
                     }
                     else
                     {
                         _emitter.EmitABCInstruction(OpCode.Clt_Int,
+                            ComputeRegisterLocation(op2),
                             ComputeRegisterLocation(op1),
-                            ComputeRegisterLocation(op3),
-                            ComputeRegisterLocation(op2));
+                            ComputeRegisterLocation(op3));
                         break;
                     }
+                case AbstractOpCode.Ceq:
+                    op1 = instruction.GetLeftHandSideOperand(0);
+                    op2 = instruction.GetLeftHandSideOperand(1);
+                    op3 = instruction.GetRightHandSideOperand(0);
+                    _emitter.EmitABCInstruction(OpCode.Ceq,
+                        ComputeRegisterLocation(op1),
+                        ComputeRegisterLocation(op2),
+                        ComputeRegisterLocation(op3));
+                    break;
 
             }
         }
@@ -331,6 +367,8 @@ namespace Regulus.Core.Ssa
                     return (byte)(op.Index + _stackStart);
                 case OperandKind.Tmp:
                     return ((byte)(op.Index + _stackEnd));
+                case OperandKind.Reg:
+                    return ((byte)op.Index);
                 default:
                     throw new NotImplementedException();
 
@@ -346,7 +384,7 @@ namespace Regulus.Core.Ssa
             Pred = new Dictionary<AbstractInstruction, List<AbstractInstruction>>();
             Succ = new Dictionary<AbstractInstruction, List<AbstractInstruction>>();
 
-            
+
             foreach (BasicBlock b in blocks)
             {
 
@@ -389,7 +427,7 @@ namespace Regulus.Core.Ssa
             {
                 result.Set(InstructionIndex[i], true);
             }
-           
+
             return result;
         }
 
@@ -406,8 +444,8 @@ namespace Regulus.Core.Ssa
                     Operand def = instruction.GetRightHandSideOperand(j);
                     if (!defs.ContainsKey(def))
                     {
-                        defs.Add(def, new BitArray(instructions.Count)); 
-                        
+                        defs.Add(def, new BitArray(instructions.Count));
+
                     }
                     defs[def].Set(i, true);
                 }
@@ -439,7 +477,7 @@ namespace Regulus.Core.Ssa
         }
         public Dictionary<Operand, int> CollectOperand(List<BasicBlock> blocks)
         {
-            Dictionary<Operand, int> operands = new Dictionary<Operand, int>();
+            Dictionary<Operand, int> operands = new Dictionary<Operand, int>(new OperandComparer());
             int counter = 0;
             foreach (BasicBlock block in blocks)
             {
@@ -447,9 +485,9 @@ namespace Regulus.Core.Ssa
                 {
                     int rightCount = instruction.RightHandSideOperandCount();
                     int leftCount = instruction.LeftHandSideOperandCount();
-                    for (int i = 0; i < rightCount; i++) 
-                    { 
-                       AddOperand(operands, instruction.GetRightHandSideOperand(i), ref counter);
+                    for (int i = 0; i < rightCount; i++)
+                    {
+                        AddOperand(operands, instruction.GetRightHandSideOperand(i), ref counter);
                     }
                     for (int i = 0; i < leftCount; i++)
                     {
@@ -463,7 +501,7 @@ namespace Regulus.Core.Ssa
         private BitArray GenerateUseDefBitArray(AbstractInstruction instruction, Dictionary<Operand, int> operands, bool use)
         {
             BitArray result = new BitArray(operands.Count);
-            if (use) 
+            if (use)
             {
                 int leftCount = instruction.LeftHandSideOperandCount();
                 for (int i = 0; i < leftCount; i++)
@@ -509,7 +547,7 @@ namespace Regulus.Core.Ssa
 
             Dictionary<AbstractInstruction, BitArray> used = new Dictionary<AbstractInstruction, BitArray>();
             Dictionary<AbstractInstruction, BitArray> def = new Dictionary<AbstractInstruction, BitArray>();
-            foreach (AbstractInstruction instruction in Changed) 
+            foreach (AbstractInstruction instruction in Changed)
             {
                 used.Add(instruction, GenerateUseDefBitArray(instruction, operands, true));
                 def.Add(instruction, GenerateUseDefBitArray(instruction, operands, false));
@@ -622,17 +660,17 @@ namespace Regulus.Core.Ssa
                 BitArray inClone = new BitArray(In[i]);
 
                 if (i.RightHandSideOperandCount() > 0)
-                {   
+                {
                     BitArray genClone = new BitArray(gen[i]);
 
                     Out[i] = genClone.Or(inClone.And(kill[i].Not()));
-                    kill[i].Not();   
+                    kill[i].Not();
                 }
                 else
                 {
                     Out[i] = inClone;
                 }
-                
+
                 if (oldOut.Xor(Out[i]).HasAnySet())
                 {
                     foreach (AbstractInstruction instruction in succ[i])
@@ -645,7 +683,7 @@ namespace Regulus.Core.Ssa
         }
 
         private BitArray ComputeLiveInRange(
-            int op, 
+            int op,
             Dictionary<AbstractInstruction, BitArray> liveIn,
             Dictionary<AbstractInstruction, int> defLoc)
         {
@@ -680,12 +718,12 @@ namespace Regulus.Core.Ssa
 
         private bool BitIntersect(BitArray a, BitArray b)
         {
-            for (int i = 0; i < a.Count; i++) 
+            for (int i = 0; i < a.Count; i++)
             {
-                if (a[i] != b[i])
-                    return false;
+                if (a.Get(i) == b.Get(i))
+                    return true;
             }
-            return true;
+            return false;
         }
 
         private void CollapseLiveRanges(List<BitArray> liveRanges, BitArray newLiveRange)
@@ -701,7 +739,7 @@ namespace Regulus.Core.Ssa
             liveRanges.Add(newLiveRange);
         }
 
-        public Dictionary<Operand, List<BitArray>> BuildLiveRanges(List<BasicBlock> blocks) 
+        public Dictionary<Operand, List<BitArray>> BuildLiveRanges(List<BasicBlock> blocks)
         {
             DoReachingDefinitionAnalysis(
                 blocks,
@@ -715,7 +753,7 @@ namespace Regulus.Core.Ssa
                 out Dictionary<AbstractInstruction, BitArray> liveOut,
                 out Dictionary<Operand, int> operands);
 
-            Dictionary<Operand, List<BitArray>> opLiveRanges = new Dictionary<Operand, List<BitArray>>();
+            Dictionary<Operand, List<BitArray>> opLiveRanges = new Dictionary<Operand, List<BitArray>>(new OperandComparer());
             foreach (Operand op in operands.Keys.Where(op => op.Type != OperandKind.Const))
             {
                 opLiveRanges.Add(op, new List<BitArray>());
@@ -747,7 +785,39 @@ namespace Regulus.Core.Ssa
 
         }
 
-        private void Reset
+        private void ResetOperand(List<AbstractInstruction> instructions, Operand oldOp, Operand newOp, BitArray liveRange)
+        {
+            for (int i = 0; i < liveRange.Count; i++)
+            {
+                if (!liveRange.Get(i))
+                {
+                    //instructions[i].SetRightHandSideOperand(0, newOp);
+                    continue;
+                }
+
+                AbstractInstruction instruction = instructions[i];
+                int leftCount = instruction.LeftHandSideOperandCount();
+                int rightCount = instruction.RightHandSideOperandCount();
+
+                for (int j = 0; j < leftCount; j++)
+                {
+                    Operand op = instruction.GetLeftHandSideOperand(j);
+                    if (op.Index == oldOp.Index && op.Type == oldOp.Type && op.Version == oldOp.Version)
+                    {
+                        instruction.SetLeftHandSideOperand(j, newOp);
+                    }
+                }
+
+                for (int j = 0; j < rightCount; j++)
+                {
+                    Operand op = instruction.GetRightHandSideOperand(j);
+                    if (op.Index == oldOp.Index && op.Type == oldOp.Type && op.Version == oldOp.Version)
+                    {
+                        instruction.SetRightHandSideOperand(j, newOp);
+                    }
+                }
+            }
+        }
 
         private Dictionary<Operand, BitArray> ReAllocOperands(
             Dictionary<Operand, List<BitArray>> opLiveRanges,
@@ -760,53 +830,98 @@ namespace Regulus.Core.Ssa
                 Operand originalOp = kv.Key;
                 List<BitArray> ranges = kv.Value;
 
-               if (ranges.Count == 1)
+                if (ranges.Count == 0)
                 {
-                    // 单活跃范围，直接使用原Operand
+                    continue;
+                }
+                else if (ranges.Count == 1)
+                {
+
                     newOpLiveRanges.Add(originalOp, ranges[0]);
+                    ResetOperand(instructions, originalOp, originalOp, ranges[0]);
                 }
                 else
                 {
                     newOpLiveRanges.Add(originalOp, ranges[0]);
-                    
+                    ResetOperand(instructions, originalOp, originalOp, ranges[0]);
+
                     for (int i = 1; i < ranges.Count; i++)
                     {
-                        
+
                         Operand splitOp = new Operand(
                             originalOp.Type,
                             originalOp.Index,
                             version: originalOp.Version + i
                         );
                         newOpLiveRanges.Add(splitOp, ranges[i]);
+                        ResetOperand(instructions, originalOp, splitOp, ranges[i]);
                     }
                 }
             }
+
+            return newOpLiveRanges;
+
+
         }
 
-        private void BuildInterferenceGraph(Dictionary<Operand, List<BitArray>> opLiveRanges)
+        private Dictionary<Operand, List<Operand>> BuildInterferenceGraph(List<AbstractInstruction> instructions, Dictionary<Operand, List<BitArray>> opLiveRanges)
         {
-            Dictionary<Operand, List<Operand>> graph = new Dictionary<Operand, List<Operand>>();
-            foreach (KeyValuePair<Operand, List<BitArray>> kv in opLiveRanges)
+            Dictionary<Operand, BitArray> newOpLiveRanges = ReAllocOperands(opLiveRanges, instructions);
+            Dictionary<Operand, List<Operand>> edges = new Dictionary<Operand, List<Operand>>();
+
+            foreach (var kv in newOpLiveRanges)
             {
-                graph.Add(kv.Key, new List<Operand>());
-                if (kv.Value.Count >= 2)
+                edges.Add(kv.Key, new List<Operand>());
+            }
+
+            foreach (var kv1 in newOpLiveRanges)
+            {
+                foreach (var kv2 in newOpLiveRanges)
                 {
-                    for (int i = 0; i < kv.Value.Count; i++)
+                    if (kv1.Key == kv2.Key)
+                        continue;
+                    if (BitIntersect(kv1.Value, kv2.Value))
                     {
-                        Operand newOp = new Operand(kv.Key.Type, kv.Key.Index, kv.Key.Version);
-                        graph.Add(newOp, new List<Operand>());
+                        edges[kv1.Key].Add(kv2.Key);
                     }
                 }
             }
 
-            
+            return edges;
         }
 
+        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges)
+        {
+            
+            Dictionary<Operand, int> registerAssignment = new Dictionary<Operand, int>();
 
+            List<Operand> operands = edges.Keys.ToList();
+            operands.Sort((op1, op2) => edges[op2].Count.CompareTo(edges[op1].Count));
 
+            foreach (Operand operand in operands)
+            {
+                
+                HashSet<int> usedRegisters = new HashSet<int>();
+                foreach (Operand neighbor in edges[operand])
+                {
+                    
+                    if (registerAssignment.ContainsKey(neighbor))
+                    {
+                        usedRegisters.Add(registerAssignment[neighbor]);
+                    }
+                }
 
+                int register = 0;
+                while (usedRegisters.Contains(register))
+                {
+                    register++;
+                }
 
+                registerAssignment[operand] = register;
 
+                operand.AssignRegister(register);
+            }
+        }
 
 
     }
