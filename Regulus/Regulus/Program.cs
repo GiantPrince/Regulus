@@ -12,6 +12,7 @@ namespace Regulus
     }
     public class Program
     {
+        
         public unsafe static void Main(string[] args)
         {
             
@@ -43,17 +44,43 @@ namespace Regulus
             Compiler compiler = new Compiler();
             compiler.Compile(ssaBuilder.GetBlocks(), methodDef.Parameters.Count, methodDef.Body.Variables.Count, methodDef.Body.MaxStackSize);
 
-            fixed(byte* ip = compiler.GetByteCode())
+            Console.WriteLine(Add());
+            fixed (byte* ip = compiler.GetByteCode())
             {
                 VirtualMachine virtualMachine = new VirtualMachine();
 
                 virtualMachine.Run((Instruction*)ip);
             }
-            
 
 
 
 
         }
+
+        public static int Add()
+        {
+            int a = 10;
+            for (int i = 0; i < 100; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    a += 1 + i;
+                    if (a >= 20)
+                    {
+                        a /= 2;
+                    }
+                }
+                else
+                {
+                    a += i + 2;
+                    if (a >= 30)
+                    {
+                        a *= 2;
+                    }
+                }
+            }
+            return a;
+        }
+
     }
 }

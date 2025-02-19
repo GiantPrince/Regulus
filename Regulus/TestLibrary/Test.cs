@@ -4,24 +4,27 @@
     {
         public static int Add()
         {
-            int i = 1;
-            int j = 1;
-            int k = 0;
-
-            while (k < 10)
+            int a = 10;
+            for (int i = 0; i < 100; i++)
             {
-                if (i == j)
+                if (i % 2 == 0)
                 {
-                    k = i;
-                    i = k + 1;
+                    a += 1 + i;
+                    if (a >= 20)
+                    {
+                        a /= 2;
+                    }
                 }
                 else
                 {
-                    k = j;
-                    j = k + 2;
+                    a += i + 2;
+                    if (a >= 30)
+                    {
+                        a *= 2;
+                    }
                 }
             }
-            return i;
+            return a;
         }
 
     }

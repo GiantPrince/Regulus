@@ -35,15 +35,17 @@ namespace Regulus.Core.Ssa
             while (stackInfo.Count > 0)
             {
                 BasicBlockStackInfo info = stackInfo.Pop();
+                if (Visited[info.Index])
+                {
+                    continue;
+                }
                 Visited[info.Index] = true;
                 int nextDepth = UnstackBasicBlock(cfg.Method, cfg.Blocks[info.Index], info.StackDepth);
                 cfg.Blocks[info.Index].LiveInStackSize = info.StackDepth;
                 foreach (int successorIndex in cfg.Blocks[info.Index].Successors)
                 {
-                    if (!Visited[successorIndex])
-                    {
-                        stackInfo.Push(new BasicBlockStackInfo() { Index = successorIndex, StackDepth = nextDepth });
-                    }
+                    stackInfo.Push(new BasicBlockStackInfo() { Index = successorIndex, StackDepth = nextDepth });
+                    
                 }
 
             }

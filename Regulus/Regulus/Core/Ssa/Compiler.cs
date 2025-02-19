@@ -268,6 +268,244 @@ namespace Regulus.Core.Ssa
 
         }
 
+        private OpCode GetOpCodeWithoutConst(AbstractOpCode code)
+        {
+            switch (code)
+            {
+                case AbstractOpCode.Add:
+                    return OpCode.Add_Int;
+                case AbstractOpCode.Add_Ovf:
+                    return OpCode.Add_Ovf_Int;
+                case AbstractOpCode.Add_Ovf_Un:
+                    return OpCode.Add_Ovf_UInt;
+                case AbstractOpCode.Sub:
+                    return OpCode.Sub_Int;
+                case AbstractOpCode.Sub_Ovf:
+                    return OpCode.Sub_Ovf_Int;
+                case AbstractOpCode.Sub_Ovf_Un:
+                    return OpCode.Sub_Ovf_UInt;
+                case AbstractOpCode.Or:
+                    return OpCode.Or_Int;
+                case AbstractOpCode.And:
+                    return OpCode.And_Int;
+                case AbstractOpCode.Xor:
+                    return OpCode.Xor_Int;
+                case AbstractOpCode.Mul:
+                    return OpCode.Mul_Int;
+                case AbstractOpCode.Mul_Ovf:
+                    return OpCode.Mul_Ovf_Long;
+                case AbstractOpCode.Mul_Ovf_Un:
+                    return OpCode.Mul_Ovf_ULong;
+                case AbstractOpCode.Div:
+                    return OpCode.Div_Int;
+                case AbstractOpCode.Div_Un:
+                    return OpCode.DivI_Un_Int;
+                case AbstractOpCode.Rem:
+                    return OpCode.Rem_Int;
+                case AbstractOpCode.Rem_Un:
+                    return OpCode.RemI_Un_Int;
+                case AbstractOpCode.Shl:
+                    return OpCode.Shl_Int;
+                case AbstractOpCode.Shr:
+                    return OpCode.Shr_Int;
+                case AbstractOpCode.Shr_Un:
+                    return OpCode.Shr_Un_Int;
+                case AbstractOpCode.Cgt:
+                    return OpCode.Cgt_Int;
+                case AbstractOpCode.Cgt_Un:
+                    return OpCode.Cgt_Un_Int;
+                case AbstractOpCode.Clt:
+                    return OpCode.Clt_Int;
+                case AbstractOpCode.Clt_Un:
+                    return OpCode.Clt_Un_Int;
+                case AbstractOpCode.Ceq:
+                    return OpCode.Ceq;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private OpCode GetOpCodeWithConst(AbstractOpCode code)
+        {
+            switch (code)
+            {
+                case AbstractOpCode.Add:
+                    return OpCode.AddI_Int;
+                case AbstractOpCode.Add_Ovf:
+                    return OpCode.AddI_Ovf_Int;
+                case AbstractOpCode.Add_Ovf_Un:
+                    return OpCode.AddI_Ovf_UInt;
+                case AbstractOpCode.Sub:
+                    return OpCode.SubI_Int;
+                case AbstractOpCode.Sub_Ovf:
+                    return OpCode.SubI_Ovf_Long;
+                case AbstractOpCode.Sub_Ovf_Un:
+                    return OpCode.SubI_Ovf_UInt;
+                case AbstractOpCode.Or:
+                    return OpCode.OrI_Int;
+                case AbstractOpCode.And:
+                    return OpCode.AndI_Int;
+                case AbstractOpCode.Xor:
+                    return OpCode.XorI_Int;
+                case AbstractOpCode.Mul:
+                    return OpCode.MulI_Int;
+                case AbstractOpCode.Mul_Ovf:
+                    return OpCode.MulI_Ovf_Long;
+                case AbstractOpCode.Mul_Ovf_Un:
+                    return OpCode.MulI_Ovf_ULong;
+                case AbstractOpCode.Div:
+                    return OpCode.DivI_Int;
+                case AbstractOpCode.Div_Un:
+                    return OpCode.DivI_Un_Int;
+                case AbstractOpCode.Rem:
+                    return OpCode.RemI_Int;
+                case AbstractOpCode.Rem_Un:
+                    return OpCode.RemI_Un_Int;
+                case AbstractOpCode.Shl:
+                    return OpCode.ShlI_Int;
+                case AbstractOpCode.Shr:
+                    return OpCode.ShrI_Int;
+                
+
+                case AbstractOpCode.Clt:
+                    return OpCode.CltI_Int;
+                case AbstractOpCode.Clt_Un:
+                    return OpCode.CltI_Un_Int;
+                case AbstractOpCode.Cgt:
+                    return OpCode.CgtI_Int;
+                case AbstractOpCode.Cgt_Un:
+                    return OpCode.CgtI_Un_Int;
+                case AbstractOpCode.Ceq:
+                    return OpCode.CeqI;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private OpCode GetReverseOpCodeWithConst(AbstractOpCode code)
+        {
+            switch (code) 
+            {
+                case AbstractOpCode.Sub:
+                    return OpCode.AddI_Int;
+                case AbstractOpCode.Sub_Ovf:
+                    return OpCode.AddI_Ovf_Int;
+                case AbstractOpCode.Div:
+                    return OpCode.DivI_Int_R;
+                case AbstractOpCode.Div_Un:
+                    return OpCode.DivI_Un_Int_R;
+                case AbstractOpCode.Rem:
+                    return OpCode.RemI_Int_R;
+                case AbstractOpCode.Rem_Un:
+                    return OpCode.RemI_Un_Int_R;
+                case AbstractOpCode.Shl:
+                    return OpCode.ShlI_Int_R;
+                case AbstractOpCode.Shr:
+                    return OpCode.ShrI_Int_R;
+                case AbstractOpCode.Clt:
+                    return OpCode.CgtI_Int;
+                case AbstractOpCode.Clt_Un:
+                    return OpCode.CgtI_Un_Int;
+                case AbstractOpCode.Cgt:
+                    return OpCode.CltI_Int;
+                case AbstractOpCode.Cgt_Un:
+                    return OpCode.CltI_Un_Int;
+                case AbstractOpCode.Ceq:
+                    return OpCode.CeqI;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+
+
+        private void EmitCommutativeBinaryInstructionWithConstCheck(
+            AbstractOpCode code,
+            Operand op1,
+            Operand op2,
+            Operand op3
+            )
+        {
+            ValueOperand value = null;
+            Operand operandWithConst = null;
+
+            if (op1.Type == OperandKind.Const)
+            {
+                value = op1 as ValueOperand;
+                operandWithConst = op2;
+            }
+            else if (op2.Type == OperandKind.Const)
+            {
+                value = op2 as ValueOperand;
+                operandWithConst = op1;
+            }
+
+            if (value != null)
+            {
+                _emitter.EmitABPInstruction(
+                    GetOpCodeWithConst(code),
+                    ComputeRegisterLocation(operandWithConst),
+                    ComputeRegisterLocation(op3),
+                    value.GetValue());
+            }
+            else
+            {
+                _emitter.EmitABCInstruction(
+                    GetOpCodeWithoutConst(code),
+                    ComputeRegisterLocation(op1),
+                    ComputeRegisterLocation(op2),
+                    ComputeRegisterLocation(op3));
+            }
+        }
+
+        private void EmitNonCommutativeBinaryInstructionWithConstCheck(
+            AbstractOpCode code,
+            Operand op1,
+            Operand op2,
+            Operand op3)
+        {
+            ValueOperand value = null;
+            Operand operandWithConst = null;
+            OpCode opcode = OpCode.Nop;
+
+            if (op1.Type == OperandKind.Const)
+            {
+                value = op1 as ValueOperand;
+                operandWithConst = op2;
+                opcode = GetReverseOpCodeWithConst(code);
+                if (code == AbstractOpCode.Sub || 
+                    code == AbstractOpCode.Sub_Ovf || 
+                    code == AbstractOpCode.Sub_Ovf_Un) 
+                {
+                    value.Neg();
+                }
+            }
+            else if (op2.Type == OperandKind.Const)
+            {
+                value = op2 as ValueOperand;
+                operandWithConst = op1;
+                opcode = GetOpCodeWithConst(code);
+            }
+
+            if (value != null)
+            {
+                _emitter.EmitABPInstruction(
+                    GetOpCodeWithConst(code),
+                    ComputeRegisterLocation(operandWithConst),
+                    ComputeRegisterLocation(op3),
+                    value.GetValue());
+            }
+            else
+            {
+                _emitter.EmitABCInstruction(
+                    GetOpCodeWithoutConst(code),
+                    ComputeRegisterLocation(op2),
+                    ComputeRegisterLocation(op1),
+                    ComputeRegisterLocation(op3));
+            }
+        }
 
 
 
@@ -281,76 +519,42 @@ namespace Regulus.Core.Ssa
             {
 
                 case AbstractOpCode.Add:
-                    op1 = instruction.GetLeftHandSideOperand(0);
-                    op2 = instruction.GetLeftHandSideOperand(1);
-                    op3 = instruction.GetRightHandSideOperand(0);
-
-                    if (op1.Type == OperandKind.Const)
-                    {
-                        value = op1 as ValueOperand;
-                    }
-                    else
-                    {
-                        value = op2 as ValueOperand;
-                    }
-                    if (value != null)
-                    {
-                        _emitter.EmitABPInstruction(
-                            OpCode.AddI_Int,
-                            ComputeRegisterLocation(op2),
-                            ComputeRegisterLocation(op3),
-                            value.GetInt());
-                    }
-                    else
-                    {
-                        _emitter.EmitABCInstruction(
-                            OpCode.Add_Int,
-                            ComputeRegisterLocation(op1),
-                            ComputeRegisterLocation(op2),
-                            ComputeRegisterLocation(op3));
-                    }
+                case AbstractOpCode.Add_Ovf:
+                case AbstractOpCode.Add_Ovf_Un:
+                case AbstractOpCode.And:
+                case AbstractOpCode.Or:
+                case AbstractOpCode.Xor:
+                case AbstractOpCode.Mul:
+                case AbstractOpCode.Mul_Ovf:
+                case AbstractOpCode.Mul_Ovf_Un:
+                    EmitCommutativeBinaryInstructionWithConstCheck(
+                        instruction.Code,
+                        instruction.GetLeftHandSideOperand(0),
+                        instruction.GetLeftHandSideOperand(1),
+                        instruction.GetRightHandSideOperand(0));
                     break;
+                case AbstractOpCode.Sub:
+                case AbstractOpCode.Sub_Ovf:
+                case AbstractOpCode.Sub_Ovf_Un:
+                case AbstractOpCode.Div:
+                case AbstractOpCode.Div_Un:
+                case AbstractOpCode.Rem:
+                case AbstractOpCode.Rem_Un:
+                case AbstractOpCode.Shl:
+                case AbstractOpCode.Shr:
+                case AbstractOpCode.Shr_Un:
                 case AbstractOpCode.Clt:
-                    op1 = instruction.GetLeftHandSideOperand(0);
-                    op2 = instruction.GetLeftHandSideOperand(1);
-                    op3 = instruction.GetRightHandSideOperand(0);
-
-                    if (op1.Type == OperandKind.Const)
-                    {
-                        value = op1 as ValueOperand;
-                        _emitter.EmitABPInstruction(OpCode.CltI_Int,
-                            ComputeRegisterLocation(op2),
-                            ComputeRegisterLocation(op3),
-                            value.GetInt());
-                        break;
-
-                    }
-                    else if (op2.Type == OperandKind.Const)
-                    {
-                        value = op2 as ValueOperand;
-                        _emitter.EmitABPInstruction(OpCode.CgtI_Int,
-                            ComputeRegisterLocation(op1),
-                            ComputeRegisterLocation(op3),
-                            value.GetInt());
-                        break;
-                    }
-                    else
-                    {
-                        _emitter.EmitABCInstruction(OpCode.Clt_Int,
-                            ComputeRegisterLocation(op2),
-                            ComputeRegisterLocation(op1),
-                            ComputeRegisterLocation(op3));
-                        break;
-                    }
+                case AbstractOpCode.Clt_Un:
+                case AbstractOpCode.Cgt:
+                case AbstractOpCode.Cgt_Un:
                 case AbstractOpCode.Ceq:
-                    op1 = instruction.GetLeftHandSideOperand(0);
-                    op2 = instruction.GetLeftHandSideOperand(1);
-                    op3 = instruction.GetRightHandSideOperand(0);
-                    _emitter.EmitABCInstruction(OpCode.Ceq,
-                        ComputeRegisterLocation(op1),
-                        ComputeRegisterLocation(op2),
-                        ComputeRegisterLocation(op3));
+                    EmitNonCommutativeBinaryInstructionWithConstCheck(
+                        instruction.Code,
+                        instruction.GetLeftHandSideOperand(0),
+                        instruction.GetLeftHandSideOperand(1),
+                        instruction.GetRightHandSideOperand(0));
                     break;
+                
 
             }
         }
@@ -413,23 +617,6 @@ namespace Regulus.Core.Ssa
             return instructions;
         }
 
-        private void CollectOperands(List<BasicBlock> blocks)
-        {
-
-        }
-
-        private BitArray Gen(AbstractInstruction i, int defCount, Dictionary<AbstractInstruction, int> InstructionIndex)
-        {
-
-            BitArray result = new BitArray(defCount);
-
-            if (i.RightHandSideOperandCount() > 0)
-            {
-                result.Set(InstructionIndex[i], true);
-            }
-
-            return result;
-        }
 
         private Dictionary<Operand, BitArray> ComputeDefs(List<AbstractInstruction> instructions)
         {
@@ -454,10 +641,7 @@ namespace Regulus.Core.Ssa
             return defs;
         }
 
-        private void DoLiveVariableAnalysis()
-        {
-
-        }
+       
 
         private void PrintBitArray(BitArray bits)
         {

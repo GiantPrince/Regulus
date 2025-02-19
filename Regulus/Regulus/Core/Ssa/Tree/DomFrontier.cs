@@ -38,6 +38,10 @@ namespace Regulus.Core.Ssa.Tree
                         {
                             frontiers[runner].Add(block);
                             runner = domTree.GetNode(runner).Parent.Block.Index;
+                            if (runner == 0)
+                            {
+                                break;
+                            }
                         }
                     }
                 }

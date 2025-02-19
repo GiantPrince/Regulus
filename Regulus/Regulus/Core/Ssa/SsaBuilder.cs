@@ -301,9 +301,11 @@ namespace Regulus.Core.Ssa
                     if (block.ContainDefinitionOf(op))
                     {
                         workList.Push(block);
-                        everOnWorkList.Add(block.Index);
+                        
                     }
                 }
+                foreach (BasicBlock block in workList)
+                    everOnWorkList.Add(block.Index);
 
                 while (workList.Count > 0)
                 {
@@ -329,7 +331,7 @@ namespace Regulus.Core.Ssa
                             continue;
                         }
                         workList.Push(frontier);
-                        everOnWorkList.Add(frontier.Index + 1);
+                        everOnWorkList.Add(frontier.Index);
                     }
 
                 }

@@ -105,8 +105,11 @@ namespace Regulus.Core.Ssa
 
         private void ResolvePhiFunctions()
         {
-            foreach (BasicBlock block in _ssaBuilder.GetBlocks())
+            List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
+
+            for (int i = 0; i < blocks.Count; i++) 
             {
+                BasicBlock block = blocks[i];
                 ResolvePhiFunction(block, block.PhiInstructions);
             }
         }

@@ -67,6 +67,22 @@ namespace Regulus.Core.Ssa.Instruction
 
         public byte[] GetValue()
         {
+            if (ValueType == ValueOperandType.Null)
+            {
+                return BitConverter.GetBytes(0);
+            }
+            else if (ValueType == ValueOperandType.Integer)
+            {
+                return BitConverter.GetBytes((int)_value);
+            }
+            else if (
+                ValueType == ValueOperandType.Float ||
+                ValueType == ValueOperandType.Long ||
+                ValueType == ValueOperandType.Double
+                )
+            {
+                return BitConverter.GetBytes(_value);
+            }
             return BitConverter.GetBytes(_value);
         }
 
@@ -88,6 +104,36 @@ namespace Regulus.Core.Ssa.Instruction
         public double GetDouble()
         {
             return BitConverter.ToDouble(BitConverter.GetBytes(_value));
+        }
+
+        public void Neg()
+        {
+            if (ValueType == ValueOperandType.Null ||
+                ValueType == ValueOperandType.Object)
+                throw new InvalidOperationException();
+
+            if (ValueType == ValueOperandType.Integer ||
+                ValueType == ValueOperandType.Long)
+            {
+                _value = -_value;
+                return;
+            }
+                
+
+            if (ValueType == ValueOperandType.Float)
+            {
+                float value = BitConverter.ToSingle(BitConverter.GetBytes(_value));
+                _value = BitConverter.ToInt64(BitConverter.GetBytes(-value));
+                return;
+            }
+
+            if (ValueType == ValueOperandType.Double)
+            {
+                double value = BitConverter.ToDouble(BitConverter.GetBytes(_value));
+                _value = BitConverter.ToInt64(BitConverter.GetBytes(-value));
+                return;
+            }
+            
         }
 
         public override unsafe Operand Clone()
