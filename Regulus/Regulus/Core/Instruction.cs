@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Regulus.Core
 {
-    public enum OpCode : byte
+    public enum OpCode : ushort
     {
         Nop,
         Mov,
@@ -190,7 +190,6 @@ namespace Regulus.Core
         Conv_Ovf_I2_Long,
         Conv_Ovf_I2_Float,
         Conv_Ovf_I2_Double,
-
         Conv_Ovf_I4_Int,
         Conv_Ovf_I4_Long,
         Conv_Ovf_I4_Float,
@@ -199,7 +198,54 @@ namespace Regulus.Core
         Conv_Ovf_I8_Long,
         Conv_Ovf_I8_Float,
         Conv_Ovf_I8_Double,
-
+        Conv_Ovf_U1_Int,
+        Conv_Ovf_U1_Long,
+        Conv_Ovf_U1_Float,
+        Conv_Ovf_U1_Double,
+        Conv_Ovf_U2_Int,
+        Conv_Ovf_U2_Long,
+        Conv_Ovf_U2_Float,
+        Conv_Ovf_U2_Double,
+        Conv_Ovf_U4_Int,
+        Conv_Ovf_U4_Long,
+        Conv_Ovf_U4_Float,
+        Conv_Ovf_U4_Double,
+        Conv_Ovf_U8_Int,
+        Conv_Ovf_U8_Long,
+        Conv_Ovf_U8_Float,
+        Conv_Ovf_U8_Double,
+        Conv_Ovf_I1_Un_Int,
+        Conv_Ovf_I1_Un_Long,
+        Conv_Ovf_I1_Un_Float,
+        Conv_Ovf_I1_Un_Double,
+        Conv_Ovf_I2_Un_Int,
+        Conv_Ovf_I2_Un_Long,
+        Conv_Ovf_I2_Un_Float,
+        Conv_Ovf_I2_Un_Double,
+        Conv_Ovf_I4_Un_Int,
+        Conv_Ovf_I4_Un_Long,
+        Conv_Ovf_I4_Un_Float,
+        Conv_Ovf_I4_Un_Double,
+        Conv_Ovf_I8_Un_Int,
+        Conv_Ovf_I8_Un_Long,
+        Conv_Ovf_I8_Un_Float,
+        Conv_Ovf_I8_Un_Double,
+        Conv_Ovf_U1_Un_Int,
+        Conv_Ovf_U1_Un_Long,
+        Conv_Ovf_U1_Un_Float,
+        Conv_Ovf_U1_Un_Double,
+        Conv_Ovf_U2_Un_Int,
+        Conv_Ovf_U2_Un_Long,
+        Conv_Ovf_U2_Un_Float,
+        Conv_Ovf_U2_Un_Double,
+        Conv_Ovf_U4_Un_Int,
+        Conv_Ovf_U4_Un_Long,
+        Conv_Ovf_U4_Un_Float,
+        Conv_Ovf_U4_Un_Double,
+        Conv_Ovf_U8_Un_Int,
+        Conv_Ovf_U8_Un_Long,
+        Conv_Ovf_U8_Un_Float,
+        Conv_Ovf_U8_Un_Double,
 
 
 
@@ -295,7 +341,7 @@ namespace Regulus.Core
     [StructLayout(LayoutKind.Explicit)]
     public struct Instruction
     {
-        public const int Size = 1;
+        public const int Size = sizeof(OpCode);
         [FieldOffset(0)]
         public OpCode Op;
     }
@@ -307,111 +353,111 @@ namespace Regulus.Core
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ABPInstruction
     {
-        public const int Size = 7;
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(int);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
 
-        [FieldOffset(2)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public byte RegisterB;
 
-        [FieldOffset(3)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
         public int Operand;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ABLPInstruction
     {
-        public const int Size = 11;
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(long);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
 
-        [FieldOffset(2)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public byte RegisterB;
 
-        [FieldOffset(3)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
         public long Operand;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct PInstruction
     {
-        public const int Size = 5;
+        public const int Size = sizeof(OpCode) + sizeof(int);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public int Offset;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct APInstruction
     {
-        public const int Size = 6;
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(int);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
 
-        [FieldOffset(2)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public int Operand;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ALPInstruction
     {
-        public const int Size = 10;
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(long);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
 
-        [FieldOffset(2)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public long Operand;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ABInstruction
     {
-        public const int Size = 3;
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
 
-        [FieldOffset(2)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public byte RegisterB;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ABCInstruction
     {
-        public const int Size = 4;
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(byte);
         [FieldOffset(0)]
         public OpCode Op;
 
-        [FieldOffset(1)]
+        [FieldOffset(sizeof(OpCode))]
         public byte RegisterA;
 
-        [FieldOffset(2)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public byte RegisterB;
 
-        [FieldOffset(3)]
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
         public byte RegisterC;
     }
 

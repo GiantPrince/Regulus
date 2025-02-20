@@ -25,9 +25,14 @@ namespace Regulus.Core.Ssa
             return bytecodes.Count;
         }
 
+        private void EmitOpCode(OpCode opcode)
+        {
+            bytecodes.AddRange(BitConverter.GetBytes((ushort)opcode));
+        }
+
         public void EmitABCInstruction(OpCode opcode, byte a, byte b, byte c) 
-        { 
-            bytecodes.Add((byte)opcode);
+        {
+            EmitOpCode(opcode);
             bytecodes.Add(a);
             bytecodes.Add(b);
             bytecodes.Add(c);
@@ -35,13 +40,13 @@ namespace Regulus.Core.Ssa
 
         public void EmitAInstruction(OpCode opcode, byte a)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             bytecodes.Add(a);
         }
 
         public void EmitABPInstruction(OpCode opcode, byte a, byte b, int p)
         {
-            bytecodes.Add((byte)opcode); 
+            EmitOpCode(opcode);
             bytecodes.Add(a);            
             bytecodes.Add(b);            
 
@@ -52,7 +57,7 @@ namespace Regulus.Core.Ssa
 
         public void EmitABPInstruction(OpCode opcode, byte a, byte b, byte[] p)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             bytecodes.Add(a);
             bytecodes.Add(b);
 
@@ -62,35 +67,35 @@ namespace Regulus.Core.Ssa
 
         public void EmitPInstruction(OpCode opcode, int offset)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             int tmp = BitConverter.ToInt32(BitConverter.GetBytes(offset));
             bytecodes.AddRange(BitConverter.GetBytes(offset));
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, int p)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             bytecodes.Add(a);
             bytecodes.AddRange(BitConverter.GetBytes(p));
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, float p)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             bytecodes.Add(a);
             bytecodes.AddRange(BitConverter.GetBytes(p));
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, byte[] p)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             bytecodes.Add(a);
             bytecodes.AddRange(p);
         }
 
         public void EmitABInstruction(OpCode opcode, byte a, byte b)
         {
-            bytecodes.Add((byte)opcode);
+            EmitOpCode(opcode);
             bytecodes.Add(a);
             bytecodes.Add(b);
         }

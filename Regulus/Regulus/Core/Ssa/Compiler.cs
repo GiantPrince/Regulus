@@ -764,6 +764,120 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
+                case AbstractOpCode.Conv_Ovf_I1_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I1_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I1_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I1_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I1_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I2_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I2_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I2_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I2_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I2_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I4_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I4_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I4_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I4_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I4_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I8_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I8_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I8_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I8_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I8_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_U1_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_U1_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_U1_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_U1_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_U1_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_U2_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_U2_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_U2_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_U2_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_U2_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_U_Un:
+                case AbstractOpCode.Conv_Ovf_U4_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_U4_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_U4_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_U4_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_U4_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_U8_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_U8_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_U8_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_U8_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_U8_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                
                 default:
                     throw new NotImplementedException();
             }
@@ -1254,7 +1368,7 @@ namespace Regulus.Core.Ssa
             else
             {
                 _emitter.EmitABCInstruction(
-                    GetOpCodeWithoutConst(code),
+                    GetOpCodeWithoutConst(code, op1.OpType),
                     ComputeRegisterLocation(op1),
                     ComputeRegisterLocation(op2),
                     ComputeRegisterLocation(op3));
@@ -1301,7 +1415,7 @@ namespace Regulus.Core.Ssa
             else
             {
                 _emitter.EmitABCInstruction(
-                    GetOpCodeWithoutConst(code),
+                    GetOpCodeWithoutConst(code, op1.OpType),
                     ComputeRegisterLocation(op2),
                     ComputeRegisterLocation(op1),
                     ComputeRegisterLocation(op3));
@@ -1310,9 +1424,10 @@ namespace Regulus.Core.Ssa
 
         private void EmitConvertInstruction(TransformInstruction instruction)
         {
+            Operand op1 = instruction.GetLeftHandSideOperand(0);
             _emitter.EmitABInstruction(
-                GetOpCodeWithoutConst(instruction.Code),
-                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                GetOpCodeWithoutConst(instruction.Code, op1.OpType),
+                ComputeRegisterLocation(op1),
                 ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
         }
 
