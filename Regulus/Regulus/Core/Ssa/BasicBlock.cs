@@ -36,7 +36,7 @@ namespace Regulus.Core.Ssa
                 for (int i = 0; i < defCount; i++)
                 {
                     Operand leftOp = instruction.GetLeftHandSideOperand(i);
-                    if (leftOp.Type == op.Type && leftOp.Index == op.Index)
+                    if (leftOp.Kind == op.Kind && leftOp.Index == op.Index)
                     {
                         return true;
                     }
@@ -55,7 +55,7 @@ namespace Regulus.Core.Ssa
                 for (int i = 0; i < defCount; i++)
                 {
                     Operand leftOp = instruction.GetRightHandSideOperand(i);
-                    if (leftOp.Type == op.Type && leftOp.Index == op.Index)
+                    if (leftOp.Kind == op.Kind && leftOp.Index == op.Index)
                     {
                         return true;
                     }

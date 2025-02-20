@@ -158,37 +158,8 @@ namespace Regulus.Core
                         ip += ABPInstruction.Size;
                         break;
 
-                    case OpCode.SubI_Ovf_ULong:
-                        ABLPInstruction* subIOvfULongInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[subIOvfULongInstruction->RegisterB].Upper =
-                            checked(*(ulong*)&Registers[subIOvfULongInstruction->RegisterA].Upper -
-                                    *(ulong*)&subIOvfULongInstruction->Operand);
-                        ip += ABPInstruction.Size;
-                        break;
+                  
 
-                    case OpCode.SubI_Ovf_Long:
-                        ABLPInstruction* subIOvfLongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[subIOvfLongInstruction->RegisterB].Upper =
-                            checked(*(long*)&Registers[subIOvfLongInstruction->RegisterA].Upper -
-                                    subIOvfLongInstruction->Operand);
-                        ip += ABPInstruction.Size;
-                        break;
-
-                    case OpCode.SubI_Ovf_Float:
-                        ABPInstruction* subIOvfFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[subIOvfFloatInstruction->RegisterB].Upper =
-                            checked(*(float*)&Registers[subIOvfFloatInstruction->RegisterA].Upper -
-                                    *(float*)&subIOvfFloatInstruction->Operand);
-                        ip += ABPInstruction.Size;
-                        break;
-
-                    case OpCode.SubI_Ovf_Double:
-                        ABLPInstruction* subIOvfDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[subIOvfDoubleInstruction->RegisterB].Upper =
-                            checked(*(double*)&Registers[subIOvfDoubleInstruction->RegisterA].Upper -
-                                    *(double*)&subIOvfDoubleInstruction->Operand);
-                        ip += ABPInstruction.Size;
-                        break;
 
                     case OpCode.MulI_Int:
                         ABPInstruction* mulIIntInstruction = (ABPInstruction*)ip;
@@ -242,20 +213,9 @@ namespace Regulus.Core
                         ip += ABPInstruction.Size;
                         break;
 
-                    case OpCode.MulI_Ovf_UInt:
-                        ABPInstruction* mulIOvfUIntInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[mulIOvfUIntInstruction->RegisterB].Upper =
-                            checked(*(uint*)&Registers[mulIOvfUIntInstruction->RegisterA].Upper * *(uint*)&mulIOvfUIntInstruction->Operand);
-                        ip += ABPInstruction.Size;
-                        break;
+                    
 
-                    case OpCode.MulI_Ovf_ULong:
-                        ABLPInstruction* mulIOvfULongInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[mulIOvfULongInstruction->RegisterB].Upper =
-                            checked(*(ulong*)&Registers[mulIOvfULongInstruction->RegisterA].Upper *
-                                    *(ulong*)&mulIOvfULongInstruction->Operand);
-                        ip += ABPInstruction.Size;
-                        break;
+                    
 
                     case OpCode.DivI_Int:
                         ABPInstruction* divIIntInstruction = (ABPInstruction*)ip;
@@ -547,6 +507,7 @@ namespace Regulus.Core
                             *(uint*)&shrIUnIntRInstruction->Operand >> Registers[shrIUnIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
+                    
 
 
 
@@ -879,43 +840,13 @@ namespace Regulus.Core
                         ip += ABCInstruction.Size;
                         break;
 
-                    case OpCode.Sub_Ovf_Long:
-                        ABCInstruction* subOvfLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[subOvfLongInstruction->RegisterC].Upper =
-                            checked(*(long*)&Registers[subOvfLongInstruction->RegisterA].Upper -
-                            *(long*)&Registers[subOvfLongInstruction->RegisterB].Upper);
-                        ip += ABCInstruction.Size;
-                        break;
-
-                    case OpCode.Sub_Ovf_Float:
-                        ABCInstruction* subOvfFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[subOvfFloatInstruction->RegisterC].Upper =
-                            checked(*(float*)&Registers[subOvfFloatInstruction->RegisterA].Upper -
-                            *(float*)&Registers[subOvfFloatInstruction->RegisterB].Upper);
-                        ip += ABCInstruction.Size;
-                        break;
-
-                    case OpCode.Sub_Ovf_Double:
-                        ABCInstruction* subOvfDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[subOvfDoubleInstruction->RegisterC].Upper =
-                            checked(*(double*)&Registers[subOvfDoubleInstruction->RegisterA].Upper -
-                            *(double*)&Registers[subOvfDoubleInstruction->RegisterB].Upper);
-                        ip += ABCInstruction.Size;
-                        break;
+               
 
                     case OpCode.Sub_Ovf_UInt:
                         ABCInstruction* subOvfUIntInstruction = (ABCInstruction*)ip;
                         *(uint*)&Registers[subOvfUIntInstruction->RegisterC].Upper =
                             checked(*(uint*)&Registers[subOvfUIntInstruction->RegisterA].Upper -
                             *(uint*)&Registers[subOvfUIntInstruction->RegisterB].Upper);
-                        ip += ABCInstruction.Size;
-                        break;
-
-                    case OpCode.Sub_Ovf_ULong:
-                        ABCInstruction* subOvfULongInstruction = (ABCInstruction*)ip;
-                        *(ulong*)&Registers[subOvfULongInstruction->RegisterC].Upper =
-                            checked(*(ulong*)&Registers[subOvfULongInstruction->RegisterA].Upper -
-                            *(ulong*)&Registers[subOvfULongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 

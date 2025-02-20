@@ -16,36 +16,86 @@ namespace Regulus.Core.Ssa.Instruction
         Reg,
         Tmp
     }
+
+    public enum ValueOperandType
+    {
+        Unknown,
+        Integer,
+        Long,
+        
+        Float,
+        Double,
+        Null,
+        Object
+    }
     public class Operand
     {
         private const int defaultVersion = -1;
-        public OperandKind Type;
+        public OperandKind Kind;
+        public ValueOperandType OpType;
         public int Index;
         public int Version;
-        public Operand(OperandKind type, int index, int version = defaultVersion)
+
+        public Operand(OperandKind kind, int index, int version = defaultVersion)
         {
-            Type = type;
+            Kind = kind;
             Index = index;
             Version = version;
+            OpType = ValueOperandType.Unknown;
+        }
+
+        public Operand(OperandKind kind, int index, ValueOperandType type, int version = defaultVersion)
+        {
+            Kind = kind;
+            Index = index;
+            Version = version;
+            OpType = type;
         }
 
         public virtual Operand Clone()
         {
-            return new Operand(Type, Index, Version);
+            return new Operand(Kind, Index, Version);
         }
         
         public virtual bool IsDefault()
         {
             return Version == defaultVersion;
         }
+
+        private string ValueOperandTypeToString(ValueOperandType valueOperandType)
+        {
+            switch (valueOperandType)
+            {
+                case ValueOperandType.Unknown:
+                    return "";
+                case ValueOperandType.Integer:
+                    return "Int";
+                case ValueOperandType.Long:
+                    return "Long";
+                
+                case ValueOperandType.Float:
+                    return "Float";
+                case ValueOperandType.Double:
+                    return "Double";
+                case ValueOperandType.Object:
+                    return "Object";
+                case ValueOperandType.Null:
+                    return "Null";
+                default:
+                    throw new NotImplementedException();
+            }
+        }
         private string FormatOperand(string type, int index, int version)
         {
-            return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
+            if (OpType == ValueOperandType.Unknown)
+                return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
+            else
+                return version == defaultVersion ? $"{type}{index}[{ValueOperandTypeToString(OpType)}]" : $"{type}{index}_{version}[{ValueOperandTypeToString(OpType)}]";
         }
 
         public void AssignRegister(int index)
         {
-            Type = OperandKind.Reg;
+            Kind = OperandKind.Reg;
             Index = index;
             Version = defaultVersion;
         }
@@ -53,7 +103,7 @@ namespace Regulus.Core.Ssa.Instruction
         public override string ToString()
         {
 
-            switch (Type)
+            switch (Kind)
             {
                 case OperandKind.Stack:
                     return FormatOperand("Stack", Index, Version);

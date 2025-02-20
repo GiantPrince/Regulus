@@ -6,131 +6,121 @@ using System.Threading.Tasks;
 
 namespace Regulus.Core.Ssa.Instruction
 {
-    public enum ValueOperandType
-    {
-        Integer,
-        Long,
-        Float,
-        Double,
-        Null,
-        Object
-    }
+    //public enum ValueOperandType
+    //{
+    //    Integer,
+    //    Long,
+    //    Float,
+    //    Double,
+    //    Null,
+    //    Object
+    //}
     public class ValueOperand : Operand
     {
-        private long _value;
-        public ValueOperandType ValueType;
+        private byte[] _value;
+        //public ValueOperandType ValueType;
 
-        public ValueOperand(OperandKind type, int index, ValueOperandType valueType) : base(type, index)
+        public ValueOperand(OperandKind kind, int index, ValueOperandType type) : base(kind, index, type)
         {
-            _value = 0;
-            ValueType = valueType;
+            _value = new byte[1];
             
         }
 
 
-        public ValueOperand(OperandKind type, int index, int value) : base(type, index)
+        public ValueOperand(OperandKind type, int index, int value) : base(type, index, ValueOperandType.Integer)
         {
-            _value = value;
-            ValueType = ValueOperandType.Integer;
+            _value = BitConverter.GetBytes(value);
+            //ValueType = ValueOperandType.Integer;
+
+        }
+
+        public ValueOperand(OperandKind type, int index, long value) : base(type, index, ValueOperandType.Long)
+        {
+            _value = BitConverter.GetBytes(value);
+            //ValueType = ValueOperandType.Long;
             
         }
 
-        public ValueOperand(OperandKind type, int index, long value) : base(type, index)
+        public ValueOperand(OperandKind type, int index, float value) : base(type, index, ValueOperandType.Float)
         {
-            _value = value;
-            ValueType = ValueOperandType.Long;
+            
+            _value = BitConverter.GetBytes(value);
+            //ValueType = ValueOperandType.Float;
             
         }
 
-        public ValueOperand(OperandKind type, int index, float value) : base(type, index)
+        public unsafe ValueOperand(OperandKind type, int index, double value) : base(type, index, ValueOperandType.Double)
         {
-
-            _value = BitConverter.ToInt64(BitConverter.GetBytes(value));
-            ValueType = ValueOperandType.Float;
+            _value = BitConverter.GetBytes(value);
+            //ValueType = ValueOperandType.Double;
             
         }
 
-        public unsafe ValueOperand(OperandKind type, int index, double value) : base(type, index)
+        public ValueOperand(OperandKind type, int index) : base(type, index, ValueOperandType.Null)
         {
-            _value = BitConverter.ToInt64(BitConverter.GetBytes(value));
-            ValueType = ValueOperandType.Double;
-            
-        }
-
-        public ValueOperand(OperandKind type, int index) : base(type, index)
-        {
-            _value = 0;
-            ValueType = ValueOperandType.Null;
+            _value = new byte[1];
+            //ValueType = ValueOperandType.Null;
            
 
         }
 
         public byte[] GetValue()
         {
-            if (ValueType == ValueOperandType.Null)
-            {
-                return BitConverter.GetBytes(0);
-            }
-            else if (ValueType == ValueOperandType.Integer)
-            {
-                return BitConverter.GetBytes((int)_value);
-            }
-            else if (
-                ValueType == ValueOperandType.Float ||
-                ValueType == ValueOperandType.Long ||
-                ValueType == ValueOperandType.Double
-                )
-            {
-                return BitConverter.GetBytes(_value);
-            }
-            return BitConverter.GetBytes(_value);
+            return _value;
         }
 
         public int GetInt()
         {
-            return (int)_value;
+            return BitConverter.ToInt32(_value);
         }
 
         public long GetLong()
         {
-            return _value;
+            return BitConverter.ToInt64(_value);
         }
 
         public float GetFloat()
         {
-            return BitConverter.ToSingle(BitConverter.GetBytes(_value));
+            return BitConverter.ToSingle(_value);
         }
 
         public double GetDouble()
         {
-            return BitConverter.ToDouble(BitConverter.GetBytes(_value));
+            return BitConverter.ToDouble(_value);
         }
 
         public void Neg()
         {
-            if (ValueType == ValueOperandType.Null ||
-                ValueType == ValueOperandType.Object)
+            if (OpType == ValueOperandType.Null ||
+                OpType == ValueOperandType.Object)
                 throw new InvalidOperationException();
 
-            if (ValueType == ValueOperandType.Integer ||
-                ValueType == ValueOperandType.Long)
+            if (OpType == ValueOperandType.Integer)
             {
-                _value = -_value;
+                int value = BitConverter.ToInt32(_value);
+                _value = BitConverter.GetBytes(-value);
+                return;
+            }
+
+            if (OpType == ValueOperandType.Long)
+            {
+                long value = BitConverter.ToInt64(_value);
+                _value = BitConverter.GetBytes(-value);
                 return;
             }
                 
 
-            if (ValueType == ValueOperandType.Float)
+            if (OpType == ValueOperandType.Float)
             {
-                float value = BitConverter.ToSingle(BitConverter.GetBytes(_value));
-                _value = BitConverter.ToInt64(BitConverter.GetBytes(-value));
+                float value = BitConverter.ToSingle(_value);
+                _value = BitConverter.GetBytes(-value);
                 return;
             }
 
-            if (ValueType == ValueOperandType.Double)
+            if (OpType == ValueOperandType.Double)
             {
-                double value = BitConverter.ToDouble(BitConverter.GetBytes(_value));
-                _value = BitConverter.ToInt64(BitConverter.GetBytes(-value));
+                double value = BitConverter.ToDouble(_value);
+                _value = BitConverter.GetBytes(-value);
                 return;
             }
             
@@ -138,47 +128,75 @@ namespace Regulus.Core.Ssa.Instruction
 
         public override unsafe Operand Clone()
         {
-            switch (ValueType)
+            switch (OpType)
             {
                 case ValueOperandType.Null:
-                    return new ValueOperand(Type, Index);
+                    return new ValueOperand(Kind, Index);
                 case ValueOperandType.Integer:
-                    return new ValueOperand(Type, Index, (int)_value);
+                    return new ValueOperand(Kind, Index, BitConverter.ToInt32(_value));
                 case ValueOperandType.Long:
-                    return new ValueOperand(Type, Index, _value);
+                    return new ValueOperand(Kind, Index, BitConverter.ToInt64(_value));
                 case ValueOperandType.Float:
-                    return new ValueOperand(Type, Index, BitConverter.ToSingle(BitConverter.GetBytes(_value)));
+                    return new ValueOperand(Kind, Index, BitConverter.ToSingle(_value));
                 case ValueOperandType.Double:
-                    return new ValueOperand(Type, Index, BitConverter.ToSingle(BitConverter.GetBytes(_value)));
+                    return new ValueOperand(Kind, Index, BitConverter.ToDouble(_value));
                 default:
-                    return new ValueOperand(Type, Index);
+                    return new ValueOperand(Kind, Index);
 
             }
         }
 
-        public unsafe override string ToString()
+        private string ValueToString()
         {
-            switch (ValueType)
+            if (Kind == OperandKind.Const)
             {
-                case ValueOperandType.Integer:
-                    return Type == OperandKind.Const ?
-                        $"{base.ToString()} [{_value}:Int]" : $"{base.ToString()} [Int]";
-                case ValueOperandType.Long:
-                    return Type == OperandKind.Const ?
-                        $"{base.ToString()} [{_value}:Long]" : $"{base.ToString()} [Long]";
-                case ValueOperandType.Float:
-                    return Type == OperandKind.Const ?
-                        $"{base.ToString()} [{_value}:Float]" : $"{base.ToString()} [Float]";
-                case ValueOperandType.Double:
-                    return Type == OperandKind.Const ?
-                        $"{base.ToString()} [{_value}:Double]" : $"{base.ToString()} [Double]";
+                switch(OpType)
+                {
+                    case ValueOperandType.Null:
+                        return "[Null]";
+                    case ValueOperandType.Integer:
+                        return $"[{GetInt()}]";
+                    case ValueOperandType.Long:
+                        return $"[{GetLong()}]";
+                    case ValueOperandType.Float:
+                        return $"[{GetFloat()}]";
+                    case ValueOperandType.Double:
+                        return $"[{GetDouble()}]";
+                    default:
+                        throw new NotImplementedException();
+                }
             }
-            return base.ToString();
+            else
+            {
+                return "";
+            }
+                
+        }
+        
+        public override string ToString()
+        {
+            //switch (OpType)
+            //{
+            //    case ValueOperandType.Integer:
+            //        return Kind == OperandKind.Const ?
+            //            $"{base.ToString()} [{_value}:Int]" : $"{base.ToString()} [Int]";
+            //    case ValueOperandType.Long:
+            //        return Kind == OperandKind.Const ?
+            //            $"{base.ToString()} [{_value}:Long]" : $"{base.ToString()} [Long]";
+            //    case ValueOperandType.Float:
+            //        return Kind == OperandKind.Const ?
+            //            $"{base.ToString()} [{_value}:Float]" : $"{base.ToString()} [Float]";
+            //    case ValueOperandType.Double:
+            //        return Kind == OperandKind.Const ?
+            //            $"{base.ToString()} [{_value}:Double]" : $"{base.ToString()} [Double]";
+            //}
+            
+            return $"{base.ToString()}{ValueToString()}";
         }
 
         public override bool IsDefault()
         {
-            return base.IsDefault() && Type != OperandKind.Const;
+            return base.IsDefault() && Kind != OperandKind.Const;
         }
 
 

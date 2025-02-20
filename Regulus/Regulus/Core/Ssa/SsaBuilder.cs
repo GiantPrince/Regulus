@@ -30,7 +30,7 @@ namespace Regulus.Core.Ssa
             {
                 public Variable(Operand op)
                 {
-                    Kind = op.Type;
+                    Kind = op.Kind;
                     Index = op.Index;
                 }
                 public OperandKind Kind;
@@ -269,13 +269,13 @@ namespace Regulus.Core.Ssa
                 op.Index = i;
                 yield return op;
             }
-            op.Type = OperandKind.Arg;
+            op.Kind = OperandKind.Arg;
             for (int i = 0; i < method.Parameters.Count; i++)
             {
                 op.Index = i;
                 yield return op;
             }
-            op.Type = OperandKind.Local;
+            op.Kind = OperandKind.Local;
             for (int i = 0; i < method.Body.Variables.Count; i++)
             {
                 op.Index = i;
@@ -312,7 +312,7 @@ namespace Regulus.Core.Ssa
                     BasicBlock block = workList.Pop();
                     foreach (BasicBlock frontier in domFrontier.GetFrontiersOf(block))
                     {
-                        if (op.Type == OperandKind.Stack && frontier.LiveInStackSize <= op.Index)
+                        if (op.Kind == OperandKind.Stack && frontier.LiveInStackSize <= op.Index)
                         {
                             continue;
                         }

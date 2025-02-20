@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Mono.Cecil.Cil;
@@ -20,7 +21,7 @@ namespace Regulus.Core.Ssa
             if (x == null || y == null)
                 return false;
 
-            return x.Index == y.Index && x.Type == y.Type && x.Version == y.Version; 
+            return x.Index == y.Index && x.Kind == y.Kind && x.Version == y.Version; 
         }
 
         public int GetHashCode(Operand obj)
@@ -30,7 +31,7 @@ namespace Regulus.Core.Ssa
 
             int hash = 17;
             hash = hash * 23 + obj.Index.GetHashCode();
-            hash = hash * 23 + obj.Type.GetHashCode();
+            hash = hash * 23 + obj.Kind.GetHashCode();
             hash = hash * 23 + obj.Version.GetHashCode();
 
             return hash;
@@ -152,10 +153,10 @@ namespace Regulus.Core.Ssa
             Operand op1 = moveInstruction.GetLeftHandSideOperand(0);
             Operand op2 = moveInstruction.GetRightHandSideOperand(0);
 
-            if (op1.Type == OperandKind.Const)
+            if (op1.Kind == OperandKind.Const)
             {
                 ValueOperand value = op1 as ValueOperand;
-                switch (value.ValueType)
+                switch (value.OpType)
                 {
                     case ValueOperandType.Integer:
                         _emitter.EmitAPInstruction(OpCode.Ldc_Int,
@@ -268,113 +269,778 @@ namespace Regulus.Core.Ssa
 
         }
 
-        private OpCode GetOpCodeWithoutConst(AbstractOpCode code)
+        private OpCode GetOpCodeWithoutConst(AbstractOpCode code, ValueOperandType opType)
         {
             switch (code)
             {
                 case AbstractOpCode.Add:
-                    return OpCode.Add_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Add_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Add_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Add_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Add_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                    
                 case AbstractOpCode.Add_Ovf:
-                    return OpCode.Add_Ovf_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Add_Ovf_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Add_Ovf_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Add_Ovf_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Add_Ovf_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Add_Ovf_Un:
-                    return OpCode.Add_Ovf_UInt;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Add_Ovf_UInt;
+                        case ValueOperandType.Long:
+                            return OpCode.Add_Ovf_ULong;
+                        
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub:
-                    return OpCode.Sub_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Sub_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Sub_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Sub_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Sub_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub_Ovf:
-                    return OpCode.Sub_Ovf_Int;
+                    switch (opType)
+                    {
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub_Ovf_Un:
-                    return OpCode.Sub_Ovf_UInt;
+                    switch (opType)
+                    {
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Or:
-                    return OpCode.Or_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Or_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Or_Long;                        
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.And:
-                    return OpCode.And_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.And_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.And_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Xor:
-                    return OpCode.Xor_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Xor_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Xor_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Mul:
-                    return OpCode.Mul_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Mul_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Mul_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Mul_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Mul_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Mul_Ovf:
-                    return OpCode.Mul_Ovf_Long;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Mul_Ovf_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Mul_Ovf_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Mul_Ovf_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Mul_Ovf_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Mul_Ovf_Un:
-                    return OpCode.Mul_Ovf_ULong;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Mul_Ovf_UInt;
+                        case ValueOperandType.Long:
+                            return OpCode.Mul_Ovf_ULong;
+                        
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Div:
-                    return OpCode.Div_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Div_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Div_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Div_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Div_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Div_Un:
-                    return OpCode.DivI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Div_UInt;
+                        case ValueOperandType.Long:
+                            return OpCode.Div_ULong;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Rem:
-                    return OpCode.Rem_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Rem_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Rem_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Rem_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Rem_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Rem_Un:
-                    return OpCode.RemI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Rem_UInt;
+                        case ValueOperandType.Long:
+                            return OpCode.Rem_ULong;
+                        
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Shl:
-                    return OpCode.Shl_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Shl_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Shl_Long;
+
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Shr:
-                    return OpCode.Shr_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Shr_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Shr_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Shr_Un:
-                    return OpCode.Shr_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Shr_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Shr_Un_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Cgt:
-                    return OpCode.Cgt_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Cgt_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Cgt_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Cgt_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Cgt_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Cgt_Un:
-                    return OpCode.Cgt_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Cgt_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Cgt_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Cgt_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Cgt_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Clt:
-                    return OpCode.Clt_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Clt_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Clt_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Clt_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Clt_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Clt_Un:
-                    return OpCode.Clt_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Clt_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Clt_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Clt_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Clt_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Ceq:
                     return OpCode.Ceq;
+                case AbstractOpCode.Conv_I:
+                case AbstractOpCode.Conv_I4:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_I4_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_I4_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_I4_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_I4_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_I1:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_I1_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_I1_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_I1_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_I1_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_I2:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_I2_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_I2_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_I2_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_I2_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_I8:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_I8_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_I8_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_I8_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_I8_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_U:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_U_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_U_Long;
+                        
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_U1:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_U1_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_U1_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_U1_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_U1_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_U2:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_U2_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_U2_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_U2_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_U2_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_U4:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_U4_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_U4_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_U4_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_U4_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_U8:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_U8_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_U8_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_U8_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_U8_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_R4:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_R4_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_R4_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_R4_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_R4_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_R8:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_R8_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_R8_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_R8_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_R8_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_R_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_R_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_R_Un_Long;                    
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I4_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I4_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I4_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I4_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I1:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I1_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I1_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I1_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I1_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I2:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I2_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I2_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I2_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I2_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Conv_Ovf_I8:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Conv_Ovf_I8_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Conv_Ovf_I8_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Conv_Ovf_I8_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Conv_Ovf_I8_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        private OpCode GetOpCodeWithConst(AbstractOpCode code)
+        private OpCode GetOpCodeWithConst(AbstractOpCode code, ValueOperandType opType)
         {
             switch (code)
             {
                 case AbstractOpCode.Add:
-                    return OpCode.AddI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.AddI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.AddI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.AddI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.AddI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }    
                 case AbstractOpCode.Add_Ovf:
-                    return OpCode.AddI_Ovf_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.AddI_Ovf_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.AddI_Ovf_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.AddI_Ovf_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.AddI_Ovf_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Add_Ovf_Un:
-                    return OpCode.AddI_Ovf_UInt;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.AddI_Ovf_UInt;
+                        case ValueOperandType.Long:
+                            return OpCode.AddI_Ovf_ULong;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub:
-                    return OpCode.SubI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.SubI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.SubI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.SubI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.SubI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub_Ovf:
-                    return OpCode.SubI_Ovf_Long;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.SubI_Ovf_Int;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub_Ovf_Un:
-                    return OpCode.SubI_Ovf_UInt;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.SubI_Ovf_Int;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                    
                 case AbstractOpCode.Or:
-                    return OpCode.OrI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.OrI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.OrI_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.And:
-                    return OpCode.AndI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.OrI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.OrI_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Xor:
-                    return OpCode.XorI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.XorI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.XorI_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                    
                 case AbstractOpCode.Mul:
-                    return OpCode.MulI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.MulI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.MulI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.MulI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.MulI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Mul_Ovf:
-                    return OpCode.MulI_Ovf_Long;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.MulI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.MulI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.MulI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.MulI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Mul_Ovf_Un:
-                    return OpCode.MulI_Ovf_ULong;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.MulI_Ovf_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.MulI_Ovf_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.MulI_Ovf_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.MulI_Ovf_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Div:
-                    return OpCode.DivI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.DivI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.DivI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.DivI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.DivI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Div_Un:
-                    return OpCode.DivI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.DivI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.DivI_Un_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Rem:
-                    return OpCode.RemI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.RemI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.RemI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.RemI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.RemI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Rem_Un:
-                    return OpCode.RemI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.RemI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.RemI_Un_Long;
+                        
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Shl:
-                    return OpCode.ShlI_Int;
-                case AbstractOpCode.Shr:
-                    return OpCode.ShrI_Int;
-                
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.ShlI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.ShlI_Long;
 
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Shr:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Shr_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Shr_Long;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Clt:
-                    return OpCode.CltI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CltI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CltI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CltI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CltI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Clt_Un:
-                    return OpCode.CltI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CltI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CltI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CltI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CltI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Cgt:
-                    return OpCode.CgtI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CgtI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CgtI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CgtI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CgtI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Cgt_Un:
-                    return OpCode.CgtI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CgtI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CgtI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CgtI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CgtI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Ceq:
                     return OpCode.CeqI;
 
@@ -383,34 +1049,169 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        private OpCode GetReverseOpCodeWithConst(AbstractOpCode code)
+        private OpCode GetReverseOpCodeWithConst(AbstractOpCode code, ValueOperandType opType)
         {
             switch (code) 
             {
                 case AbstractOpCode.Sub:
-                    return OpCode.AddI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.AddI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.AddI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.AddI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.AddI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Sub_Ovf:
-                    return OpCode.AddI_Ovf_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.AddI_Ovf_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.AddI_Ovf_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.AddI_Ovf_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.AddI_Ovf_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Div:
-                    return OpCode.DivI_Int_R;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.DivI_Int_R;
+                        case ValueOperandType.Long:
+                            return OpCode.DivI_Long_R;
+                        case ValueOperandType.Float:
+                            return OpCode.DivI_Float_R;
+                        case ValueOperandType.Double:
+                            return OpCode.DivI_Double_R;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Div_Un:
-                    return OpCode.DivI_Un_Int_R;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.DivI_Un_Int_R;
+                        case ValueOperandType.Long:
+                            return OpCode.DivI_Un_Long_R;
+                        case ValueOperandType.Float:
+                            return OpCode.DivI_Float_R;
+                        case ValueOperandType.Double:
+                            return OpCode.DivI_Double_R;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Rem:
-                    return OpCode.RemI_Int_R;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.RemI_Int_R;
+                        case ValueOperandType.Long:
+                            return OpCode.RemI_Long_R;
+                        case ValueOperandType.Float:
+                            return OpCode.RemI_Float_R;
+                        case ValueOperandType.Double:
+                            return OpCode.RemI_Double_R;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Rem_Un:
-                    return OpCode.RemI_Un_Int_R;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.RemI_Un_Int_R;
+                        case ValueOperandType.Long:
+                            return OpCode.RemI_Un_Long_R;
+                        
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Shl:
-                    return OpCode.ShlI_Int_R;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.ShlI_Int_R;
+                        case ValueOperandType.Long:
+                            return OpCode.ShlI_Long_R;
+
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Shr:
-                    return OpCode.ShrI_Int_R;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.ShrI_Int_R;
+                        case ValueOperandType.Long:
+                            return OpCode.ShrI_Long_R;
+
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Clt:
-                    return OpCode.CgtI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CgtI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CgtI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CgtI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CgtI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Clt_Un:
-                    return OpCode.CgtI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CgtI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CgtI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CgtI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CgtI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Cgt:
-                    return OpCode.CltI_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CltI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CltI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CltI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CltI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Cgt_Un:
-                    return OpCode.CltI_Un_Int;
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.CltI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.CltI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.CltI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.CltI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Ceq:
                     return OpCode.CeqI;
 
@@ -431,12 +1232,12 @@ namespace Regulus.Core.Ssa
             ValueOperand value = null;
             Operand operandWithConst = null;
 
-            if (op1.Type == OperandKind.Const)
+            if (op1.Kind == OperandKind.Const)
             {
                 value = op1 as ValueOperand;
                 operandWithConst = op2;
             }
-            else if (op2.Type == OperandKind.Const)
+            else if (op2.Kind == OperandKind.Const)
             {
                 value = op2 as ValueOperand;
                 operandWithConst = op1;
@@ -445,7 +1246,7 @@ namespace Regulus.Core.Ssa
             if (value != null)
             {
                 _emitter.EmitABPInstruction(
-                    GetOpCodeWithConst(code),
+                    GetOpCodeWithConst(code, op1.OpType),
                     ComputeRegisterLocation(operandWithConst),
                     ComputeRegisterLocation(op3),
                     value.GetValue());
@@ -470,11 +1271,11 @@ namespace Regulus.Core.Ssa
             Operand operandWithConst = null;
             OpCode opcode = OpCode.Nop;
 
-            if (op1.Type == OperandKind.Const)
+            if (op1.Kind == OperandKind.Const)
             {
                 value = op1 as ValueOperand;
                 operandWithConst = op2;
-                opcode = GetReverseOpCodeWithConst(code);
+                opcode = GetReverseOpCodeWithConst(code, op1.OpType);
                 if (code == AbstractOpCode.Sub || 
                     code == AbstractOpCode.Sub_Ovf || 
                     code == AbstractOpCode.Sub_Ovf_Un) 
@@ -482,17 +1283,17 @@ namespace Regulus.Core.Ssa
                     value.Neg();
                 }
             }
-            else if (op2.Type == OperandKind.Const)
+            else if (op2.Kind == OperandKind.Const)
             {
                 value = op2 as ValueOperand;
                 operandWithConst = op1;
-                opcode = GetOpCodeWithConst(code);
+                opcode = GetOpCodeWithConst(code, op1.OpType);
             }
 
             if (value != null)
             {
                 _emitter.EmitABPInstruction(
-                    GetOpCodeWithConst(code),
+                    GetOpCodeWithConst(code, op1.OpType),
                     ComputeRegisterLocation(operandWithConst),
                     ComputeRegisterLocation(op3),
                     value.GetValue());
@@ -505,6 +1306,14 @@ namespace Regulus.Core.Ssa
                     ComputeRegisterLocation(op1),
                     ComputeRegisterLocation(op3));
             }
+        }
+
+        private void EmitConvertInstruction(TransformInstruction instruction)
+        {
+            _emitter.EmitABInstruction(
+                GetOpCodeWithoutConst(instruction.Code),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
         }
 
 
@@ -554,6 +1363,34 @@ namespace Regulus.Core.Ssa
                         instruction.GetLeftHandSideOperand(1),
                         instruction.GetRightHandSideOperand(0));
                     break;
+                case AbstractOpCode.Conv_I:
+                case AbstractOpCode.Conv_I1:
+                case AbstractOpCode.Conv_I2:
+                case AbstractOpCode.Conv_I4:
+                case AbstractOpCode.Conv_I8:
+                case AbstractOpCode.Conv_Ovf_I:
+                case AbstractOpCode.Conv_Ovf_I1:
+                case AbstractOpCode.Conv_Ovf_I1_Un:
+                case AbstractOpCode.Conv_Ovf_I2:
+                case AbstractOpCode.Conv_Ovf_I2_Un:
+                case AbstractOpCode.Conv_Ovf_I4:
+                case AbstractOpCode.Conv_Ovf_I4_Un:
+                case AbstractOpCode.Conv_Ovf_I8:
+                case AbstractOpCode.Conv_Ovf_I8_Un:
+                case AbstractOpCode.Conv_Ovf_I_Un:
+                case AbstractOpCode.Conv_Ovf_U:
+                case AbstractOpCode.Conv_Ovf_U1:
+                case AbstractOpCode.Conv_Ovf_U1_Un:
+                case AbstractOpCode.Conv_Ovf_U2:
+                case AbstractOpCode.Conv_Ovf_U2_Un:
+                case AbstractOpCode.Conv_Ovf_U4:
+                case AbstractOpCode.Conv_Ovf_U4_Un:
+                case AbstractOpCode.Conv_Ovf_U8:
+                case AbstractOpCode.Conv_Ovf_U8_Un:
+                case AbstractOpCode.Conv_Ovf_U_Un:
+                    EmitConvertInstruction(instruction);
+                    break;
+
                 
 
             }
@@ -561,7 +1398,7 @@ namespace Regulus.Core.Ssa
 
         private byte ComputeRegisterLocation(Operand op)
         {
-            switch (op.Type)
+            switch (op.Kind)
             {
                 case OperandKind.Arg:
                     return (byte)op.Index;
@@ -938,7 +1775,7 @@ namespace Regulus.Core.Ssa
                 out Dictionary<Operand, int> operands);
 
             Dictionary<Operand, List<BitArray>> opLiveRanges = new Dictionary<Operand, List<BitArray>>(new OperandComparer());
-            foreach (Operand op in operands.Keys.Where(op => op.Type != OperandKind.Const))
+            foreach (Operand op in operands.Keys.Where(op => op.Kind != OperandKind.Const))
             {
                 opLiveRanges.Add(op, new List<BitArray>());
             }
@@ -986,7 +1823,7 @@ namespace Regulus.Core.Ssa
                 for (int j = 0; j < leftCount; j++)
                 {
                     Operand op = instruction.GetLeftHandSideOperand(j);
-                    if (op.Index == oldOp.Index && op.Type == oldOp.Type && op.Version == oldOp.Version)
+                    if (op.Index == oldOp.Index && op.Kind == oldOp.Kind && op.Version == oldOp.Version)
                     {
                         instruction.SetLeftHandSideOperand(j, newOp);
                     }
@@ -995,7 +1832,7 @@ namespace Regulus.Core.Ssa
                 for (int j = 0; j < rightCount; j++)
                 {
                     Operand op = instruction.GetRightHandSideOperand(j);
-                    if (op.Index == oldOp.Index && op.Type == oldOp.Type && op.Version == oldOp.Version)
+                    if (op.Index == oldOp.Index && op.Kind == oldOp.Kind && op.Version == oldOp.Version)
                     {
                         instruction.SetRightHandSideOperand(j, newOp);
                     }
@@ -1033,8 +1870,9 @@ namespace Regulus.Core.Ssa
                     {
 
                         Operand splitOp = new Operand(
-                            originalOp.Type,
+                            originalOp.Kind,
                             originalOp.Index,
+                            originalOp.OpType,
                             version: originalOp.Version + i
                         );
                         newOpLiveRanges.Add(splitOp, ranges[i]);

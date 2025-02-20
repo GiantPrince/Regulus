@@ -34,7 +34,7 @@ namespace Regulus.Core.Ssa.Instruction
                 if (_pairs[i].Block.Index == block.Index)
                     return i;
             }
-            _pairs.Add(new PhiPair() { Op = new Operand(_op.Type, _op.Index), Block = block });
+            _pairs.Add(new PhiPair() { Op = new Operand(_op.Kind, _op.Index), Block = block });
             return _pairs.Count - 1;
         }
 

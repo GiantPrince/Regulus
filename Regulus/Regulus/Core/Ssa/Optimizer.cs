@@ -16,8 +16,9 @@ namespace Regulus.Core.Ssa
         public Optimizer(SsaBuilder ssaBuilder)
         {
             _ssaBuilder = ssaBuilder;
+            TypeInference();
             CopyPropagation();
-            //CriticalEdgeSplitting();
+            CriticalEdgeSplitting();
             ResolvePhiFunctions();
             ClearEmptyInstructions();
         }
@@ -253,9 +254,7 @@ namespace Regulus.Core.Ssa
             block.Instructions.AddRange(moveInstruction);            
         }
 
-        
-
-        private void CopyPropagation()
+        private List<AbstractInstruction> CollectAllInstructions()
         {
             List<AbstractInstruction> worklist = new List<AbstractInstruction>();
             foreach (var instructions in _ssaBuilder.GetBlocks().Select(bb => bb.Instructions))
@@ -266,6 +265,222 @@ namespace Regulus.Core.Ssa
             {
                 worklist.AddRange(phi);
             }
+            return worklist;
+
+        }
+
+        private void SetInferenceType(AbstractInstruction instruction, ValueOperandType inferencedType)
+        {
+            int leftCount = instruction.LeftHandSideOperandCount();
+            int rightCount = instruction.RightHandSideOperandCount();
+            for (int i = 0; i < leftCount; i++)
+            {
+                instruction.GetLeftHandSideOperand(i).OpType = inferencedType;
+            }
+
+            for (int i = 0; i < rightCount; i++)
+            {
+                instruction.GetRightHandSideOperand(i).OpType = inferencedType;
+            }
+        }
+
+        private ValueOperandType CompareTransformInstructionTypeInference(TransformInstruction instruction)
+        {
+            //instruction.GetRightHandSideOperand(0).OpType = ValueOperandType.Integer;
+            //ValueOperandType inferencedType = ValueOperandType.Unknown;
+            //int count = instruction.LeftHandSideOperandCount();
+            //for (int i = 0; i < count; i++)
+            //{
+            //    inferencedType = instruction.GetLeftHandSideOperand(i).OpType;
+            //    if (inferencedType != ValueOperandType.Unknown)
+            //        break;
+            //}
+            //if (inferencedType != ValueOperandType.Unknown)
+            //{
+            //    for (int i = 0; i < count; ++i)
+            //    {
+            //        instruction.GetRightHandSideOperand(i).OpType = inferencedType;
+            //    }
+            //}
+            return ValueOperandType.Integer;
+        }
+
+        private ValueOperandType ConvertTransformInstructionTypeInference(TransformInstruction instruction)
+        {
+            ValueOperandType inferencedType = ValueOperandType.Unknown;
+            switch (instruction.Code)
+            {
+                case AbstractOpCode.Conv_I1:
+                case AbstractOpCode.Conv_I2:
+                case AbstractOpCode.Conv_I4:
+                case AbstractOpCode.Conv_I:
+                case AbstractOpCode.Conv_Ovf_I:
+                case AbstractOpCode.Conv_Ovf_I1:
+                case AbstractOpCode.Conv_Ovf_I2:
+                case AbstractOpCode.Conv_Ovf_I4:
+                case AbstractOpCode.Conv_U:
+                case AbstractOpCode.Conv_U2:
+                case AbstractOpCode.Conv_U4:
+                case AbstractOpCode.Conv_Ovf_I1_Un:
+                case AbstractOpCode.Conv_Ovf_I2_Un:
+                case AbstractOpCode.Conv_Ovf_I4_Un:
+                    inferencedType = ValueOperandType.Integer;
+                    break;
+                
+                case AbstractOpCode.Conv_Ovf_I8:
+                case AbstractOpCode.Conv_I8:
+                case AbstractOpCode.Conv_Ovf_I8_Un:
+                case AbstractOpCode.Conv_U8:
+                    inferencedType = ValueOperandType.Long;
+                    break;
+                
+                case AbstractOpCode.Conv_R4:
+                    inferencedType = ValueOperandType.Float;
+                    break;
+                case AbstractOpCode.Conv_R8:
+                    inferencedType = ValueOperandType.Double;
+                    break;
+                case AbstractOpCode.Conv_R_Un:
+                    //instruction.GetLeftHandSideOperand(0).OpType = ValueOperandType.UnsignInteger;
+                    inferencedType = ValueOperandType.Float;
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+            //instruction.GetRightHandSideOperand(0).OpType = inferencedType;
+            return inferencedType;
+        }
+
+        private ValueOperandType UnifiedTransformInstructionTypeInference(TransformInstruction instruction)
+        {
+            ValueOperandType inferencedType = ValueOperandType.Unknown;
+            int count = instruction.LeftHandSideOperandCount();
+            for (int i = 0; i < count; i++)
+            {
+                inferencedType = instruction.GetLeftHandSideOperand(i).OpType;
+                if (inferencedType != ValueOperandType.Unknown)
+                    break;
+            }
+
+            //if (inferencedType != ValueOperandType.Unknown)
+            //{
+            //    SetInferenceType(instruction, inferencedType);
+            //}
+
+            return inferencedType;
+        }
+
+        private ValueOperandType TransformInstructionTypeInference(TransformInstruction instruction)
+        {
+            switch(instruction.Code)
+            {
+                // conv instructions
+                case AbstractOpCode.Conv_I1:
+                case AbstractOpCode.Conv_I2:
+                case AbstractOpCode.Conv_I4:
+                case AbstractOpCode.Conv_I:
+                case AbstractOpCode.Conv_Ovf_I:
+                case AbstractOpCode.Conv_Ovf_I1:
+                case AbstractOpCode.Conv_Ovf_I2:
+                case AbstractOpCode.Conv_Ovf_I4:
+                case AbstractOpCode.Conv_U:
+                case AbstractOpCode.Conv_U2:
+                case AbstractOpCode.Conv_U4:
+                case AbstractOpCode.Conv_Ovf_I1_Un:
+                case AbstractOpCode.Conv_Ovf_I2_Un:
+                case AbstractOpCode.Conv_Ovf_I4_Un:
+                case AbstractOpCode.Conv_Ovf_I8:
+                case AbstractOpCode.Conv_I8:
+                case AbstractOpCode.Conv_Ovf_I8_Un:
+                case AbstractOpCode.Conv_U8:
+                case AbstractOpCode.Conv_R4:
+                case AbstractOpCode.Conv_R8:
+                case AbstractOpCode.Conv_R_Un:
+                    return ConvertTransformInstructionTypeInference(instruction);
+                case AbstractOpCode.Cgt:
+                case AbstractOpCode.Cgt_Un:
+                case AbstractOpCode.Clt:
+                case AbstractOpCode.Clt_Un:
+                case AbstractOpCode.Ceq:
+                    return CompareTransformInstructionTypeInference(instruction);
+                default:
+                    return UnifiedTransformInstructionTypeInference(instruction);
+
+            }
+        }
+
+        private ValueOperandType PhiInstructionTypeInference(PhiInstruction instruction)
+        {
+            ValueOperandType inferencedType = ValueOperandType.Unknown;
+            int count = instruction.LeftHandSideOperandCount();
+            for (int i = 0; i < count; i++)
+            {
+                inferencedType = instruction.GetLeftHandSideOperand(i).OpType;
+                if (inferencedType != ValueOperandType.Unknown)
+                    break;
+            }
+            instruction.GetRightHandSideOperand(0).OpType = inferencedType;
+            return inferencedType;
+
+        }
+
+        private ValueOperandType TypeInference(AbstractInstruction instruction, out bool needExtraIteration)
+        {
+            ValueOperandType inferencedType = ValueOperandType.Unknown;
+            needExtraIteration = false;
+            switch (instruction.Kind)
+            {
+                case InstructionKind.Move:
+                    inferencedType = instruction.GetLeftHandSideOperand(0).OpType;
+                    break;
+                case InstructionKind.Transform:
+                    inferencedType = TransformInstructionTypeInference((TransformInstruction)instruction);
+                    break;
+                case InstructionKind.Phi:
+                    inferencedType = PhiInstructionTypeInference((PhiInstruction)instruction);
+                    break;
+                case InstructionKind.UnCondBranch:
+                case InstructionKind.CondBranch:
+                case InstructionKind.CmpBranch:
+                case InstructionKind.Return:
+                    return ValueOperandType.Unknown;
+                default:
+                    throw new NotImplementedException();
+            }
+            if (inferencedType == ValueOperandType.Unknown) 
+                needExtraIteration = true;
+            return inferencedType;
+        }
+
+        private void TypeInference()
+        {
+            List<AbstractInstruction> worklist = CollectAllInstructions();
+            Queue<AbstractInstruction> queue = new Queue<AbstractInstruction>(worklist);
+            while (queue.Count > 0)
+            {
+                AbstractInstruction i = queue.Dequeue();
+                
+
+                ValueOperandType inferencedType = TypeInference(i, out bool needExtraIteration);
+                if (inferencedType != ValueOperandType.Unknown)
+                {
+                    i.GetRightHandSideOperand(0).OpType = inferencedType;
+                    Operand def = i.GetLeftHandSideOperand(0);
+                    foreach (Use use in _ssaBuilder.GetUses(i))
+                    {
+                        use.Instruction.GetLeftHandSideOperand(use.OperandIndex).OpType = inferencedType;
+                    }
+                }
+                if (needExtraIteration)
+                {
+                    queue.Enqueue(i);
+                }
+            }
+        }
+
+        private void CopyPropagation()
+        {
+            List<AbstractInstruction> worklist = CollectAllInstructions();
 
             while (worklist.Count > 0)
             {
