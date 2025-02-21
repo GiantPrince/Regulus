@@ -99,7 +99,7 @@ namespace Regulus.Core.Ssa
                             break;
                         case InstructionKind.UnCondBranch:
                             UnCondBranchInstruction br = (UnCondBranchInstruction)instruction;
-                            _backPatchIndex.Add(new PatchInfo() { Start = _emitter.GetByteCount(), Offset = 1 });
+                            _backPatchIndex.Add(new PatchInfo() { Start = _emitter.GetByteCount(), Offset = sizeof(OpCode) });
                             _emitter.EmitPInstruction(OpCode.Br, br.Target.Index);
                             break;
                         case InstructionKind.CondBranch:
@@ -130,7 +130,7 @@ namespace Regulus.Core.Ssa
 
         private void CompilerCondBranchInstruction(CondBranchInstruction condBranchInstruction)
         {
-            _backPatchIndex.Add(new PatchInfo() { Start = _emitter.GetByteCount(), Offset = 2 });
+            _backPatchIndex.Add(new PatchInfo() { Start = _emitter.GetByteCount(), Offset = sizeof(OpCode) + sizeof(byte) });
             if (condBranchInstruction.Code == AbstractOpCode.BrFalse)
             {
                 _emitter.EmitAPInstruction(
@@ -1503,6 +1503,9 @@ namespace Regulus.Core.Ssa
                 case AbstractOpCode.Conv_Ovf_U8:
                 case AbstractOpCode.Conv_Ovf_U8_Un:
                 case AbstractOpCode.Conv_Ovf_U_Un:
+                case AbstractOpCode.Conv_R4:
+                case AbstractOpCode.Conv_R8:
+                case AbstractOpCode.Conv_R_Un:
                     EmitConvertInstruction(instruction);
                     break;
 

@@ -49,7 +49,7 @@ namespace Regulus
             {
                 VirtualMachine virtualMachine = new VirtualMachine();
 
-                virtualMachine.Run((Instruction*)ip);
+                virtualMachine.Run(ip);
             }
 
 
