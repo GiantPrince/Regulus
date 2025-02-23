@@ -61,6 +61,11 @@ namespace Regulus.Core.Ssa
         {
             return _emitter.GetBytes().ToArray();
         }
+
+        public Stream GetMeta()
+        {
+            return _emitter.GetMeta();
+        }
         public byte[] Compile(List<BasicBlock> blocks, int argCount, int localCount, int maxStackSize)
         {
             _localStart = argCount;
@@ -79,7 +84,8 @@ namespace Regulus.Core.Ssa
 
             Dictionary<Operand, BitArray> splitLiveRanges = ReAllocOperands(liveRanges, instructions);
             Dictionary<Operand, List<Operand>> edges = BuildInterferenceGraph(instructions, liveRanges);
-            AllocateRegister(edges);
+            List<List<Operand>> argumentGroups = CollectFunctionArguments(blocks);
+            AllocateRegister(edges, argumentGroups);
             
             foreach (BasicBlock bb in blocks)
             {
@@ -93,7 +99,9 @@ namespace Regulus.Core.Ssa
                 {
                     switch (instruction.Kind)
                     {
-
+                        case InstructionKind.Call:
+                            CompileCallInstruction((CallInstruction)instruction);
+                            break;  
                         case InstructionKind.Transform:
                             CompileTransformInstruction((TransformInstruction)instruction);
                             break;
@@ -120,6 +128,7 @@ namespace Regulus.Core.Ssa
                 }
             }
             BackPatch(basicBlockStartOffset);
+            _emitter.EmitTypeMethodInfoToMeta();
             return _emitter.GetBytes().ToArray();
         }
 
@@ -178,9 +187,21 @@ namespace Regulus.Core.Ssa
                             ComputeRegisterLocation(op2),
                             value.GetValue());
                         break;
+                    case ValueOperandType.String:
+                        _emitter.EmitAPInstruction(OpCode.LdStr,
+                            ComputeRegisterLocation(op2),
+                            value.GetStringIndex());
+                        break;
 
 
                 }
+            }
+            else if (moveInstruction.Code == AbstractOpCode.Ldloca)
+            {
+                _emitter.EmitABInstruction(
+                    OpCode.Ldloca,
+                    ComputeRegisterLocation(op1),
+                    ComputeRegisterLocation(op2));
             }
             else
             {
@@ -207,6 +228,91 @@ namespace Regulus.Core.Ssa
                 }
             }
         }
+
+        private void CompileCallInstruction(CallInstruction callInstruction)
+        {
+            int methodIndex = _emitter.AddMethod(callInstruction.DeclaringType, callInstruction.Method, callInstruction.IsGenericMethod, callInstruction.ParametersType.Select(t => t.AssemblyQualifiedName).ToList());
+            _emitter.EmitABPPInstruction(
+                OpCode.Call,
+                callInstruction.HasLeftHandSideOperand() ? 
+                ComputeRegisterLocation(callInstruction.GetLeftHandSideOperand(0)) :
+                (byte)0,
+                callInstruction.HasRightHandSideOperand() ?
+                ComputeRegisterLocation(callInstruction.GetRightHandSideOperand(0)) :
+                (byte)0,
+                methodIndex,
+                callInstruction.ArgCount
+                );
+            
+            WriteParameterTypes(callInstruction);
+            WriteType(callInstruction.ReturnType);
+
+        }
+
+        private void WriteType(Type type)
+        {
+            if (type == typeof(byte))
+            {
+                _emitter.EmitType(Constants.Byte);
+            }
+            else if (type == typeof(sbyte))
+            {
+                _emitter.EmitType(Constants.Sbyte);
+            }
+            else if (type == typeof(ushort))
+            {
+                _emitter.EmitType(Constants.UShort);
+            }
+            else if (type == typeof(short))
+            {
+                _emitter.EmitType(Constants.Short);
+            }
+            else if (type == typeof(int))
+            {
+                _emitter.EmitType(Constants.Int);
+            }
+            else if (type == typeof(uint))
+            {
+                _emitter.EmitType(Constants.UInt);
+            }
+            else if (type == typeof(long))
+            {
+                _emitter.EmitType(Constants.Long);
+            }
+            else if (type == typeof(ulong))
+            {
+                _emitter.EmitType(Constants.ULong);
+            }
+            else if (type == typeof(float))
+            {
+                _emitter.EmitType(Constants.Float);
+            }
+            else if (type == typeof(double))
+            {
+                _emitter.EmitType(Constants.Double);
+            }
+            else if (type == typeof(void))
+            {
+                _emitter.EmitType(Constants.Void);
+            }
+            else
+            {
+                _emitter.EmitType(Constants.Object);
+            }
+        }
+
+        private void WriteParameterTypes(CallInstruction callInstruction)
+        {
+            for (int i = 0; i < callInstruction.ArgCount; i++)
+            {
+                Type type = callInstruction.ParametersType[i];
+                WriteType(type);
+            }
+
+
+
+        }
+
 
         private void CompileCmpBranchInstruction(CmpBranchInstruction instruction)
         {
@@ -1422,6 +1528,8 @@ namespace Regulus.Core.Ssa
             }
         }
 
+        
+
         private void EmitConvertInstruction(TransformInstruction instruction)
         {
             Operand op1 = instruction.GetLeftHandSideOperand(0);
@@ -2030,24 +2138,117 @@ namespace Regulus.Core.Ssa
             return edges;
         }
 
-        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges)
+        private List<List<Operand>> CollectFunctionArguments(List<BasicBlock> blocks)
         {
-            
+            List<List<Operand>> argumentGroups = new List<List<Operand>>();
+            foreach (var block in blocks)
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    if (instruction.Kind != InstructionKind.Call)
+                    {
+                        continue;
+                    }
+                    List<Operand> arguments = new List<Operand>();
+                    int argCount = instruction.LeftHandSideOperandCount();
+                    for (int i = 0; i < argCount; i++) 
+                    {
+                        arguments.Add(instruction.GetLeftHandSideOperand(i));
+                    }
+
+                    argumentGroups.Add(arguments);
+                    
+                }
+            }
+            return argumentGroups;
+        }
+
+        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges, List<List<Operand>> argumentGroups)
+        {
             Dictionary<Operand, int> registerAssignment = new Dictionary<Operand, int>();
 
-            List<Operand> operands = edges.Keys.ToList();
+            // Process each argument group to assign contiguous registers
+            foreach (var group in argumentGroups)
+            {
+                if (group.Count == 0)
+                    continue;
+
+                List<HashSet<int>> forbiddenForEachOperand = new List<HashSet<int>>();
+                foreach (var op in group)
+                {
+                    HashSet<int> forbidden = new HashSet<int>();
+                    foreach (var neighbor in edges[op])
+                    {
+                        if (registerAssignment.TryGetValue(neighbor, out int reg))
+                        {
+                            forbidden.Add(reg);
+                        }
+                    }
+                    forbiddenForEachOperand.Add(forbidden);
+                }
+
+                int startReg = 0;
+                bool found = false;
+                while (!found)
+                {
+                    bool valid = true;
+                    // Check if all required registers are available for this group
+                    for (int i = 0; i < group.Count; i++)
+                    {
+                        int requiredReg = startReg + i;
+                        if (forbiddenForEachOperand[i].Contains(requiredReg))
+                        {
+                            valid = false;
+                            break;
+                        }
+                    }
+
+                    // Additionally, ensure none of the registers in the range are occupied by non-group operands
+                    if (valid)
+                    {
+                        for (int i = 0; i < group.Count; i++)
+                        {
+                            int requiredReg = startReg + i;
+                            if (registerAssignment.Values.Contains(requiredReg))
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (valid)
+                    {
+                        found = true;
+                    }
+                    else
+                    {
+                        startReg++;
+                    }
+                }
+
+                // Assign registers to the group
+                for (int i = 0; i < group.Count; i++)
+                {
+                    Operand op = group[i];
+                    int reg = startReg + i;
+                    registerAssignment[op] = reg;
+                    op.AssignRegister(reg);
+                }
+            }
+
+            // Process remaining operands using the original greedy algorithm
+            List<Operand> operands = edges.Keys.Where(op => !registerAssignment.ContainsKey(op)).ToList();
             operands.Sort((op1, op2) => edges[op2].Count.CompareTo(edges[op1].Count));
 
             foreach (Operand operand in operands)
             {
-                
                 HashSet<int> usedRegisters = new HashSet<int>();
                 foreach (Operand neighbor in edges[operand])
                 {
-                    
-                    if (registerAssignment.ContainsKey(neighbor))
+                    if (registerAssignment.TryGetValue(neighbor, out int reg))
                     {
-                        usedRegisters.Add(registerAssignment[neighbor]);
+                        usedRegisters.Add(reg);
                     }
                 }
 
@@ -2058,7 +2259,6 @@ namespace Regulus.Core.Ssa
                 }
 
                 registerAssignment[operand] = register;
-
                 operand.AssignRegister(register);
             }
         }

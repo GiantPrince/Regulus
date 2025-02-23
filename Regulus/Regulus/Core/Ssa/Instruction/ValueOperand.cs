@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,12 +19,22 @@ namespace Regulus.Core.Ssa.Instruction
     public class ValueOperand : Operand
     {
         private byte[] _value;
-        //public ValueOperandType ValueType;
+        private static List<string> s_internStrings = new List<string>();
 
+        public static string[] GetInternedStrings()
+        {
+            return s_internStrings.ToArray();
+        }
         public ValueOperand(OperandKind kind, int index, ValueOperandType type) : base(kind, index, type)
         {
             _value = new byte[1];
             
+        }
+
+        public ValueOperand(OperandKind kind, int index, int value, ValueOperandType type) : base(kind, index, type)
+        {
+            _value = BitConverter.GetBytes(value);
+
         }
 
 
@@ -54,6 +65,19 @@ namespace Regulus.Core.Ssa.Instruction
             _value = BitConverter.GetBytes(value);
             //ValueType = ValueOperandType.Double;
             
+        }
+
+        public ValueOperand(OperandKind type, int index, string str) : base(type, index, ValueOperandType.String)
+        {
+            int i = s_internStrings.IndexOf(str);
+            if (i == -1)
+            {
+                i = s_internStrings.Count;
+                s_internStrings.Add(str);
+                
+            }
+
+            _value = BitConverter.GetBytes(i);
         }
 
         public ValueOperand(OperandKind type, int index) : base(type, index, ValueOperandType.Null)
@@ -87,6 +111,11 @@ namespace Regulus.Core.Ssa.Instruction
         public double GetDouble()
         {
             return BitConverter.ToDouble(_value);
+        }
+
+        public int GetStringIndex()
+        {
+            return BitConverter.ToInt32(_value);
         }
 
         public void Neg()
@@ -140,6 +169,8 @@ namespace Regulus.Core.Ssa.Instruction
                     return new ValueOperand(Kind, Index, BitConverter.ToSingle(_value));
                 case ValueOperandType.Double:
                     return new ValueOperand(Kind, Index, BitConverter.ToDouble(_value));
+                case ValueOperandType.Reference:
+                    return new ValueOperand(Kind, Index, BitConverter.ToInt32(_value));
                 default:
                     return new ValueOperand(Kind, Index);
 
@@ -162,6 +193,10 @@ namespace Regulus.Core.Ssa.Instruction
                         return $"[{GetFloat()}]";
                     case ValueOperandType.Double:
                         return $"[{GetDouble()}]";
+                    case ValueOperandType.String:
+                        return $"[{s_internStrings[GetStringIndex()]}]";
+                    case ValueOperandType.Reference:
+                        return $"[Ref:{GetInt()}]";
                     default:
                         throw new NotImplementedException();
                 }

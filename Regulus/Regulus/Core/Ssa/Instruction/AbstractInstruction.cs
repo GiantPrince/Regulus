@@ -145,7 +145,8 @@ namespace Regulus.Core.Ssa.Instruction
         Stsfld,
         Throw,
         Unbox,
-        Phi
+        Phi,
+        Mark = 0x80
     }
 
     public enum InstructionKind
@@ -165,10 +166,12 @@ namespace Regulus.Core.Ssa.Instruction
     {
         public AbstractOpCode Code;
         public InstructionKind Kind;
+        public bool IsObselete;
         public AbstractInstruction(AbstractOpCode opcode, InstructionKind kind)
         {
             Code = opcode;
             Kind = kind;
+            IsObselete = false;
         }
 
         public static string GetInstructionKindString(InstructionKind kind)

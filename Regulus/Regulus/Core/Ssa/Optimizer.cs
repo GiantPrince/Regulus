@@ -33,7 +33,7 @@ namespace Regulus.Core.Ssa
         {
             foreach (BasicBlock block in _ssaBuilder.GetBlocks())
             {
-                block.Instructions = block.Instructions.Where(i => i.Kind != InstructionKind.Empty).ToList();
+                block.Instructions = block.Instructions.Where(i => !i.IsObselete).ToList();
             }
         }
 
@@ -424,6 +424,11 @@ namespace Regulus.Core.Ssa
 
         }
 
+        private ValueOperandType CallInstructionTypeInference(CallInstruction callInstruction)
+        {
+            return Operand.StringToValueType(callInstruction.ReturnTypeName);
+        }
+
         private ValueOperandType TypeInference(AbstractInstruction instruction, out bool needExtraIteration)
         {
             ValueOperandType inferencedType = ValueOperandType.Unknown;
@@ -431,6 +436,7 @@ namespace Regulus.Core.Ssa
             switch (instruction.Kind)
             {
                 case InstructionKind.Move:
+                    
                     inferencedType = instruction.GetLeftHandSideOperand(0).OpType;
                     break;
                 case InstructionKind.Transform:
@@ -444,10 +450,12 @@ namespace Regulus.Core.Ssa
                 case InstructionKind.CmpBranch:
                 case InstructionKind.Return:
                     return ValueOperandType.Unknown;
+                case InstructionKind.Call:
+                    return CallInstructionTypeInference((CallInstruction)instruction);
                 default:
                     throw new NotImplementedException();
             }
-            if (inferencedType == ValueOperandType.Unknown) 
+            if (inferencedType == ValueOperandType.Unknown && instruction.Code != AbstractOpCode.Ldloca) 
                 needExtraIteration = true;
             return inferencedType;
         }
@@ -465,7 +473,7 @@ namespace Regulus.Core.Ssa
                 if (inferencedType != ValueOperandType.Unknown)
                 {
                     i.GetRightHandSideOperand(0).OpType = inferencedType;
-                    Operand def = i.GetLeftHandSideOperand(0);
+                    
                     foreach (Use use in _ssaBuilder.GetUses(i))
                     {
                         use.Instruction.GetLeftHandSideOperand(use.OperandIndex).OpType = inferencedType;
@@ -486,17 +494,33 @@ namespace Regulus.Core.Ssa
             {
                 AbstractInstruction i = worklist.Last();
                 worklist.Remove(i);
-                if (i is MoveInstruction)
+                if (i.Kind == InstructionKind.Move)
                 {
                     Operand def = i.GetLeftHandSideOperand(0);
+
+                    bool delete = true;
                     foreach (Use use in _ssaBuilder.GetUses(i))
                     {
-                        use.Instruction.SetLeftHandSideOperand(use.OperandIndex, def);
-                        Operand useOp = use.Instruction.GetLeftHandSideOperand(use.OperandIndex);
+                        if (use.Instruction.Kind == InstructionKind.Call && def.Kind == OperandKind.Const)
+                        {
+                            delete = false;
+                            use.Instruction.SetLeftHandSideOperand(use.OperandIndex, i.GetRightHandSideOperand(0));
+                        }
+                        else
+                        {
+                            use.Instruction.SetLeftHandSideOperand(use.OperandIndex, def);
+                            
+                        }
                         worklist.Add(use.Instruction);
                     }
-                    i.Code = AbstractOpCode.Nop;
-                    i.Kind = InstructionKind.Empty;
+                    if (delete)
+                    {
+                        i.IsObselete = true;
+                    }
+                    else
+                    {
+                        i.IsObselete = false;
+                    }
                 }
                 
             }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,11 +9,30 @@ namespace Regulus.Core.Ssa
 {
     public class Emitter
     {
+        
         List<byte> bytecodes;
+        Stream meta;
+        List<string> strings;
+        List<string> _types;
+        List<int> _methodCount;
+        List<int> _argCount;
+        List<int> _methodIndexToType;
+        List<int> _parameterIndexToType;
+        List<string> _methods;
+        List<bool> _isGenericMethod;
 
         public Emitter()
         {
             bytecodes = new List<byte>();
+            meta = new MemoryStream();
+            strings = new List<string>();
+            _types = new List<string>();
+            _methodIndexToType = new List<int>();
+            _parameterIndexToType = new List<int>();
+            _methods = new List<string>();
+            _methodCount = new List<int>();
+            _argCount = new List<int>();
+            _isGenericMethod = new List<bool>();
         }
 
         public List<byte> GetBytes()
@@ -20,14 +40,120 @@ namespace Regulus.Core.Ssa
             return bytecodes;
         }
 
+        public Stream GetMeta()
+        {
+            return meta;
+        }
+
         public int GetByteCount()
         {
             return bytecodes.Count;
         }
 
+
+
         private void EmitOpCode(OpCode opcode)
         {
             bytecodes.AddRange(BitConverter.GetBytes((ushort)opcode));
+        }
+
+        public void EmitType(byte type)
+        {
+            bytecodes.Add(type);
+        }
+
+        private void AddParameter(int methodIndex, List<string> parameters)
+        {
+            
+            for (int i = 0; i < parameters.Count; i++)
+            {
+                int typeIndex = _types.IndexOf(parameters[i]);
+                if (typeIndex == -1)
+                {
+                    _types.Add(parameters[i]);
+                    typeIndex = _types.Count - 1;
+                }
+                _parameterIndexToType.Add(typeIndex);
+            }
+        }
+
+        public int AddMethod(string declaringType, string method, bool isGenericMethod, List<string> parameterTypes)
+        {
+            _isGenericMethod.Add(isGenericMethod);
+            int typeIndex = _types.IndexOf(declaringType);
+            if (typeIndex == -1)
+            {
+                typeIndex = _types.Count;
+                _types.Add(declaringType);
+                _methodCount.Add(1);
+                _methods.Add(method);
+                _methodIndexToType.Add(typeIndex);
+                _argCount.Add(parameterTypes.Count);
+                AddParameter(_methods.Count - 1, parameterTypes);
+                return _methods.Count - 1;
+            }
+            else
+            {
+                _methodCount[typeIndex]++;
+                int methodIndex = _methods.IndexOf(method);
+                if (methodIndex == -1)
+                {
+                    _methods.Add(method);
+                    _methodIndexToType.Add(typeIndex);
+                    _argCount.Add(parameterTypes.Count);
+                    AddParameter(_methods.Count - 1, parameterTypes);
+                }
+                return methodIndex;
+            }
+        }
+
+        public void EmitTypeMethodInfoToMeta()
+        {
+            int acc = 0;
+            EmitIntMeta(_types.Count);
+            for (int i = 0; i < _types.Count; i++)
+            {
+                EmitStringMeta(_types[i]);
+            }
+            EmitIntMeta(_methods.Count);
+            
+            for (int i = 0; i < _methods.Count; i++)
+            {
+                EmitIntMeta(_methodIndexToType[i]);
+                EmitStringMeta(_methods[i]);
+                EmitBoolMeta(_isGenericMethod[i]);
+                EmitIntMeta(_argCount[i]);
+                for (int j = 0; j < _argCount[i]; j++)
+                {
+                    EmitIntMeta(_parameterIndexToType[acc + j]);
+                }
+                acc += _argCount[i];
+            }
+            meta.Seek(0, SeekOrigin.Begin);
+        }
+
+        public void EmitBoolMeta(bool b)
+        {
+            using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
+            {
+                writer.Write(b);
+            }
+        }
+
+        public void EmitIntMeta(int i)
+        {
+            using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
+            {
+                writer.Write(i);
+            }
+        }
+
+        public void EmitStringMeta(string s)
+        {
+            using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
+            {
+                writer.Write(s);
+            }
         }
 
         public void EmitABCInstruction(OpCode opcode, byte a, byte b, byte c) 
@@ -63,6 +189,15 @@ namespace Regulus.Core.Ssa
 
             
             bytecodes.AddRange(p);
+        }
+
+        public void EmitABPPInstruction(OpCode opcode, byte registerA, byte RegisterB, int methodIndex, int argCount)
+        {
+            EmitOpCode(opcode);
+            bytecodes.Add(registerA);
+            bytecodes.Add(RegisterB);
+            bytecodes.AddRange(BitConverter.GetBytes(methodIndex));
+            bytecodes.AddRange(BitConverter.GetBytes(argCount));
         }
 
         public void EmitPInstruction(OpCode opcode, int offset)

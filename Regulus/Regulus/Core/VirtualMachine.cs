@@ -13,13 +13,16 @@ namespace Regulus.Core
         private const int MAX_REGISTERS = 256;
 
         private Value* Registers;
-        public string[] internStrings;
+        public object[] Objects;
+        public Invoker[] Invokers;
+        public string[] internedStrings;
 
 
 
         public VirtualMachine()
         {
             Registers = (Value*)Marshal.AllocHGlobal(sizeof(Value) * MAX_REGISTERS);
+            Objects = new object[MAX_REGISTERS];
         }
 
         ~VirtualMachine()
@@ -54,8 +57,8 @@ namespace Regulus.Core
             {
                 
                 OpCode op = ((Instruction*)ip)->Op;
-                Console.WriteLine(op);
-                Debug.PrintVMRegisters(this, 0, 23);
+                //Console.WriteLine(op);
+                //Debug.PrintVMRegisters(this, 0, 23);
                 switch (op)
                 {
                     case OpCode.Mov:
@@ -1661,8 +1664,17 @@ namespace Regulus.Core
                         *(double*)&Registers[convR8DoubleInstruction->RegisterB].Upper = *(double*)&Registers[convR8DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
-                    //case OpCode.Conv_Ovf_I1_Int:
-
+                    // TODO: add conv_ovf opcodes
+                    case OpCode.Call:
+                        ABPPInstruction* callInstruction = (ABPPInstruction*)ip;
+                        // registerA is the first argument
+                        // operand1 is methodIndex
+                        // operand2 is argCount
+                        // then argCount bytes for parameter type
+                        ip += ABPPInstruction.Size;
+                        Invokers[callInstruction->Operand1].Invoke(Objects, Registers + callInstruction->RegisterA, ip, callInstruction->Operand2, Registers + callInstruction->RegisterB, callInstruction->RegisterB);
+                        ip += sizeof(byte) * (callInstruction->Operand2 + 1);
+                        break;
 
                     case OpCode.Ldc_Int:
                         APInstruction* ldcIntInstruction = (APInstruction*)ip;
@@ -1686,14 +1698,15 @@ namespace Regulus.Core
                         break;
                     case OpCode.LdStr:
                         APInstruction* ldStrInstruction = (APInstruction*)ip;
-                        Registers[ldStrInstruction->RegisterA].Upper = *(int*)&ldStrInstruction->Operand;
-                        ip += ABCInstruction.Size;
+                        Objects[ldStrInstruction->RegisterA] = internedStrings[ldStrInstruction->Operand];
+                        Registers[ldStrInstruction->RegisterA].Upper = ldStrInstruction->RegisterA;
+                        ip += APInstruction.Size;
                         break;
-                    case OpCode.Call:
-                        // register A is function address
-                        ABCInstruction* callInstruction = (ABCInstruction*)ip;
 
-
+                    case OpCode.Ldloca:
+                        ABInstruction* ldlocaInstruction = (ABInstruction*)ip;
+                        *(Value**)&Registers[ldlocaInstruction->RegisterB].Upper = Registers + ldlocaInstruction->RegisterA;
+                        ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Ret:

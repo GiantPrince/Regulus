@@ -3,12 +3,20 @@ using System.Reflection;
 using Mono.Cecil;
 using Regulus.Core.Ssa;
 using System.Collections;
+using Regulus.Core.Ssa.Instruction;
 
 namespace Regulus
 {
     public class Test
     {
         public static int count = 0;
+    }
+
+    public enum MyEnum : byte
+    {
+        a,
+        b, 
+        c
     }
     public class Program
     {
@@ -44,11 +52,14 @@ namespace Regulus
             Compiler compiler = new Compiler();
             compiler.Compile(ssaBuilder.GetBlocks(), methodDef.Parameters.Count, methodDef.Body.Variables.Count, methodDef.Body.MaxStackSize);
 
-            Console.WriteLine(Add());
+            
+            
             fixed (byte* ip = compiler.GetByteCode())
             {
+                MethodBase[] methods = Loader.LoadMeta(compiler.GetMeta());
                 VirtualMachine virtualMachine = new VirtualMachine();
-
+                virtualMachine.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
+                virtualMachine.internedStrings = ValueOperand.GetInternedStrings();
                 virtualMachine.Run(ip);
             }
 

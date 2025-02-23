@@ -26,6 +26,8 @@ namespace Regulus.Core.Ssa.Instruction
         Float,
         Double,
         Null,
+        String,
+        Reference,
         Object
     }
     public class Operand
@@ -62,6 +64,32 @@ namespace Regulus.Core.Ssa.Instruction
             return Version == defaultVersion;
         }
 
+        public static ValueOperandType StringToValueType(string name)
+        {
+            switch (name.ToLower())
+            {
+                case "void":
+                    return ValueOperandType.Unknown;
+
+                case "int":
+                case "int32":
+                    return ValueOperandType.Integer;
+
+                case "long":
+                case "int64":
+                    return ValueOperandType.Long;
+
+                case "float":
+                case "single":
+                    return ValueOperandType.Float;
+
+                case "double":
+                    return ValueOperandType.Double;
+
+                default:
+                    return ValueOperandType.Object;
+            }
+        }
         private string ValueOperandTypeToString(ValueOperandType valueOperandType)
         {
             switch (valueOperandType)
@@ -72,15 +100,18 @@ namespace Regulus.Core.Ssa.Instruction
                     return "Int";
                 case ValueOperandType.Long:
                     return "Long";
-                
                 case ValueOperandType.Float:
                     return "Float";
                 case ValueOperandType.Double:
                     return "Double";
                 case ValueOperandType.Object:
                     return "Object";
+                case ValueOperandType.String:
+                    return "String";
                 case ValueOperandType.Null:
                     return "Null";
+                case ValueOperandType.Reference:
+                    return "Reference";
                 default:
                     throw new NotImplementedException();
             }

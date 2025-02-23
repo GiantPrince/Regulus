@@ -256,6 +256,7 @@ namespace Regulus.Core
         Ldc_Float,
         Ldc_Double,
         LdStr,
+        Ldloca,
 
         // Call
         Call,
@@ -415,6 +416,28 @@ namespace Regulus.Core
         [FieldOffset(sizeof(OpCode) + sizeof(byte))]
         public int Operand;
     }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct ABPPInstruction
+    {
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(int) + sizeof(int);
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(sizeof(OpCode))]
+        public byte RegisterA;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
+        public byte RegisterB;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
+        public int Operand1;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(int))]
+        public int Operand2;
+    }
+
+
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ALPInstruction

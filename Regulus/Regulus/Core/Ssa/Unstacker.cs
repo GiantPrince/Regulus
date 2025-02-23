@@ -70,28 +70,7 @@ namespace Regulus.Core.Ssa
             return stackDepth;
         }
 
-        public ValueOperandType StringToValueType(string name)
-        {
-            switch (name.ToLower())
-            {
-                case "int":
-                case "int32":
-                    return ValueOperandType.Integer;
-
-                case "long":
-                case "int64":
-                    return ValueOperandType.Long;
-
-                case "float":
-                    return ValueOperandType.Float;
-
-                case "double":
-                    return ValueOperandType.Double;
-
-                default:
-                    return ValueOperandType.Object;
-            }
-        }
+        
 
         public AbstractOpCode ToAbstractOpCode(Code code)
         {
@@ -268,6 +247,7 @@ namespace Regulus.Core.Ssa
         public CallInstruction CreateCallInstruction(Code code, MethodReference method, ref int stackDepth)
         {
             int argCount = method.Parameters.Count;
+           
             stackDepth -= argCount;
             CallInstruction call = new CallInstruction(ToAbstractOpCode(code), method, argCount);
             for (int i = 0; i < argCount; i++)
@@ -345,6 +325,10 @@ namespace Regulus.Core.Ssa
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Const, constantCounter++, (double)instruction.Operand),
                         new Operand(OperandKind.Stack, stackDepth++));
+                case Code.Ldstr:
+                    return new MoveInstruction(AbstractOpCode.Mov,
+                        new ValueOperand(OperandKind.Const, constantCounter++, (string)instruction.Operand),
+                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldind_I:
                 case Code.Ldind_I1:
                 case Code.Ldind_I2:
@@ -362,61 +346,61 @@ namespace Regulus.Core.Ssa
                 case Code.Ldarg:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Arg, (int)instruction.Operand,
-                        StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)),
+                        Operand.StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_0:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Arg, 0,
-                        StringToValueType(method.Parameters[0].ParameterType.Name)),
+                        Operand.StringToValueType(method.Parameters[0].ParameterType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_1:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Arg, 1,
-                        StringToValueType(method.Parameters[1].ParameterType.Name)),
+                        Operand.StringToValueType(method.Parameters[1].ParameterType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_2:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Arg, 2,
-                        StringToValueType(method.Parameters[2].ParameterType.Name)),
+                        Operand.StringToValueType(method.Parameters[2].ParameterType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_3:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new ValueOperand(OperandKind.Arg, 3,
-                       StringToValueType(method.Parameters[3].ParameterType.Name)),
+                       Operand.StringToValueType(method.Parameters[3].ParameterType.Name)),
                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc:
                 case Code.Ldloc_S:
 
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Local, ((VariableDefinition)instruction.Operand).Index,
-                        StringToValueType(((VariableDefinition)instruction.Operand).VariableType.Name)),
+                        Operand.StringToValueType(((VariableDefinition)instruction.Operand).VariableType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc_0:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new ValueOperand(OperandKind.Local, 0,
-                       StringToValueType(method.Body.Variables[0].VariableType.Name)),
+                       Operand.StringToValueType(method.Body.Variables[0].VariableType.Name)),
                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc_1:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new ValueOperand(OperandKind.Local, 1,
-                       StringToValueType(method.Body.Variables[1].VariableType.Name)),
+                       Operand.StringToValueType(method.Body.Variables[1].VariableType.Name)),
                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc_2:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new ValueOperand(OperandKind.Local, 2,
-                       StringToValueType(method.Body.Variables[2].VariableType.Name)),
+                       Operand.StringToValueType(method.Body.Variables[2].VariableType.Name)),
                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldloc_3:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new ValueOperand(OperandKind.Local, 3,
-                       StringToValueType(method.Body.Variables[3].VariableType.Name)),
+                       Operand.StringToValueType(method.Body.Variables[3].VariableType.Name)),
                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Starg:
                 case Code.Starg_S:
                     return new MoveInstruction(AbstractOpCode.Mov,
                        new Operand(OperandKind.Stack, --stackDepth),
                        new ValueOperand(OperandKind.Arg, (int)instruction.Operand,
-                       StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)));
+                       Operand.StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)));
                 case Code.Stloc:
                 case Code.Stloc_S:
                     VariableDefinition localVar = (VariableDefinition)instruction.Operand;
@@ -424,27 +408,27 @@ namespace Regulus.Core.Ssa
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new Operand(OperandKind.Stack, --stackDepth),
                         new ValueOperand(OperandKind.Local, localVar.Index,
-                        StringToValueType(localVar.VariableType.Name)));
+                        Operand.StringToValueType(localVar.VariableType.Name)));
                 case Code.Stloc_0:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new Operand(OperandKind.Stack, --stackDepth),
                         new ValueOperand(OperandKind.Local, 0,
-                        StringToValueType(method.Body.Variables[0].VariableType.Name)));
+                        Operand.StringToValueType(method.Body.Variables[0].VariableType.Name)));
                 case Code.Stloc_1:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new Operand(OperandKind.Stack, --stackDepth),
                         new ValueOperand(OperandKind.Local, 1,
-                        StringToValueType(method.Body.Variables[1].VariableType.Name)));
+                        Operand.StringToValueType(method.Body.Variables[1].VariableType.Name)));
                 case Code.Stloc_2:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new Operand(OperandKind.Stack, --stackDepth),
                         new ValueOperand(OperandKind.Local, 2,
-                        StringToValueType(method.Body.Variables[2].VariableType.Name)));
+                        Operand.StringToValueType(method.Body.Variables[2].VariableType.Name)));
                 case Code.Stloc_3:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new Operand(OperandKind.Stack, --stackDepth),
                         new ValueOperand(OperandKind.Local, 3,
-                        StringToValueType(method.Body.Variables[3].VariableType.Name)));
+                        Operand.StringToValueType(method.Body.Variables[3].VariableType.Name)));
                 case Code.Add:
                 case Code.Add_Ovf:
                 case Code.Add_Ovf_Un:
@@ -522,7 +506,7 @@ namespace Regulus.Core.Ssa
                 case Code.Ldloca:
                 case Code.Ldloca_S:
                     return new MoveInstruction(AbstractOpCode.Ldloca,
-                        new Operand(OperandKind.Local, (int)instruction.Operand),
+                        new ValueOperand(OperandKind.Const, constantCounter++, ((VariableDefinition)instruction.Operand).Index, ValueOperandType.Reference),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldnull:
                     return new MoveInstruction(AbstractOpCode.Ldnull,
