@@ -21,7 +21,7 @@ namespace Regulus.Core.Ssa
             if (x == null || y == null)
                 return false;
 
-            return x.Index == y.Index && x.Kind == y.Kind && x.Version == y.Version; 
+            return x.Index == y.Index && x.Kind == y.Kind && x.Version == y.Version;
         }
 
         public int GetHashCode(Operand obj)
@@ -76,7 +76,7 @@ namespace Regulus.Core.Ssa
             //CollectInstructions(blocks);
             List<int> basicBlockStartOffset = new List<int>();
             List<AbstractInstruction> instructions = new List<AbstractInstruction>();
-            foreach (var bb in blocks) 
+            foreach (var bb in blocks)
             {
                 instructions.AddRange(bb.Instructions);
             }
@@ -86,7 +86,7 @@ namespace Regulus.Core.Ssa
             Dictionary<Operand, List<Operand>> edges = BuildInterferenceGraph(instructions, liveRanges);
             List<List<Operand>> argumentGroups = CollectFunctionArguments(blocks);
             AllocateRegister(edges, argumentGroups);
-            
+
             foreach (BasicBlock bb in blocks)
             {
                 Console.WriteLine(bb);
@@ -101,7 +101,7 @@ namespace Regulus.Core.Ssa
                     {
                         case InstructionKind.Call:
                             CompileCallInstruction((CallInstruction)instruction);
-                            break;  
+                            break;
                         case InstructionKind.Transform:
                             CompileTransformInstruction((TransformInstruction)instruction);
                             break;
@@ -234,7 +234,7 @@ namespace Regulus.Core.Ssa
             int methodIndex = _emitter.AddMethod(callInstruction.DeclaringType, callInstruction.Method, callInstruction.IsGenericMethod, callInstruction.ParametersType.Select(t => t.AssemblyQualifiedName).ToList());
             _emitter.EmitABPPInstruction(
                 OpCode.Call,
-                callInstruction.HasLeftHandSideOperand() ? 
+                callInstruction.HasLeftHandSideOperand() ?
                 ComputeRegisterLocation(callInstruction.GetLeftHandSideOperand(0)) :
                 (byte)0,
                 callInstruction.HasRightHandSideOperand() ?
@@ -243,9 +243,18 @@ namespace Regulus.Core.Ssa
                 methodIndex,
                 callInstruction.ArgCount
                 );
-            
+
             WriteParameterTypes(callInstruction);
-            WriteType(callInstruction.ReturnType);
+
+            if (callInstruction.IsConstructor)
+            {
+                _emitter.EmitType(Constants.Object);
+            }
+            else
+            {
+                WriteType(callInstruction.ReturnType);
+            }
+            
 
         }
 
@@ -393,7 +402,7 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
-                    
+
                 case AbstractOpCode.Add_Ovf:
                     switch (opType)
                     {
@@ -415,7 +424,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.Add_Ovf_UInt;
                         case ValueOperandType.Long:
                             return OpCode.Add_Ovf_ULong;
-                        
+
                         default:
                             throw new NotImplementedException();
                     }
@@ -451,7 +460,7 @@ namespace Regulus.Core.Ssa
                         case ValueOperandType.Integer:
                             return OpCode.Or_Int;
                         case ValueOperandType.Long:
-                            return OpCode.Or_Long;                        
+                            return OpCode.Or_Long;
                         default:
                             throw new NotImplementedException();
                     }
@@ -510,7 +519,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.Mul_Ovf_UInt;
                         case ValueOperandType.Long:
                             return OpCode.Mul_Ovf_ULong;
-                        
+
                         default:
                             throw new NotImplementedException();
                     }
@@ -559,7 +568,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.Rem_UInt;
                         case ValueOperandType.Long:
                             return OpCode.Rem_ULong;
-                        
+
                         default:
                             throw new NotImplementedException();
                     }
@@ -716,7 +725,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.Conv_U_Int;
                         case ValueOperandType.Long:
                             return OpCode.Conv_U_Long;
-                        
+
                         default:
                             throw new NotImplementedException();
                     }
@@ -810,7 +819,7 @@ namespace Regulus.Core.Ssa
                         case ValueOperandType.Integer:
                             return OpCode.Conv_R_Un_Int;
                         case ValueOperandType.Long:
-                            return OpCode.Conv_R_Un_Long;                    
+                            return OpCode.Conv_R_Un_Long;
                         default:
                             throw new NotImplementedException();
                     }
@@ -983,7 +992,7 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
-                
+
                 default:
                     throw new NotImplementedException();
             }
@@ -1006,7 +1015,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.AddI_Double;
                         default:
                             throw new NotImplementedException();
-                    }    
+                    }
                 case AbstractOpCode.Add_Ovf:
                     switch (opType)
                     {
@@ -1061,7 +1070,7 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
-                    
+
                 case AbstractOpCode.Or:
                     switch (opType)
                     {
@@ -1092,7 +1101,7 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
-                    
+
                 case AbstractOpCode.Mul:
                     switch (opType)
                     {
@@ -1180,7 +1189,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.RemI_Un_Int;
                         case ValueOperandType.Long:
                             return OpCode.RemI_Un_Long;
-                        
+
                         default:
                             throw new NotImplementedException();
                     }
@@ -1271,7 +1280,7 @@ namespace Regulus.Core.Ssa
 
         private OpCode GetReverseOpCodeWithConst(AbstractOpCode code, ValueOperandType opType)
         {
-            switch (code) 
+            switch (code)
             {
                 case AbstractOpCode.Sub:
                     switch (opType)
@@ -1350,7 +1359,7 @@ namespace Regulus.Core.Ssa
                             return OpCode.RemI_Un_Int_R;
                         case ValueOperandType.Long:
                             return OpCode.RemI_Un_Long_R;
-                        
+
                         default:
                             throw new NotImplementedException();
                     }
@@ -1496,9 +1505,9 @@ namespace Regulus.Core.Ssa
                 value = op1 as ValueOperand;
                 operandWithConst = op2;
                 opcode = GetReverseOpCodeWithConst(code, op1.OpType);
-                if (code == AbstractOpCode.Sub || 
-                    code == AbstractOpCode.Sub_Ovf || 
-                    code == AbstractOpCode.Sub_Ovf_Un) 
+                if (code == AbstractOpCode.Sub ||
+                    code == AbstractOpCode.Sub_Ovf ||
+                    code == AbstractOpCode.Sub_Ovf_Un)
                 {
                     value.Neg();
                 }
@@ -1528,7 +1537,7 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        
+
 
         private void EmitConvertInstruction(TransformInstruction instruction)
         {
@@ -1539,6 +1548,101 @@ namespace Regulus.Core.Ssa
                 ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
         }
 
+        private void EmitBoxInstruction(TransformInstruction instruction)
+        {
+            // ABSPInstrucion
+            MetaOperand meta = instruction.GetMetaOperand();
+            Type type = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
+
+            _emitter.EmitABInstruction(
+                OpCode.Box,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
+
+            WriteType(type);
+        }
+
+        private void EmitFieldInstruction(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+            // this is a field reference
+            Type declaringType = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
+            FieldInfo field = declaringType.GetField(meta.FieldName) ?? throw new Exception("Can not load field " + meta.FieldName);
+
+            int fieldIndex = _emitter.AddInstanceField(declaringType.AssemblyQualifiedName, field.Name);
+
+            
+            if (instruction.Code == AbstractOpCode.Ldfld)
+            {
+                _emitter.EmitABPInstruction(
+                OpCode.Ldfld,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                fieldIndex);
+            }
+            else if (instruction.Code == AbstractOpCode.Stfld)
+            {
+                _emitter.EmitABPInstruction(
+                OpCode.Stfld,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                fieldIndex);
+            }
+            else if (instruction.Code == AbstractOpCode.Stsfld)
+            {
+                _emitter.EmitAPInstruction(
+                OpCode.Stsfld,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                fieldIndex);
+            }
+            else
+            {
+                _emitter.EmitAPInstruction(
+                    OpCode.Ldsfld,
+                    ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                    fieldIndex);
+            }
+
+            WriteType(field.FieldType);
+
+        }
+
+        private void EmitCastClassInstruction(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+            // this is a field reference
+            Type classType = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
+
+            int typeIndex = _emitter.AddType(classType.AssemblyQualifiedName);
+
+            _emitter.EmitABPInstruction(
+                OpCode.Castclass,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                typeIndex);
+
+        }
+
+        private void EmitInitobjInstruction(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+            Type type = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
+            _emitter.EmitAPInstruction(
+                OpCode.Initobj,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                _emitter.AddType(meta.TypeName));
+        }
+
+        private void EmitStoreFieldInstruction(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+            Type declaringType = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
+            FieldInfo field = declaringType.GetField(meta.FieldName) ?? throw new Exception("Can not load field " + meta.FieldName);
+
+            int fieldIndex = _emitter.AddInstanceField(declaringType.AssemblyQualifiedName, field.Name);
+
+
+        }
 
 
         private void CompileTransformInstruction(TransformInstruction instruction)
@@ -1616,8 +1720,26 @@ namespace Regulus.Core.Ssa
                 case AbstractOpCode.Conv_R_Un:
                     EmitConvertInstruction(instruction);
                     break;
-
+                case AbstractOpCode.Box:
+                case AbstractOpCode.Unbox:
+                    EmitBoxInstruction(instruction);
+                    break;
+                case AbstractOpCode.Ldfld:
+                case AbstractOpCode.Ldsfld:
+                case AbstractOpCode.Stfld:
+                case AbstractOpCode.Stsfld:
+                    EmitFieldInstruction(instruction);
+                    break;
+                case AbstractOpCode.Castclass:
+                    EmitCastClassInstruction(instruction);
+                    break;
+                case AbstractOpCode.Initobj:
+                    EmitInitobjInstruction(instruction);
+                    break;
                 
+                
+
+
 
             }
         }
@@ -1704,7 +1826,7 @@ namespace Regulus.Core.Ssa
             return defs;
         }
 
-       
+
 
         private void PrintBitArray(BitArray bits)
         {
@@ -2151,13 +2273,13 @@ namespace Regulus.Core.Ssa
                     }
                     List<Operand> arguments = new List<Operand>();
                     int argCount = instruction.LeftHandSideOperandCount();
-                    for (int i = 0; i < argCount; i++) 
+                    for (int i = 0; i < argCount; i++)
                     {
                         arguments.Add(instruction.GetLeftHandSideOperand(i));
                     }
 
                     argumentGroups.Add(arguments);
-                    
+
                 }
             }
             return argumentGroups;

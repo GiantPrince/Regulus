@@ -20,6 +20,8 @@ namespace Regulus.Core.Ssa
         List<int> _parameterIndexToType;
         List<string> _methods;
         List<bool> _isGenericMethod;
+        List<int> _fieldIndexToType;
+        List<string> _fields;
 
         public Emitter()
         {
@@ -33,6 +35,8 @@ namespace Regulus.Core.Ssa
             _methodCount = new List<int>();
             _argCount = new List<int>();
             _isGenericMethod = new List<bool>();
+            _fields = new List<string>();
+            _fieldIndexToType = new List<int>();
         }
 
         public List<byte> GetBytes()
@@ -77,6 +81,40 @@ namespace Regulus.Core.Ssa
             }
         }
 
+        public int AddType(string type)
+        {
+            int typeIndex = _types.IndexOf(type);
+            if (typeIndex == -1)
+            {
+                typeIndex = _types.Count;
+                _types.Add(type);
+                _methodCount.Add(0);
+            }
+            return typeIndex;
+        }
+
+        public int AddInstanceField(string declaringType, string field)
+        {
+            int typeIndex = _types.IndexOf(declaringType);
+            if (typeIndex == -1)
+            {
+                typeIndex = _types.Count;
+                _types.Add(declaringType);
+            }
+
+            int fieldIndex = _fields.IndexOf(field);
+            if (fieldIndex == -1)
+            {
+                fieldIndex = _fields.Count;
+                _fields.Add(field);
+                _fieldIndexToType.Add(typeIndex);
+            }
+
+            return fieldIndex;
+            
+           
+        }
+
         public int AddMethod(string declaringType, string method, bool isGenericMethod, List<string> parameterTypes)
         {
             _isGenericMethod.Add(isGenericMethod);
@@ -116,7 +154,6 @@ namespace Regulus.Core.Ssa
                 EmitStringMeta(_types[i]);
             }
             EmitIntMeta(_methods.Count);
-            
             for (int i = 0; i < _methods.Count; i++)
             {
                 EmitIntMeta(_methodIndexToType[i]);
@@ -128,6 +165,14 @@ namespace Regulus.Core.Ssa
                     EmitIntMeta(_parameterIndexToType[acc + j]);
                 }
                 acc += _argCount[i];
+            }
+
+            EmitIntMeta(_fields.Count);
+
+            for (int i = 0; i < _fields.Count; i++)
+            {
+                EmitIntMeta(_fieldIndexToType[i]);
+                EmitStringMeta(_fields[i]);
             }
             meta.Seek(0, SeekOrigin.Begin);
         }

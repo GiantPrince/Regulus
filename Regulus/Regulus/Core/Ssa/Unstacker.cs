@@ -600,7 +600,7 @@ namespace Regulus.Core.Ssa
                 case Code.Stelem_Any:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 3, 0, ref stackDepth);
                 case Code.Stfld:
-                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 0, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
                 case Code.Stobj:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)

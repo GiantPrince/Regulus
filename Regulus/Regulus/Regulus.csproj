@@ -13,8 +13,4 @@
     <PackageReference Include="NUnit" Version="4.3.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Test\" />
-  </ItemGroup>
-
 </Project>

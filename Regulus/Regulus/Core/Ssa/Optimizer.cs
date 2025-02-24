@@ -370,6 +370,17 @@ namespace Regulus.Core.Ssa
             return inferencedType;
         }
 
+        private ValueOperandType LoadFieldInstructionTypeInference(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+            return meta.FieldType;
+        }
+
+        private ValueOperandType StoreFieldInstructionTypeInference(TransformInstruction instruction)
+        {
+            return ValueOperandType.Unknown;
+        }
+
         private ValueOperandType TransformInstructionTypeInference(TransformInstruction instruction)
         {
             switch(instruction.Code)
@@ -403,6 +414,17 @@ namespace Regulus.Core.Ssa
                 case AbstractOpCode.Clt_Un:
                 case AbstractOpCode.Ceq:
                     return CompareTransformInstructionTypeInference(instruction);
+                case AbstractOpCode.Ldfld:
+                case AbstractOpCode.Ldsfld:
+                    return LoadFieldInstructionTypeInference(instruction);
+                case AbstractOpCode.Stfld:
+                case AbstractOpCode.Stsfld:
+                    return StoreFieldInstructionTypeInference(instruction);
+                case AbstractOpCode.Box:
+                    return ValueOperandType.Object;
+                case AbstractOpCode.Unbox:
+                    return instruction.GetLeftHandSideOperand(0).OpType;
+                
                 default:
                     return UnifiedTransformInstructionTypeInference(instruction);
 
@@ -426,6 +448,8 @@ namespace Regulus.Core.Ssa
 
         private ValueOperandType CallInstructionTypeInference(CallInstruction callInstruction)
         {
+            if (callInstruction.Code == AbstractOpCode.Newobj)
+                return ValueOperandType.Object;
             return Operand.StringToValueType(callInstruction.ReturnTypeName);
         }
 
@@ -441,6 +465,8 @@ namespace Regulus.Core.Ssa
                     break;
                 case InstructionKind.Transform:
                     inferencedType = TransformInstructionTypeInference((TransformInstruction)instruction);
+                    if (instruction.Code == AbstractOpCode.Stfld || instruction.Code == AbstractOpCode.Stsfld)
+                        return inferencedType;
                     break;
                 case InstructionKind.Phi:
                     inferencedType = PhiInstructionTypeInference((PhiInstruction)instruction);

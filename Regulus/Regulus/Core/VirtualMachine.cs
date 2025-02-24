@@ -7,6 +7,7 @@ using System.Text;
 
 namespace Regulus.Core
 {
+    using System.Reflection;
     using Regulus.Debug;
     public unsafe class VirtualMachine
     {
@@ -16,6 +17,8 @@ namespace Regulus.Core
         public object[] Objects;
         public Invoker[] Invokers;
         public string[] internedStrings;
+        public FieldInfo[] Fields;
+        public Type[] Types;
 
 
 
@@ -1649,22 +1652,347 @@ namespace Regulus.Core
                         *(double*)&Registers[convR8IntInstruction->RegisterB].Upper = (double)Registers[convR8IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
+
                     case OpCode.Conv_R8_Long:
                         ABInstruction* convR8LongInstruction = (ABInstruction*)ip;
                         *(double*)&Registers[convR8LongInstruction->RegisterB].Upper = (double)*(long*)&Registers[convR8LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
+
                     case OpCode.Conv_R8_Float:
                         ABInstruction* convR8FloatInstruction = (ABInstruction*)ip;
                         *(double*)&Registers[convR8FloatInstruction->RegisterB].Upper = (double)*(float*)&Registers[convR8FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
+
                     case OpCode.Conv_R8_Double:
                         ABInstruction* convR8DoubleInstruction = (ABInstruction*)ip;
                         *(double*)&Registers[convR8DoubleInstruction->RegisterB].Upper = *(double*)&Registers[convR8DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
+
+                    case OpCode.Box:
+                        ABInstruction* boxInstruction = (ABInstruction*)ip;
+                        ip += ABInstruction.Size;
+
+                        switch (*ip)
+                        {
+                            case Constants.Byte:
+                                Objects[boxInstruction->RegisterB] = (byte)Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.Sbyte:
+                                Objects[boxInstruction->RegisterB] = (sbyte)Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.UShort:
+                                Objects[boxInstruction->RegisterB] = (ushort)Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.Short:
+                                Objects[boxInstruction->RegisterB] = (short)Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.Int:
+                                Objects[boxInstruction->RegisterB] = Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.Long:
+                                Objects[boxInstruction->RegisterB] = *(long*)&Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.ULong:
+                                Objects[boxInstruction->RegisterB] = *(ulong*)&Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.Float:
+                                Objects[boxInstruction->RegisterB] = *(float*)&Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            case Constants.Double:
+                                Objects[boxInstruction->RegisterB] = *(float*)&Registers[boxInstruction->RegisterA].Upper;
+                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        ip++;
+                        break;
+                    case OpCode.UnBox:
+                        ABInstruction* unboxInstruction = (ABInstruction*)ip;
+                        ip += ABInstruction.Size;
+
+                        switch (*ip)
+                        {
+                            case Constants.Byte:
+                                Registers[unboxInstruction->RegisterB].Upper = (byte)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.Sbyte:
+                                Registers[unboxInstruction->RegisterB].Upper = (sbyte)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.UShort:
+                                Registers[unboxInstruction->RegisterB].Upper = (ushort)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.Short:
+                                Registers[unboxInstruction->RegisterB].Upper = (short)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.Int:
+                                Registers[unboxInstruction->RegisterB].Upper = (int)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.Long:
+                                *(long*)&Registers[unboxInstruction->RegisterB].Upper = (long)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.ULong:
+                                *(ulong*)&Registers[unboxInstruction->RegisterB].Upper = (ulong)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.Float:
+                                *(float*)&Registers[unboxInstruction->RegisterB].Upper = (float)Objects[unboxInstruction->RegisterA];
+                                break;
+                            case Constants.Double:
+                                *(double*)&Registers[unboxInstruction->RegisterB].Upper = (double)Objects[unboxInstruction->RegisterA]; 
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        ip++;
+                        break;
+
+                    case OpCode.Ldfld:
+                        ABPInstruction* ldfldInstruction = (ABPInstruction*)ip;
+
+                        FieldInfo field = Fields[ldfldInstruction->Operand];
+                        object? fieldValue = field.GetValue(Objects[ldfldInstruction->RegisterA]);
+                        ip += ABPInstruction.Size;
+                        switch (*ip)
+                        {
+                            case Constants.Byte:
+                                Registers[ldfldInstruction->RegisterB].Upper = (byte)fieldValue;
+                                break;
+                            case Constants.Sbyte:
+                                Registers[ldfldInstruction->RegisterB].Upper = (sbyte)fieldValue;
+                                break;
+                            case Constants.UShort:
+                                Registers[ldfldInstruction->RegisterB].Upper = (ushort)fieldValue;
+                                break;
+                            case Constants.Short:
+                                Registers[ldfldInstruction->RegisterB].Upper = (short)fieldValue;
+                                break;
+                            case Constants.Int:
+                                Registers[ldfldInstruction->RegisterB].Upper = (int)fieldValue;
+                                break;
+                            case Constants.Long:
+                                *(long*)&Registers[ldfldInstruction->RegisterB].Upper = (long)fieldValue;
+                                break;
+                            case Constants.ULong:
+                                *(ulong*)&Registers[ldfldInstruction->RegisterB].Upper = (ulong)fieldValue;
+                                break;
+                            case Constants.Float:
+                                *(float*)&Registers[ldfldInstruction->RegisterB].Upper = (float)fieldValue;
+                                break;
+                            case Constants.Double:
+                                *(double*)&Registers[ldfldInstruction->RegisterB].Upper = (double)fieldValue;
+                                break;
+                            case Constants.Object:
+                                Registers[ldfldInstruction->RegisterB].Upper = ldfldInstruction->RegisterB;
+                                Objects[ldfldInstruction->RegisterB] = fieldValue;
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        ip += 1;
+                        break;
+                    case OpCode.Ldsfld:
+                        APInstruction* ldsfldInstruction = (APInstruction*)ip;
+
+                        FieldInfo sfield = Fields[ldsfldInstruction->Operand];
+                        object? sfieldValue = sfield.GetValue(null);
+                        ip += APInstruction.Size;
+                        switch (*ip)
+                        {
+                            case Constants.Byte:
+                                Registers[ldsfldInstruction->RegisterA].Upper = (byte)sfieldValue;
+                                break;
+                            case Constants.Sbyte:
+                                Registers[ldsfldInstruction->RegisterA].Upper = (sbyte)sfieldValue;
+                                break;
+                            case Constants.UShort:
+                                Registers[ldsfldInstruction->RegisterA].Upper = (ushort)sfieldValue;
+                                break;
+                            case Constants.Short:
+                                Registers[ldsfldInstruction->RegisterA].Upper = (short)sfieldValue;
+                                break;
+                            case Constants.Int:
+                                Registers[ldsfldInstruction->RegisterA].Upper = (int)sfieldValue;
+                                break;
+                            case Constants.Long:
+                                *(long*)&Registers[ldsfldInstruction->RegisterA].Upper = (long)sfieldValue;
+                                break;
+                            case Constants.ULong:
+                                *(ulong*)&Registers[ldsfldInstruction->RegisterA].Upper = (ulong)sfieldValue;
+                                break;
+                            case Constants.Float:
+                                *(float*)&Registers[ldsfldInstruction->RegisterA].Upper = (float)sfieldValue;
+                                break;
+                            case Constants.Double:
+                                *(double*)&Registers[ldsfldInstruction->RegisterA].Upper = (double)sfieldValue;
+                                break;
+                            case Constants.Object:
+                                Registers[ldsfldInstruction->RegisterA].Upper = ldsfldInstruction->RegisterA;
+                                Objects[ldsfldInstruction->RegisterA] = sfieldValue;
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        ip += 1;
+                        break;
+                    case OpCode.Castclass:
+                        ABPInstruction* castclassInstruction = (ABPInstruction*)ip;
+                        Type classType = Types[castclassInstruction->Operand];
+                        if (classType.IsAssignableFrom(Objects[castclassInstruction->RegisterA].GetType()))
+                        {
+                            throw new InvalidCastException(classType + " is not assignable from " + Objects[castclassInstruction->RegisterA].GetType());
+                        }
+                        Objects[castclassInstruction->RegisterB] = Objects[castclassInstruction->RegisterA];
+                        Registers[castclassInstruction->RegisterB].Upper = castclassInstruction->RegisterB;
+
+                        break;
+                    case OpCode.Callvirt:
+                        throw new NotImplementedException();
                     // TODO: add conv_ovf opcodes
+                    case OpCode.Initobj:
+                        APInstruction* initobjInstruction = (APInstruction*)ip;
+                        Type objType = Types[initobjInstruction->Operand];
+
+                        object? obj = Activator.CreateInstance(objType);
+                        // only support stack reference now
+
+                        int addr = Registers[initobjInstruction->RegisterA].Upper;
+                        Registers[addr].Upper = addr;
+                        Objects[addr] = obj;
+                        
+                        break;
+                    case OpCode.Stfld:
+                        ABPInstruction* stfldInstruction = (ABPInstruction*)ip;
+                        FieldInfo stfield = Fields[stfldInstruction->Operand];
+                        ip += ABPInstruction.Size;
+                        switch (*ip)
+                        {
+                            case Constants.Byte:
+                                Objects[stfldInstruction->RegisterA] = (byte)Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                break;
+
+                            case Constants.Sbyte:
+                                Objects[stfldInstruction->RegisterA] = (sbyte)Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.UShort:
+                                Objects[stfldInstruction->RegisterA] = (ushort)Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Short:
+                                Objects[stfldInstruction->RegisterA] = (short)Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Int:
+                                Objects[stfldInstruction->RegisterA] = Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Long:
+                                Objects[stfldInstruction->RegisterA] = *(long*)&Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.ULong:
+                                Objects[stfldInstruction->RegisterA] = *(ulong*)&Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Float:
+                                Objects[stfldInstruction->RegisterA] = *(float*)&Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Double:
+                                Objects[stfldInstruction->RegisterA] = *(double*)&Registers[stfldInstruction->RegisterA].Upper;
+                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Object:
+                                
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        ip += 1;
+                        stfield.SetValue(Objects[stfldInstruction->RegisterB], Objects[stfldInstruction->RegisterA]);
+                        break;
+
+                    case OpCode.Stsfld:
+                        APInstruction* stsfldInstruction = (APInstruction*)ip;
+                        FieldInfo stsfieldInfo = Fields[stsfldInstruction->RegisterA];
+                        ip += ABPInstruction.Size;
+                        switch (*ip)
+                        {
+                            case Constants.Byte:
+                                Objects[stsfldInstruction->RegisterA] = (byte)Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                break;
+
+                            case Constants.Sbyte:
+                                Objects[stsfldInstruction->RegisterA] = (sbyte)Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                break;
+
+                            case Constants.UShort:
+                                Objects[stsfldInstruction->RegisterA] = (ushort)Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                break;
+
+                            case Constants.Short:
+                                Objects[stsfldInstruction->RegisterA] = (short)Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Int:
+                                Objects[stsfldInstruction->RegisterA] = Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Long:
+                                Objects[stsfldInstruction->RegisterA] = *(long*)&Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.ULong:
+                                Objects[stsfldInstruction->RegisterA] = *(ulong*)&Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Float:
+                                Objects[stsfldInstruction->RegisterA] = *(float*)&Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Double:
+                                Objects[stsfldInstruction->RegisterA] = *(double*)&Registers[stsfldInstruction->RegisterA].Upper;
+                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+
+                                break;
+                            case Constants.Object:
+
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                        ip += 1;
+                        stsfieldInfo.SetValue(null, Objects[stsfldInstruction->RegisterA]);
+                        break;
+                    case OpCode.Newobj:
                     case OpCode.Call:
                         ABPPInstruction* callInstruction = (ABPPInstruction*)ip;
                         // registerA is the first argument
@@ -1705,7 +2033,7 @@ namespace Regulus.Core
 
                     case OpCode.Ldloca:
                         ABInstruction* ldlocaInstruction = (ABInstruction*)ip;
-                        *(Value**)&Registers[ldlocaInstruction->RegisterB].Upper = Registers + ldlocaInstruction->RegisterA;
+                        Registers[ldlocaInstruction->RegisterB].Upper = ldlocaInstruction->RegisterA;
                         ip += ABInstruction.Size;
                         break;
 

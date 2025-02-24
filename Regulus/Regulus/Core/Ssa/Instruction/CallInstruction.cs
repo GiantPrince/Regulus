@@ -19,10 +19,13 @@ namespace Regulus.Core.Ssa.Instruction
         private string _returnTypeName;
         private string _methodFullName;
         private bool _isGenericMethod;
+        private bool _isConstructor;
         public List<Type> ParametersType;
         public Type ReturnType;
         
         
+        
+        public bool IsConstructor {  get { return _isConstructor; } }
         public string Method { get { return _method; } }
         public string ReturnTypeName { get { return _returnTypeName; } }
         public string DeclaringType { get { return _declaringType; } }
@@ -50,14 +53,13 @@ namespace Regulus.Core.Ssa.Instruction
             ParametersType = new List<Type>();
             
             _returnVoid = method.ReturnType.Name.ToLower() == "void" && method.Name != ".ctor";
-
+            _isConstructor = method.Name == ".ctor" ? true : false;
             
             foreach (ParameterDefinition p in method.Parameters)
             {
                 Type parameterType = null;
                 if (method is GenericInstanceMethod genericInstanceMethod && p.ParameterType is GenericParameter genericParameter)
-                {
-                    
+                {                    
                     parameterType = Type.GetType(genericInstanceMethod.GenericArguments[genericParameter.Position].FullName);
                 }
                 else

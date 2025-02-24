@@ -7,10 +7,7 @@ using Regulus.Core.Ssa.Instruction;
 
 namespace Regulus
 {
-    public class Test
-    {
-        public static int count = 0;
-    }
+   
 
     public enum MyEnum : byte
     {
@@ -56,10 +53,12 @@ namespace Regulus
             
             fixed (byte* ip = compiler.GetByteCode())
             {
-                MethodBase[] methods = Loader.LoadMeta(compiler.GetMeta());
+                Loader.LoadMeta(compiler.GetMeta(), out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
                 VirtualMachine virtualMachine = new VirtualMachine();
                 virtualMachine.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
                 virtualMachine.internedStrings = ValueOperand.GetInternedStrings();
+                virtualMachine.Fields = fields.ToArray();
+                virtualMachine.Types = types.ToArray();
                 virtualMachine.Run(ip);
             }
 

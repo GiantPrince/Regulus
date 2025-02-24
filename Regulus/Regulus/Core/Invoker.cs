@@ -138,8 +138,8 @@ namespace Regulus.Core
 
             if (_method is ConstructorInfo ctor)
             {
-                ret = null;
-                //ret = ctor.Invoke(new object[] { 1, 2 });
+                
+                ret = ctor.Invoke(parameters);
                 //System.Runtime.CompilerServices.DefaultInterpolatedStringHandler s = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler(17, 1);
                 
             }

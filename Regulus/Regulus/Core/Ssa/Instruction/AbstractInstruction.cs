@@ -145,8 +145,7 @@ namespace Regulus.Core.Ssa.Instruction
         Stsfld,
         Throw,
         Unbox,
-        Phi,
-        Mark = 0x80
+        Phi
     }
 
     public enum InstructionKind

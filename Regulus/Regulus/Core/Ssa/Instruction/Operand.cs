@@ -19,10 +19,10 @@ namespace Regulus.Core.Ssa.Instruction
 
     public enum ValueOperandType
     {
+        None,
         Unknown,
         Integer,
         Long,
-        
         Float,
         Double,
         Null,

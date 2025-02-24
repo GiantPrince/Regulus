@@ -1,5 +1,7 @@
 ﻿using System.Net.Security;
 using System.Text;
+using System.Threading.Tasks.Dataflow;
+using Regulus;
 
 namespace TestLibrary
 {
@@ -38,9 +40,14 @@ namespace TestLibrary
         }
         public static void Add()
         {
-            s t = new s(1);
-            rs r = new rs(1);
-            t.hello();
+            ReferenceTest test = new ReferenceTest(1);
+            test.a = test.a + 1;
+            Console.WriteLine(test.a);
+            ReferenceTest.s_a = test.a + 1;
+            
+            Console.WriteLine(ReferenceTest.s_a);
+
+
         }
 
     }

@@ -247,6 +247,19 @@ namespace Regulus.Core
         Conv_Ovf_U8_Un_Float,
         Conv_Ovf_U8_Un_Double,
 
+        // object model instruction
+        Box,
+        UnBox,
+        Ldfld,
+        Ldsfld,
+        Castclass,
+        Initobj,
+        Stfld,
+        Stsfld,
+        Newobj,
+
+        
+
 
 
 
@@ -260,10 +273,12 @@ namespace Regulus.Core
 
         // Call
         Call,
+        Callvirt,
+
         // Return
         Ret,
 
-        // 立即数版本指令
+        // immediate instruction
         AndI_Long,
         AndI_Int,
         OrI_Long,

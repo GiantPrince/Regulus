@@ -26,10 +26,11 @@ namespace Regulus.Core
             return strings;
         }
 
-        public static unsafe MethodBase[] LoadMeta(Stream bytes)
+        public static void LoadMeta(Stream bytes, out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields)
         {
-            List<MethodBase> methods = new List<MethodBase>();
-            List<Type> types = new List<Type>();
+            methods = new List<MethodBase>();
+            types = new List<Type>();
+            fields = new List<FieldInfo>();
             using (BinaryReader reader = new BinaryReader(bytes)) 
             { 
                 int numOfTypes = reader.ReadInt32();
@@ -44,10 +45,30 @@ namespace Regulus.Core
                    
                     methods.Add(LoadMethod(types, reader));
                 }
+
+                int numOfFields = reader.ReadInt32();
+                for (int i = 0; i < numOfFields; i++)
+                {
+                    fields.Add(LoadInstanceField(types, reader));
+                }
             }
 
-            
-            return methods.ToArray();
+        }
+
+        private static FieldInfo LoadInstanceField(List<Type> types, BinaryReader reader)
+        {
+            Type declaringType = types[reader.ReadInt32()];
+            string fieldName = reader.ReadString();
+            FieldInfo? fieldInfo = declaringType.GetField(
+                fieldName, 
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (fieldInfo == null)
+            {
+                throw new Exception("Can not load field " +  fieldName);
+
+            }
+            return fieldInfo;
+
         }
 
         private static MethodBase LoadMethod(List<Type> types, BinaryReader reader)
