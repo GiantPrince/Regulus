@@ -40,12 +40,8 @@ namespace TestLibrary
         }
         public static void Add()
         {
-            ReferenceTest test = new ReferenceTest(1);
-            test.a = test.a + 1;
-            Console.WriteLine(test.a);
-            ReferenceTest.s_a = test.a + 1;
-            
-            Console.WriteLine(ReferenceTest.s_a);
+            ReferenceTest t = new ReferenceTest(1);
+            Console.WriteLine(int.Max(t.s.Length, ReferenceTest.s_s.Length));
 
 
         }

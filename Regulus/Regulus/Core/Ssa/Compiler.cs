@@ -231,7 +231,14 @@ namespace Regulus.Core.Ssa
 
         private void CompileCallInstruction(CallInstruction callInstruction)
         {
-            int methodIndex = _emitter.AddMethod(callInstruction.DeclaringType, callInstruction.Method, callInstruction.IsGenericMethod, callInstruction.ParametersType.Select(t => t.AssemblyQualifiedName).ToList());
+            List<string> parameterTypes = callInstruction.ParametersType.Select(t => t.AssemblyQualifiedName).ToList();
+
+            int methodIndex = _emitter.AddMethod(
+                callInstruction.DeclaringType,
+                callInstruction.Method,
+                callInstruction.IsGenericMethod,
+                callInstruction.CallVirt,
+                parameterTypes);
             _emitter.EmitABPPInstruction(
                 OpCode.Call,
                 callInstruction.HasLeftHandSideOperand() ?

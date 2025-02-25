@@ -145,7 +145,16 @@ namespace Regulus.Core
             }
             else
             {
-                ret = _method.Invoke(instance, parameters);
+                if (argCount == 0)
+                {
+                    ret = _method.Invoke(instance, null);
+                    argCount += 1;
+                }
+                else
+                {
+                    ret = _method.Invoke(instance, parameters);
+                }
+                
             }
 
           

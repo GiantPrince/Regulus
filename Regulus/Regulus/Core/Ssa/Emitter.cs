@@ -12,7 +12,6 @@ namespace Regulus.Core.Ssa
         
         List<byte> bytecodes;
         Stream meta;
-        List<string> strings;
         List<string> _types;
         //List<int> _methodCount;
         List<int> _argCount;
@@ -22,12 +21,13 @@ namespace Regulus.Core.Ssa
         List<bool> _isGenericMethod;
         List<int> _fieldIndexToType;
         List<string> _fields;
+        List<bool> _callvirt;
 
         public Emitter()
         {
             bytecodes = new List<byte>();
             meta = new MemoryStream();
-            strings = new List<string>();
+           
             _types = new List<string>();
             _methodIndexToType = new List<int>();
             _parameterIndexToType = new List<int>();
@@ -37,6 +37,7 @@ namespace Regulus.Core.Ssa
             _isGenericMethod = new List<bool>();
             _fields = new List<string>();
             _fieldIndexToType = new List<int>();
+            _callvirt = new List<bool>();
         }
 
         public List<byte> GetBytes()
@@ -115,9 +116,9 @@ namespace Regulus.Core.Ssa
            
         }
 
-        public int AddMethod(string declaringType, string method, bool isGenericMethod, List<string> parameterTypes)
+        public int AddMethod(string declaringType, string method, bool isGenericMethod, bool callvirt, List<string> parameterTypes)
         {
-            _isGenericMethod.Add(isGenericMethod);
+            
             int typeIndex = _types.IndexOf(declaringType);
             if (typeIndex == -1)
             {
@@ -125,6 +126,8 @@ namespace Regulus.Core.Ssa
                 _types.Add(declaringType);
                 //_methodCount.Add(1);
                 _methods.Add(method);
+                _isGenericMethod.Add(isGenericMethod);
+                _callvirt.Add(callvirt);
                 _methodIndexToType.Add(typeIndex);
                 _argCount.Add(parameterTypes.Count);
                 AddParameter(_methods.Count - 1, parameterTypes);
@@ -137,6 +140,8 @@ namespace Regulus.Core.Ssa
                 if (methodIndex == -1)
                 {
                     _methods.Add(method);
+                    _isGenericMethod.Add(isGenericMethod);
+                    _callvirt.Add(callvirt);
                     _methodIndexToType.Add(typeIndex);
                     _argCount.Add(parameterTypes.Count);
                     AddParameter(_methods.Count - 1, parameterTypes);
@@ -159,6 +164,7 @@ namespace Regulus.Core.Ssa
                 EmitIntMeta(_methodIndexToType[i]);
                 EmitStringMeta(_methods[i]);
                 EmitBoolMeta(_isGenericMethod[i]);
+                EmitBoolMeta(_callvirt[i]);
                 EmitIntMeta(_argCount[i]);
                 for (int j = 0; j < _argCount[i]; j++)
                 {

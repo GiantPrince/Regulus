@@ -20,6 +20,7 @@ namespace Regulus.Core.Ssa.Instruction
         private string _methodFullName;
         private bool _isGenericMethod;
         private bool _isConstructor;
+        private bool _callVirt;
         public List<Type> ParametersType;
         public Type ReturnType;
         
@@ -31,7 +32,7 @@ namespace Regulus.Core.Ssa.Instruction
         public string DeclaringType { get { return _declaringType; } }
         public int ArgCount { get { return _argCount; } }
         public bool IsGenericMethod {  get { return _isGenericMethod; } }
-
+        public bool CallVirt {  get { return _callVirt; } }
 
         public CallInstruction(AbstractOpCode code, MethodReference method, int argCount) : base(code, InstructionKind.Call)
         {
@@ -45,7 +46,7 @@ namespace Regulus.Core.Ssa.Instruction
             {
                 _declaringType = Assembly.CreateQualifiedName(method.DeclaringType.Module.Assembly.FullName, method.DeclaringType.FullName);
             }
-
+            _callVirt = code == AbstractOpCode.Callvirt;
             _method = method.Name;
             _methodFullName = method.FullName;
             _argCount = argCount;
@@ -55,6 +56,12 @@ namespace Regulus.Core.Ssa.Instruction
             _returnVoid = method.ReturnType.Name.ToLower() == "void" && method.Name != ".ctor";
             _isConstructor = method.Name == ".ctor" ? true : false;
             
+            if (code == AbstractOpCode.Callvirt)
+            {
+                Type objectType = Type.GetType(method.DeclaringType.FullName) ?? throw new Exception("can not load object type " + method.DeclaringType.FullName);
+                ParametersType.Add(objectType);
+
+            }
             foreach (ParameterDefinition p in method.Parameters)
             {
                 Type parameterType = null;

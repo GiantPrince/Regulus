@@ -258,11 +258,6 @@ namespace Regulus.Core
         Stsfld,
         Newobj,
 
-        
-
-
-
-
         // Load
         Ldc_Int,
         Ldc_Long,
@@ -336,6 +331,7 @@ namespace Regulus.Core
         DivI_Double_R,
         DivI_Un_Int_R,
         DivI_Un_Long_R,
+
         RemI_Int,
         RemI_Long,
         RemI_Float,
@@ -348,6 +344,19 @@ namespace Regulus.Core
         RemI_Double_R,
         RemI_Un_Int_R,
         RemI_Un_Long_R,
+
+        // object model immediate instruction
+        Stfld_Byte,
+        Stfld_Sbyte,
+        Stfld_Short,
+        Stfld_UShort,
+        Stfld_Int,
+        Stfld_UInt,
+        Stfld_Long,
+        Stfld_ULong,
+        Stfld_Float,
+        Stfld_Double,
+        Stfld_Object,
 
         Count
 

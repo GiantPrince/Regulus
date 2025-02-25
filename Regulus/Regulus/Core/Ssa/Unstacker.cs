@@ -247,7 +247,10 @@ namespace Regulus.Core.Ssa
         public CallInstruction CreateCallInstruction(Code code, MethodReference method, ref int stackDepth)
         {
             int argCount = method.Parameters.Count;
-           
+            if (code == Code.Callvirt)
+            {
+                argCount += 1;
+            }
             stackDepth -= argCount;
             CallInstruction call = new CallInstruction(ToAbstractOpCode(code), method, argCount);
             for (int i = 0; i < argCount; i++)
@@ -557,6 +560,7 @@ namespace Regulus.Core.Ssa
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 1, 1, ref stackDepth);
                 case Code.Call:
                 case Code.Newobj:
+                case Code.Callvirt:
                     return CreateCallInstruction(instruction.OpCode.Code, (MethodReference)instruction.Operand, ref stackDepth);
                 case Code.Switch:
                     return new SwitchInstruction(AbstractOpCode.Switch,

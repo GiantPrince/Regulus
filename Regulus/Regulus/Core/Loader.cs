@@ -76,6 +76,7 @@ namespace Regulus.Core
             Type declaringType = types[reader.ReadInt32()];
             string methodName = reader.ReadString();
             bool isGenericMethod = reader.ReadBoolean();
+            bool callvirt = reader.ReadBoolean();
             int argCount = reader.ReadInt32();
             Type[] parameterType = new Type[argCount];
             MethodBase? method;
@@ -96,17 +97,26 @@ namespace Regulus.Core
             {
                 // should check complete parameter list
                 MethodInfo? genericmethod = declaringType.GetMethods().FirstOrDefault(
-                    m => 
+                    m =>
                     m.Name == methodName &&
                     m.IsGenericMethod &&
                     m.GetParameters().Length == parameterType.Length
                     );
-                    
+
                 if (genericmethod == null)
                 {
                     throw new Exception("Can not load generic method " + methodName);
                 }
                 method = genericmethod.MakeGenericMethod(parameterType);
+            }
+            else if (callvirt)
+            {
+                method = declaringType.GetMethod(
+                methodName,
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Static |
+                BindingFlags.Instance, parameterType.Skip(1).ToArray());
             }
             else
                 method = declaringType.GetMethod(
@@ -119,7 +129,7 @@ namespace Regulus.Core
             {
                 throw new Exception("Can not load method " + methodName);
             }
-            return method;
+            return method; 
 
         }
 
