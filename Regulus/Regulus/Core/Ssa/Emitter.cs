@@ -14,7 +14,7 @@ namespace Regulus.Core.Ssa
         Stream meta;
         List<string> strings;
         List<string> _types;
-        List<int> _methodCount;
+        //List<int> _methodCount;
         List<int> _argCount;
         List<int> _methodIndexToType;
         List<int> _parameterIndexToType;
@@ -32,7 +32,7 @@ namespace Regulus.Core.Ssa
             _methodIndexToType = new List<int>();
             _parameterIndexToType = new List<int>();
             _methods = new List<string>();
-            _methodCount = new List<int>();
+            //_methodCount = new List<int>();
             _argCount = new List<int>();
             _isGenericMethod = new List<bool>();
             _fields = new List<string>();
@@ -88,7 +88,7 @@ namespace Regulus.Core.Ssa
             {
                 typeIndex = _types.Count;
                 _types.Add(type);
-                _methodCount.Add(0);
+                //_methodCount.Add(0);
             }
             return typeIndex;
         }
@@ -123,7 +123,7 @@ namespace Regulus.Core.Ssa
             {
                 typeIndex = _types.Count;
                 _types.Add(declaringType);
-                _methodCount.Add(1);
+                //_methodCount.Add(1);
                 _methods.Add(method);
                 _methodIndexToType.Add(typeIndex);
                 _argCount.Add(parameterTypes.Count);
@@ -132,7 +132,7 @@ namespace Regulus.Core.Ssa
             }
             else
             {
-                _methodCount[typeIndex]++;
+                //_methodCount[typeIndex]++;
                 int methodIndex = _methods.IndexOf(method);
                 if (methodIndex == -1)
                 {

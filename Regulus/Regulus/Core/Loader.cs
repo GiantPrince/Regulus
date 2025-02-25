@@ -49,19 +49,19 @@ namespace Regulus.Core
                 int numOfFields = reader.ReadInt32();
                 for (int i = 0; i < numOfFields; i++)
                 {
-                    fields.Add(LoadInstanceField(types, reader));
+                    fields.Add(LoadField(types, reader));
                 }
             }
 
         }
 
-        private static FieldInfo LoadInstanceField(List<Type> types, BinaryReader reader)
+        private static FieldInfo LoadField(List<Type> types, BinaryReader reader)
         {
             Type declaringType = types[reader.ReadInt32()];
             string fieldName = reader.ReadString();
             FieldInfo? fieldInfo = declaringType.GetField(
                 fieldName, 
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (fieldInfo == null)
             {
                 throw new Exception("Can not load field " +  fieldName);

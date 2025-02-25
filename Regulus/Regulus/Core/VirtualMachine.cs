@@ -1934,8 +1934,8 @@ namespace Regulus.Core
 
                     case OpCode.Stsfld:
                         APInstruction* stsfldInstruction = (APInstruction*)ip;
-                        FieldInfo stsfieldInfo = Fields[stsfldInstruction->RegisterA];
-                        ip += ABPInstruction.Size;
+                        FieldInfo stsfieldInfo = Fields[stsfldInstruction->Operand];
+                        ip += APInstruction.Size;
                         switch (*ip)
                         {
                             case Constants.Byte:
