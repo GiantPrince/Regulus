@@ -2003,7 +2003,271 @@ namespace Regulus.Core
                         Invokers[callInstruction->Operand1].Invoke(Objects, Registers + callInstruction->RegisterA, ip, callInstruction->Operand2, Registers + callInstruction->RegisterB, callInstruction->RegisterB);
                         ip += sizeof(byte) * (callInstruction->Operand2 + 1);
                         break;
+                    case OpCode.Ldelem_I1:
+                        ABCInstruction* ldelemI1Instruction = (ABCInstruction*)ip;
 
+                        int I1index = Registers[ldelemI1Instruction->RegisterA].Upper;
+                        object I1array = Objects[ldelemI1Instruction->RegisterB];
+                        
+                        if (I1array is bool[] boolArray)
+                        {
+                            Registers[ldelemI1Instruction->RegisterC].Upper = boolArray[I1index] ? 1 : 0;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I1array is sbyte[] sbyteArray)
+                        {
+                            Registers[ldelemI1Instruction->RegisterC].Upper = sbyteArray[I1index];
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+                        break;
+
+                    case OpCode.Ldelem_I2:
+                        ABCInstruction* ldelemI2Instruction = (ABCInstruction*)ip;
+
+                        int I2index = Registers[ldelemI2Instruction->RegisterA].Upper;
+                        object I2array = Objects[ldelemI2Instruction->RegisterB];
+
+                        if (I2array is short[] shortArray)
+                        {
+                            Registers[ldelemI2Instruction->RegisterC].Upper = shortArray[I2index];
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I2array is char[] charArray)
+                        {
+                            Registers[ldelemI2Instruction->RegisterC].Upper = charArray[I2index];
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+                        break;
+
+                    case OpCode.Ldelem_I4:
+                        ABCInstruction* ldelemI4Instruction = (ABCInstruction*)ip;
+
+                        int I4index = Registers[ldelemI4Instruction->RegisterA].Upper;
+                        object I4array = Objects[ldelemI4Instruction->RegisterB];
+
+                        int[] intArray = I4array as int[];
+                        Registers[ldelemI4Instruction->RegisterC].Upper = intArray[I4index];
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Ldelem_I8:
+                        ABCInstruction* ldelemI8Instruction = (ABCInstruction*)ip;
+                        int I8index = Registers[ldelemI8Instruction->RegisterA].Upper;
+                        object I8array = Objects[ldelemI8Instruction->RegisterB];
+                        long[] longArray = I8array as long[];
+                        *(long*)&Registers[ldelemI8Instruction->RegisterC].Upper = longArray[I8index];
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Ldelem_R4:
+                        ABCInstruction* ldelemR4Instruction = (ABCInstruction*)ip;
+                        int R4index = Registers[ldelemR4Instruction->RegisterA].Upper;
+                        object R4array = Objects[ldelemR4Instruction->RegisterB];
+                        float[] floatArray = R4array as float[];
+                        *(float*)&Registers[ldelemR4Instruction->RegisterC].Upper = floatArray[R4index];
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Ldelem_R8:
+                        ABCInstruction* ldelemR8Instruction = (ABCInstruction*)ip;
+                        int R8index = Registers[ldelemR8Instruction->RegisterA].Upper;
+                        object R8array = Objects[ldelemR8Instruction->RegisterB];
+                        double[] doubleArray = R8array as double[];
+                        *(double*)&Registers[ldelemR8Instruction->RegisterC].Upper = doubleArray[R8index];
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Ldelem_U1:
+                        ABCInstruction* ldelemU1Instruction = (ABCInstruction*)ip;
+                        int U1index = Registers[ldelemU1Instruction->RegisterA].Upper;
+                        object U1array = Objects[ldelemU1Instruction->RegisterB];
+                        if (U1array is bool[] u1boolArray)
+                        {
+                            Registers[ldelemU1Instruction->RegisterC].Upper = u1boolArray[U1index] ? 1 : 0;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (U1array is byte[] byteArray)
+                        {
+                            Registers[ldelemU1Instruction->RegisterC].Upper = byteArray[U1index];
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+                        
+                        break;
+
+                    case OpCode.Ldelem_U2:
+                        ABCInstruction* ldelemU2Instruction = (ABCInstruction*)ip;
+                        int U2index = Registers[ldelemU2Instruction->RegisterA].Upper;
+                        object U2array = Objects[ldelemU2Instruction->RegisterB];
+                        if (U2array is short[] ushortArray)
+                        {
+                            Registers[ldelemU2Instruction->RegisterC].Upper = ushortArray[U2index];
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (U2array is char[] u2charArray)
+                        {
+                            Registers[ldelemU2Instruction->RegisterC].Upper = u2charArray[U2index];
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        break;
+                    case OpCode.Ldelem_U4:
+                        ABCInstruction* ldelemU4Instruction = (ABCInstruction*)ip;
+                        int U4index = Registers[ldelemU4Instruction->RegisterA].Upper;
+                        object U4array = Objects[ldelemU4Instruction->RegisterB];
+                        uint[] uintArray = U4array as uint[];
+                        Registers[ldelemU4Instruction->RegisterC].Upper = (int)uintArray[U4index];
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Ldelem_U8:
+                        ABCInstruction* ldelemU8Instruction = (ABCInstruction*)ip;
+                        int U8index = Registers[ldelemU8Instruction->RegisterA].Upper;
+                        object U8array = Objects[ldelemU8Instruction->RegisterB];
+                        ulong[] ulongArray = U8array as ulong[];
+                        *(ulong*)&Registers[ldelemU8Instruction->RegisterC].Upper = ulongArray[U8index];
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Ldlen:
+                        ABInstruction* ldlenInstruction = (ABInstruction*)ip;
+                        Array array = Objects[ldlenInstruction->RegisterA] as Array;
+                        Registers[ldlenInstruction->RegisterB].Upper = array.Length;
+                        ip += ABInstruction.Size;
+                        break;
+
+                    case OpCode.Stelem_I1:
+                        ABCInstruction* stelemI1Instruction = (ABCInstruction*)ip;
+                        int I1Value = Registers[stelemI1Instruction->RegisterA].Upper;
+                        int I1Index = Registers[stelemI1Instruction->RegisterB].Upper;
+                        object I1Array = Objects[stelemI1Instruction->RegisterC];
+
+                        if (I1Array is byte[] I1ByteArray)
+                        {
+                            I1ByteArray[I1Index] = (byte)I1Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I1Array is sbyte[] I1SbyteArray)
+                        {
+                            I1SbyteArray[I1Index] = (sbyte)I1Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I1Array is bool[] I1BoolArray)
+                        {
+                            I1BoolArray[I1Index] = I1Value == 1;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+                        break;
+
+                    case OpCode.Stelem_I2:
+                        ABCInstruction* stelemI2Instruction = (ABCInstruction*)ip;
+                        int I2Value = Registers[stelemI2Instruction->RegisterA].Upper;
+                        int I2Index = Registers[stelemI2Instruction->RegisterB].Upper;
+                        object I2Array = Objects[stelemI2Instruction->RegisterC];
+
+                        if (I2Array is short[] I2ShortArray)
+                        {
+                            I2ShortArray[I2Index] = (short)I2Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I2Array is ushort[] I2UshortArray)
+                        {
+                            I2UshortArray[I2Index] = (ushort)I2Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I2Array is char[] I2BoolArray)
+                        {
+                            I2BoolArray[I2Index] = (char)I2Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+                        break;
+                    case OpCode.Stelem_I4:
+                        ABCInstruction* stelemI4Instruction = (ABCInstruction*)ip;
+                        int I4Value = Registers[stelemI4Instruction->RegisterA].Upper;
+                        int I4Index = Registers[stelemI4Instruction->RegisterB].Upper;
+                        object I4Array = Objects[stelemI4Instruction->RegisterC];
+
+                        if (I4Array is int[] I4IntArray)
+                        {
+                            I4IntArray[I4Index] = I4Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I4Array is uint[] I4UIntArray)
+                        {
+                            I4UIntArray[I4Index] = (uint)I4Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                       
+                        break;
+
+                    case OpCode.Stelem_I8:
+                        ABCInstruction* stelemI8Instruction = (ABCInstruction*)ip;
+                        long I8Value = *(long*)&Registers[stelemI8Instruction->RegisterA].Upper;
+                        int I8Index = Registers[stelemI8Instruction->RegisterB].Upper;
+                        object I8Array = Objects[stelemI8Instruction->RegisterC];
+
+                        if (I8Array is long[] I8longArray)
+                        {
+                            I8longArray[I8Index] = I8Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+
+                        if (I8Array is ulong[] I8UlongArray)
+                        {
+                            I8UlongArray[I8Index] = (ulong)I8Value;
+                            ip += ABCInstruction.Size;
+                            break;
+                        }
+                        break;
+
+                    case OpCode.Stelem_R4:
+                        ABCInstruction* stelemR4Instruction = (ABCInstruction*)ip;
+                        float R4Value = *(float*)&Registers[stelemR4Instruction->RegisterA].Upper;
+                        int R4Index = Registers[stelemR4Instruction->RegisterB].Upper;
+                        float[] R4Array = Objects[stelemR4Instruction->RegisterC] as float[];
+
+                        R4Array[R4Index] = R4Value;
+                        ip += ABCInstruction.Size;
+                        break;
+
+                    case OpCode.Stelem_R8:
+                        ABCInstruction* stelemR8Instruction = (ABCInstruction*)ip;
+                        double R8Value = *(double*)&Registers[stelemR8Instruction->RegisterA].Upper;
+                        int R8Index = Registers[stelemR8Instruction->RegisterB].Upper;
+                        double[] R8Array = Objects[stelemR8Instruction->RegisterC] as double[];
+
+                        R8Array[R8Index] = R8Value;
+                        //IntPtr p = &R8Array[R8index]
+                        
+                        ip += ABCInstruction.Size;
+                        break;
+                        
                     case OpCode.Ldc_Int:
                         APInstruction* ldcIntInstruction = (APInstruction*)ip;
                         Registers[ldcIntInstruction->RegisterA].Upper = ldcIntInstruction->Operand;

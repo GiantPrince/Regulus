@@ -40,9 +40,13 @@ namespace TestLibrary
         }
         public static void Add()
         {
-            ReferenceTest t = new ReferenceTest(1);
-            Console.WriteLine(int.Max(t.s.Length, ReferenceTest.s_s.Length));
-
+            int[] arr = new int[10];
+            arr[0] = 1;
+            for (int i = 2; i < arr.Length; i++)
+            {
+                arr[i] += arr[i - 1];
+            }
+            Console.WriteLine(arr[9]);
 
         }
 

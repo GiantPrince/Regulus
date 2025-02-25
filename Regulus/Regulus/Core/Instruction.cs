@@ -258,6 +258,26 @@ namespace Regulus.Core
         Stsfld,
         Newobj,
 
+        // array instructions
+        Ldelem_I1,
+        Ldelem_I2,
+        Ldelem_I4,
+        Ldelem_I8,
+        Ldelem_R4,
+        Ldelem_R8,
+        Ldelem_U1,
+        Ldelem_U2,
+        Ldelem_U4,
+        Ldelem_U8,
+        Ldlen,
+        Stelem_I1,
+        Stelem_I2,
+        Stelem_I4,
+        Stelem_I8,
+        Stelem_R4,
+        Stelem_R8,
+
+
         // Load
         Ldc_Int,
         Ldc_Long,

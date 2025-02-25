@@ -999,6 +999,30 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
+                case AbstractOpCode.Ldelem_I1:
+                    return OpCode.Ldelem_I1;
+                case AbstractOpCode.Ldelem_I2:
+                    return OpCode.Ldelem_I2;
+                case AbstractOpCode.Ldelem_I4:
+                    return OpCode.Ldelem_I4;
+                case AbstractOpCode.Ldelem_I8:
+                    return OpCode.Ldelem_I8;
+                case AbstractOpCode.Ldelem_R4:
+                    return OpCode.Ldelem_R4;
+                case AbstractOpCode.Ldelem_R8:
+                    return OpCode.Ldelem_R8;
+                case AbstractOpCode.Ldelem_U1:
+                    return OpCode.Ldelem_U1;
+                case AbstractOpCode.Ldelem_U2:
+                    return OpCode.Ldelem_U2;
+                case AbstractOpCode.Ldelem_U4:
+                    return OpCode.Ldelem_U4;
+                case AbstractOpCode.Ldelem_U8:
+                    return OpCode.Ldelem_U8;
+                case AbstractOpCode.Ldlen:
+                    return OpCode.Ldlen;
+
+
 
                 default:
                     throw new NotImplementedException();
@@ -1640,17 +1664,31 @@ namespace Regulus.Core.Ssa
                 _emitter.AddType(meta.TypeName));
         }
 
-        private void EmitStoreFieldInstruction(TransformInstruction instruction)
+        private void EmitLdelemInstruction(TransformInstruction instruction)
         {
-            MetaOperand meta = instruction.GetMetaOperand();
-            Type declaringType = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
-            FieldInfo field = declaringType.GetField(meta.FieldName) ?? throw new Exception("Can not load field " + meta.FieldName);
-
-            int fieldIndex = _emitter.AddInstanceField(declaringType.AssemblyQualifiedName, field.Name);
-
-
+            _emitter.EmitABCInstruction(
+                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
         }
 
+        private void EmitLdlenInstruction(TransformInstruction instruction)
+        {
+            _emitter.EmitABInstruction(
+                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
+        }
+
+        private void EmitStelemInstruction(TransformInstruction instruction)
+        {
+            _emitter.EmitABCInstruction(
+                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(2)));
+        }
 
         private void CompileTransformInstruction(TransformInstruction instruction)
         {
@@ -1742,6 +1780,30 @@ namespace Regulus.Core.Ssa
                     break;
                 case AbstractOpCode.Initobj:
                     EmitInitobjInstruction(instruction);
+                    break;
+                case AbstractOpCode.Ldelem_I1:
+                case AbstractOpCode.Ldelem_I2:
+                case AbstractOpCode.Ldelem_I4:
+                case AbstractOpCode.Ldelem_I8:
+                case AbstractOpCode.Ldelem_R4:
+                case AbstractOpCode.Ldelem_R8:
+                case AbstractOpCode.Ldelem_U1:
+                case AbstractOpCode.Ldelem_U2:
+                case AbstractOpCode.Ldelem_U4:
+                case AbstractOpCode.Ldelem_U8:
+                    EmitLdelemInstruction(instruction); 
+                    break;
+                case AbstractOpCode.Ldlen:
+                    EmitLdlenInstruction(instruction);
+                    break;
+                case AbstractOpCode.Stelem_I1:
+                case AbstractOpCode.Stelem_I2:
+                case AbstractOpCode.Stelem_I4:
+                case AbstractOpCode.Stelem_I8:
+                case AbstractOpCode.Stelem_R4:
+                case AbstractOpCode.Stelem_R8:
+                
+                    EmitStelemInstruction(instruction); 
                     break;
                 
                 
