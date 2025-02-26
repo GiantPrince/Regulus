@@ -259,6 +259,7 @@ namespace Regulus.Core
         Newobj,
 
         // array instructions
+        Newarr,
         Ldelem_I1,
         Ldelem_I2,
         Ldelem_I4,
@@ -269,6 +270,7 @@ namespace Regulus.Core
         Ldelem_U2,
         Ldelem_U4,
         Ldelem_U8,
+        Ldelema,
         Ldlen,
         Stelem_I1,
         Stelem_I2,
@@ -285,6 +287,19 @@ namespace Regulus.Core
         Ldc_Double,
         LdStr,
         Ldloca,
+        Ldind_I1,
+        Ldind_I2,
+        Ldind_I4,
+        Ldind_I8,
+        Ldind_U1,
+        Ldind_U2,
+        Ldind_U4,
+        Ldind_R4,
+        Ldind_R8,
+
+        // Store
+        Stind_I4,
+
 
         // Call
         Call,
@@ -378,6 +393,12 @@ namespace Regulus.Core
         Stfld_Double,
         Stfld_Object,
 
+        // Array imm
+        NewarrI,
+        Stelem_I4II,
+        Ldelem_I4I,
+
+
         Count
 
 
@@ -462,6 +483,23 @@ namespace Regulus.Core
     }
 
     [StructLayout(LayoutKind.Explicit)]
+    public struct APPInstruction
+    {
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(int) + sizeof(int);
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(sizeof(OpCode))]
+        public byte RegisterA;
+
+        [FieldOffset (sizeof(OpCode) + sizeof(byte))]
+        public int Operand1;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(int))]
+        public int Operand2;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     public struct ABPPInstruction
     {
         public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(int) + sizeof(int);
@@ -526,6 +564,27 @@ namespace Regulus.Core
 
         [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
         public byte RegisterC;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct ABCPInstruction
+    {
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(byte) + sizeof(int);
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(sizeof(OpCode))]
+        public byte RegisterA;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
+        public byte RegisterB;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
+        public byte RegisterC;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte) + sizeof(byte))]
+        public int Operand;
+
     }
 
 

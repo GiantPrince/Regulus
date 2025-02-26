@@ -53,6 +53,14 @@ namespace Regulus.Core.Ssa.Instruction
         Ldind_R4,
         Ldind_R8,
         Ldind_Ref,
+        Stind_I1,
+        Stind_I2,
+        Stind_I4,
+        Stind_I8,
+        Stind_R4,
+        Stind_R8,
+        Stind_I,
+        Stind_Ref,
 
         Ldloca,
         Ldnull,
@@ -342,6 +350,14 @@ namespace Regulus.Core.Ssa.Instruction
                 case AbstractOpCode.Throw: return "Throw";
                 case AbstractOpCode.Unbox: return "Unbox";
                 case AbstractOpCode.Phi: return "Phi";
+                case AbstractOpCode.Stind_I1: return "Stind_I1";
+                case AbstractOpCode.Stind_I2: return "Stind_I2";
+                case AbstractOpCode.Stind_I4: return "Stind_I4";
+                case AbstractOpCode.Stind_I8: return "Stind_I8";
+                case AbstractOpCode.Stind_R4: return "Stind_R4";
+                case AbstractOpCode.Stind_R8: return "Stind_R8";
+                case AbstractOpCode.Stind_I: return "Stind_I";
+                case AbstractOpCode.Stind_Ref: return "Stind_Ref";
                 default:
                     return "Unknown OpCode";
             }

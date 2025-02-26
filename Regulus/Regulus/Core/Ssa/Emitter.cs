@@ -207,6 +207,14 @@ namespace Regulus.Core.Ssa
             }
         }
 
+        public void EmitAPPInstruction(OpCode opcode, byte a, int op1, int op2)
+        {
+            EmitOpCode(opcode);
+            bytecodes.Add(a);
+            bytecodes.AddRange(BitConverter.GetBytes(op1));
+            bytecodes.AddRange(BitConverter.GetBytes(op2));
+        }
+
         public void EmitABCInstruction(OpCode opcode, byte a, byte b, byte c) 
         {
             EmitOpCode(opcode);
@@ -242,6 +250,14 @@ namespace Regulus.Core.Ssa
             bytecodes.AddRange(p);
         }
 
+        public void EmitABCPInstruction(OpCode opcode, byte registerA, byte registerB, byte registerC, int operand)
+        {
+            EmitOpCode(opcode);
+            bytecodes.Add(registerA);
+            bytecodes.Add(registerB);
+            bytecodes.Add(registerC);
+            bytecodes.AddRange(BitConverter.GetBytes(operand));
+        }
         public void EmitABPPInstruction(OpCode opcode, byte registerA, byte RegisterB, int methodIndex, int argCount)
         {
             EmitOpCode(opcode);

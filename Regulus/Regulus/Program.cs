@@ -4,6 +4,8 @@ using Mono.Cecil;
 using Regulus.Core.Ssa;
 using System.Collections;
 using Regulus.Core.Ssa.Instruction;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace Regulus
 {
@@ -21,7 +23,7 @@ namespace Regulus
         public unsafe static void Main(string[] args)
         {
             
-            ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
+            ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Release\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
 
             MethodDefinition methodDef = typeDef.Methods.First(method => { return method.Name.Contains("Add"); });
@@ -48,9 +50,7 @@ namespace Regulus
 
             Compiler compiler = new Compiler();
             compiler.Compile(ssaBuilder.GetBlocks(), methodDef.Parameters.Count, methodDef.Body.Variables.Count, methodDef.Body.MaxStackSize);
-
-            
-            
+                       
             fixed (byte* ip = compiler.GetByteCode())
             {
                 Loader.LoadMeta(compiler.GetMeta(), out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
@@ -59,38 +59,28 @@ namespace Regulus
                 virtualMachine.internedStrings = ValueOperand.GetInternedStrings();
                 virtualMachine.Fields = fields.ToArray();
                 virtualMachine.Types = types.ToArray();
+                //virtualMachine.GCHandles = new System.Runtime.InteropServices.GCHandle[]
+                Stopwatch sw = Stopwatch.StartNew();
                 virtualMachine.Run(ip);
+                sw.Stop();
+                Console.WriteLine("a" + sw.ElapsedMilliseconds);
+                sw.Restart();
+                Add();
+                sw.Stop();
+                Console.WriteLine("b" + sw.ElapsedMilliseconds);
             }
-
-
-
-
         }
 
-        public static int Add()
+        public static void Add()
         {
-            int a = 10;
-            for (int i = 0; i < 100; i++)
+            int[] arr = new int[3];
+            arr[0] = 1;
+            for (int i = 1; i < arr.Length; i++)
             {
-                if (i % 2 == 0)
-                {
-                    a += 1 + i;
-                    if (a >= 20)
-                    {
-                        a /= 2;
-                    }
-                }
-                else
-                {
-                    a += i + 2;
-                    if (a >= 30)
-                    {
-                        a *= 2;
-                    }
-                }
+                arr[i] += arr[i - 1];
             }
-            return a;
-        }
+            Console.WriteLine(arr[2]);
 
+        }
     }
 }

@@ -162,6 +162,7 @@ namespace Regulus.Core.Ssa
             Operand op1 = moveInstruction.GetLeftHandSideOperand(0);
             Operand op2 = moveInstruction.GetRightHandSideOperand(0);
 
+            //if (moveInstruction.Code == AbstractOpCode.Dup)
             if (op1.Kind == OperandKind.Const)
             {
                 ValueOperand value = op1 as ValueOperand;
@@ -1019,8 +1020,17 @@ namespace Regulus.Core.Ssa
                     return OpCode.Ldelem_U4;
                 case AbstractOpCode.Ldelem_U8:
                     return OpCode.Ldelem_U8;
+                case AbstractOpCode.Stelem_I4:
+                    return OpCode.Stelem_I4;
                 case AbstractOpCode.Ldlen:
                     return OpCode.Ldlen;
+                case AbstractOpCode.Ldind_I4:
+                    return OpCode.Ldind_I4;
+                case AbstractOpCode.Stind_I4:
+                    return OpCode.Stind_I4;
+                case AbstractOpCode.Ldelema:
+                    return OpCode.Ldelema;
+
 
 
 
@@ -1549,11 +1559,15 @@ namespace Regulus.Core.Ssa
                 operandWithConst = op1;
                 opcode = GetOpCodeWithConst(code, op1.OpType);
             }
+            else
+            {
+                opcode = GetOpCodeWithoutConst(code, op1.OpType);
+            }
 
             if (value != null)
             {
                 _emitter.EmitABPInstruction(
-                    GetOpCodeWithConst(code, op1.OpType),
+                    opcode,
                     ComputeRegisterLocation(operandWithConst),
                     ComputeRegisterLocation(op3),
                     value.GetValue());
@@ -1561,7 +1575,7 @@ namespace Regulus.Core.Ssa
             else
             {
                 _emitter.EmitABCInstruction(
-                    GetOpCodeWithoutConst(code, op1.OpType),
+                    opcode,
                     ComputeRegisterLocation(op2),
                     ComputeRegisterLocation(op1),
                     ComputeRegisterLocation(op3));
@@ -1666,6 +1680,19 @@ namespace Regulus.Core.Ssa
 
         private void EmitLdelemInstruction(TransformInstruction instruction)
         {
+            Operand op1 = instruction.GetLeftHandSideOperand(0);
+            if (op1.Kind == OperandKind.Const)
+            {
+                ValueOperand value = op1 as ValueOperand;
+                _emitter.EmitABPInstruction(
+                    OpCode.Ldelem_I4I,
+                    ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),                
+                    ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                    value.GetInt()
+                );
+                return;
+            }
+            
             _emitter.EmitABCInstruction(
                 GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
                 ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
@@ -1683,6 +1710,25 @@ namespace Regulus.Core.Ssa
 
         private void EmitStelemInstruction(TransformInstruction instruction)
         {
+            Operand op1 = instruction.GetLeftHandSideOperand(0);
+            Operand op2 = instruction.GetLeftHandSideOperand(1);
+
+            if (op1.Kind == OperandKind.Const)
+            {
+                ValueOperand value1 = op1 as ValueOperand;
+                if (op2.Kind == OperandKind.Const)
+                {
+                    ValueOperand value2 = op2 as ValueOperand;
+
+                    _emitter.EmitAPPInstruction(
+                        OpCode.Stelem_I4II,
+                        ComputeRegisterLocation(instruction.GetLeftHandSideOperand(2)),
+                        value1.GetInt(),
+                        value2.GetInt());
+                    return;
+
+                }
+            }
             _emitter.EmitABCInstruction(
                 GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
                 ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
@@ -1690,6 +1736,64 @@ namespace Regulus.Core.Ssa
                 ComputeRegisterLocation(instruction.GetLeftHandSideOperand(2)));
         }
 
+        private void EmitNewarrInstruction(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+            Type arrtype = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type " + meta.TypeName);
+            int typeId = _emitter.AddType(arrtype.AssemblyQualifiedName);
+
+            Operand leftOp = instruction.GetLeftHandSideOperand(0);
+
+            if (leftOp.Kind == OperandKind.Const)
+            {
+                ValueOperand value = leftOp as ValueOperand;
+                _emitter.EmitAPPInstruction(
+                    OpCode.NewarrI,
+                    ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                    typeId,
+                    value.GetInt());
+            }
+            else
+            {
+                _emitter.EmitABPInstruction(
+                OpCode.Newarr,
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                typeId);
+            }
+            
+        }
+
+        private void EmitLdindInstruction(TransformInstruction instruction)
+        {
+            _emitter.EmitABInstruction(
+                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
+        }
+
+        private void EmitLdelemaInstruction(TransformInstruction instruction)
+        {
+            MetaOperand meta = instruction.GetMetaOperand();
+
+            Type type = Type.GetType(meta.TypeName) ?? throw new Exception("Can not load type + " + meta.TypeName);
+            int typeId = _emitter.AddType(type.AssemblyQualifiedName);
+
+            _emitter.EmitABCPInstruction(
+                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)),
+                typeId);
+        }
+
+        private void EmitStindInstruction(TransformInstruction instruction)
+        {
+            _emitter.EmitABInstruction(
+                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)));
+        }
         private void CompileTransformInstruction(TransformInstruction instruction)
         {
             // 2op => 1op
@@ -1805,7 +1909,20 @@ namespace Regulus.Core.Ssa
                 
                     EmitStelemInstruction(instruction); 
                     break;
-                
+
+                case AbstractOpCode.Newarr:
+                    EmitNewarrInstruction(instruction);
+                    break;
+                case AbstractOpCode.Ldind_I4:
+                    EmitLdindInstruction(instruction);
+                    break;
+                case AbstractOpCode.Ldelema:
+                    EmitLdelemaInstruction(instruction);
+                    break;
+                case AbstractOpCode.Stind_I4:
+                    EmitStindInstruction(instruction);
+                    break;
+               
                 
 
 

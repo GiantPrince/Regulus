@@ -226,6 +226,15 @@ namespace Regulus.Core.Ssa
                 case Code.Stsfld: return AbstractOpCode.Stsfld;
                 case Code.Throw: return AbstractOpCode.Throw;
                 case Code.Unbox: return AbstractOpCode.Unbox;
+                case Code.Stind_I1: return AbstractOpCode.Stind_I1;
+                case Code.Stind_I2: return AbstractOpCode.Stind_I2;
+                case Code.Stind_I4: return AbstractOpCode.Stind_I4;
+                case Code.Stind_I8: return AbstractOpCode.Stind_I8;
+                case Code.Stind_R4: return AbstractOpCode.Stind_R4;
+                case Code.Stind_R8: return AbstractOpCode.Stind_R8;
+                case Code.Stind_Ref: return AbstractOpCode.Stind_Ref;
+                
+
                 default: return AbstractOpCode.Mov; // default case to handle any unrecognized codes
             }
         }
@@ -467,10 +476,11 @@ namespace Regulus.Core.Ssa
                 case Code.Ldelem_Ref:
                 case Code.Ldelem_U1:
                 case Code.Ldelem_U2:
-                case Code.Ldelem_U4:
-                case Code.Ldelema:
-
+                case Code.Ldelem_U4:               
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth);
+                case Code.Ldelema:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
+                        .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));
                 case Code.Beq:
                 case Code.Beq_S:
                 case Code.Blt:
@@ -606,6 +616,14 @@ namespace Regulus.Core.Ssa
                 case Code.Stfld:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 0, ref stackDepth)
                         .WithMetaOperand(new MetaOperand(fieldReferenceCounter++, (FieldReference)instruction.Operand));
+                case Code.Stind_I1:
+                case Code.Stind_I2:
+
+                case Code.Stind_I4:
+                case Code.Stind_I8:
+                case Code.Stind_R4:
+                case Code.Stind_R8:
+                    return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 0, ref stackDepth);
                 case Code.Stobj:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
                     .WithMetaOperand(new MetaOperand(typeReferenceCounter++, (TypeReference)instruction.Operand));

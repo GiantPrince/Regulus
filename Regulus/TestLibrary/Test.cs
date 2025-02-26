@@ -42,12 +42,15 @@ namespace TestLibrary
         {
             int[] arr = new int[10];
             arr[0] = 1;
-            for (int i = 2; i < arr.Length; i++)
+
+            for (int i = 0; i < 100000; i++)
             {
-                arr[i] += arr[i - 1];
+                if (i % 10 == 0)
+                    continue;
+                int j = i % 10;
+                arr[j] += arr[j - 1];
             }
             Console.WriteLine(arr[9]);
-
         }
 
     }

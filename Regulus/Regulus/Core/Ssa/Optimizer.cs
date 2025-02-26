@@ -362,10 +362,6 @@ namespace Regulus.Core.Ssa
                     break;
             }
 
-            //if (inferencedType != ValueOperandType.Unknown)
-            //{
-            //    SetInferenceType(instruction, inferencedType);
-            //}
 
             return inferencedType;
         }
@@ -424,6 +420,31 @@ namespace Regulus.Core.Ssa
                     return ValueOperandType.Object;
                 case AbstractOpCode.Unbox:
                     return instruction.GetLeftHandSideOperand(0).OpType;
+                case AbstractOpCode.Ldlen:
+                    return ValueOperandType.Integer;
+                case AbstractOpCode.Ldind_I1:
+                case AbstractOpCode.Ldind_I2:
+                case AbstractOpCode.Ldind_I4:
+                case AbstractOpCode.Ldind_U1:
+                case AbstractOpCode.Ldind_U2:
+                case AbstractOpCode.Ldind_U4:
+                    return ValueOperandType.Integer;
+                case AbstractOpCode.Ldind_I8:
+                    return ValueOperandType.Long;
+                case AbstractOpCode.Ldind_R4:
+                    return ValueOperandType.Float;
+                case AbstractOpCode.Ldind_R8:
+                    return ValueOperandType.Double;
+                case AbstractOpCode.Stind_I:
+                case AbstractOpCode.Stind_I1:
+                case AbstractOpCode.Stind_I2:
+                case AbstractOpCode.Stind_I4:
+                case AbstractOpCode.Stind_I8:
+                case AbstractOpCode.Stind_R4:
+                case AbstractOpCode.Stind_R8:
+                    return ValueOperandType.Unknown;
+                case AbstractOpCode.Newarr:
+                    return ValueOperandType.Object;
                 
                 default:
                     return UnifiedTransformInstructionTypeInference(instruction);
@@ -465,7 +486,7 @@ namespace Regulus.Core.Ssa
                     break;
                 case InstructionKind.Transform:
                     inferencedType = TransformInstructionTypeInference((TransformInstruction)instruction);
-                    if (instruction.Code == AbstractOpCode.Stfld || instruction.Code == AbstractOpCode.Stsfld)
+                    if (!instruction.HasRightHandSideOperand())
                         return inferencedType;
                     break;
                 case InstructionKind.Phi:
@@ -496,7 +517,7 @@ namespace Regulus.Core.Ssa
                 
 
                 ValueOperandType inferencedType = TypeInference(i, out bool needExtraIteration);
-                if (inferencedType != ValueOperandType.Unknown)
+                if (inferencedType != ValueOperandType.Unknown && i.HasRightHandSideOperand())
                 {
                     i.GetRightHandSideOperand(0).OpType = inferencedType;
                     
