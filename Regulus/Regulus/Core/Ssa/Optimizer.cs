@@ -17,10 +17,12 @@ namespace Regulus.Core.Ssa
         {
             _ssaBuilder = ssaBuilder;
             TypeInference();
+            MarkFreePointerInstructions();
             CopyPropagation();
             CriticalEdgeSplitting();
             ResolvePhiFunctions();
             ClearEmptyInstructions();
+            EliminateEmptyBlocks();
         }
 
         public Optimizer(MethodDefinition method)
@@ -76,6 +78,88 @@ namespace Regulus.Core.Ssa
 
 
                 }
+            }
+        }
+
+        private bool IsLoadAddressInstruction(AbstractInstruction instruction)
+        {
+            switch (instruction.Code)
+            {
+                case AbstractOpCode.Ldelema:
+                case AbstractOpCode.Ldflda:
+                case AbstractOpCode.Ldloca:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private bool IsUseAddressInstruction(AbstractInstruction instruction)
+        {
+            switch (instruction.Code)
+            {
+                case AbstractOpCode.Stind_I:
+                case AbstractOpCode.Stind_I1:
+                case AbstractOpCode.Stind_I2:
+                case AbstractOpCode.Stind_I4:
+                case AbstractOpCode.Stind_I8:
+                case AbstractOpCode.Stind_R4:
+                case AbstractOpCode.Stind_R8:
+                case AbstractOpCode.Stind_Ref:
+                case AbstractOpCode.Ldind_I:
+                case AbstractOpCode.Ldind_I1:
+                case AbstractOpCode.Ldind_I2:
+                case AbstractOpCode.Ldind_I4:
+                case AbstractOpCode.Ldind_I8:
+                case AbstractOpCode.Ldind_R4:
+                case AbstractOpCode.Ldind_R8:
+                case AbstractOpCode.Ldind_Ref:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private List<AbstractInstruction> CollectLoadAddressInstructions()
+        {
+            List<AbstractInstruction> loadAddressInstructions = new List<AbstractInstruction>();
+            foreach (BasicBlock block in _ssaBuilder.GetBlocks())
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    if (IsLoadAddressInstruction(instruction))
+                    {
+                        loadAddressInstructions.Add(instruction);
+                    }
+                }
+            }
+
+            return loadAddressInstructions;
+        }
+
+        private void MarkFreePointerInstructions()
+        {
+            List<AbstractInstruction> loadAddressInstructions = CollectLoadAddressInstructions();
+
+            foreach (AbstractInstruction instruction in loadAddressInstructions)
+            {
+                List<Use> uses = _ssaBuilder.GetUses(instruction).Where(use => IsUseAddressInstruction(use.Instruction)).ToList();
+                if (uses.Count != 1)
+                {
+                    throw new Exception("Each load address instructions should have and only have one use");
+                }
+
+                Use use = uses.First();
+                TransformInstruction useAddressInstruction = use.Instruction as TransformInstruction;
+                if (useAddressInstruction == null)
+                {
+                    throw new Exception("Each use address instructions should be transform instruction");
+
+                }
+                useAddressInstruction.NeedFreePointer = true;
+
+
+
             }
         }
 
@@ -533,6 +617,67 @@ namespace Regulus.Core.Ssa
             }
         }
 
+        private bool IsEmptyBlock(BasicBlock block)
+        {
+            return block.Instructions.Count == 1 && block.Instructions.First().Code == AbstractOpCode.Br;            
+        }
+
+        private void AdjustSuccessorTarget(BasicBlock succBlock, BasicBlock oldTarget, BasicBlock newTarget)
+        {
+            int pred = succBlock.Predecessors.IndexOf(oldTarget.Index);
+            if (pred == -1) 
+            {
+                throw new ArgumentException("Can not find predeccessor");
+            }
+            succBlock.Predecessors[pred] = newTarget.Index;
+        }
+
+        private void AdjustPredecessorTarget(BasicBlock predBlock, BasicBlock oldTarget, BasicBlock newTarget)
+        {
+            int succ = predBlock.Successors.IndexOf(oldTarget.Index);
+            if (succ == -1)
+            {
+                throw new ArgumentException("can not find successor");
+            }
+
+            predBlock.Successors[succ] = newTarget.Index;
+
+            AbstractInstruction lastBranchInstruction = predBlock.Instructions.Last();
+            int brCount = lastBranchInstruction.BranchTargetCount();
+            for (int i = 0; i < brCount; i++) 
+            {
+                if (oldTarget == lastBranchInstruction.GetBranchTarget(i))
+                {
+                    lastBranchInstruction.SetBranchTarget(i, newTarget);
+                    break;
+                }
+            }
+            
+        }
+
+        
+        private void EliminateEmptyBlocks()
+        {
+            List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
+            foreach (BasicBlock block in blocks)
+            {
+                if (IsEmptyBlock(block))
+                {
+                    foreach (int pred in block.Predecessors)
+                    {
+                        AdjustPredecessorTarget(blocks[pred], block, blocks[block.Successors.First()]);
+                    }
+
+                    foreach (int succ in block.Successors)
+                    {
+                        AdjustSuccessorTarget(blocks[succ], block, blocks[block.Predecessors.First()]);
+                    }
+                }
+            }
+
+            _ssaBuilder.SetBlocks(_ssaBuilder.GetBlocks().Where(bb => !IsEmptyBlock(bb)).ToList());
+
+        }
         private void CopyPropagation()
         {
             List<AbstractInstruction> worklist = CollectAllInstructions();

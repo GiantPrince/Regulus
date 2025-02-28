@@ -152,6 +152,11 @@ namespace Regulus.Core.Ssa
             return _cfg.Blocks;
         }
 
+        public void SetBlocks(List<BasicBlock> blocks)
+        {
+            _cfg.Blocks = blocks;
+        }
+
         public List<Use> GetUses(AbstractInstruction instruction)
         {
             if (_uses.TryGetValue(instruction, out var use)) 

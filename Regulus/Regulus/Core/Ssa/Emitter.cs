@@ -55,9 +55,25 @@ namespace Regulus.Core.Ssa
             return bytecodes.Count;
         }
 
+        public void EmitInt(int value)
+        {
+            bytecodes.AddRange(BitConverter.GetBytes(value));
+        }
 
+        public void EmitBool(bool value)
+        {
+            bytecodes.AddRange(BitConverter.GetBytes(value));
+        }
 
-        private void EmitOpCode(OpCode opcode)
+        public void EmitByte(byte value)
+        {
+            bytecodes.Add(value);
+        }
+        public void EmitBytes(byte[] bytes)
+        {
+            bytecodes.AddRange(bytes);
+        }
+        public void EmitOpCode(OpCode opcode)
         {
             bytecodes.AddRange(BitConverter.GetBytes((ushort)opcode));
         }

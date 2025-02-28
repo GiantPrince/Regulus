@@ -118,26 +118,58 @@ namespace Regulus.Core
         Bge_Long,
         Bge_Float,
         Bge_Double,
+        BgeI_Int,
+        BgeI_Long,
+        BgeI_Float,
+        BgeI_Double,
         Bgt_Int,
         Bgt_Long,
         Bgt_Float,
         Bgt_Double,
+        BgtI_Int,
+        BgtI_Long,
+        BgtI_Float,
+        BgtI_Double,
+        
         Ble_Int,
         Ble_Long,
         Ble_Float,
         Ble_Double,
+        BleI_Int,
+        BleI_Long,
+        BleI_Float,
+        BleI_Double,
         Blt_Int,
         Blt_Long,
         Blt_Float,
         Blt_Double,
+        BltI_Int,
+        BltI_Long,
+        BltI_Float,
+        BltI_Double,
         Bge_Un_Int,
         Bge_Un_Long,
+        BgeI_Un_Int,
+        BgeI_Un_Long,
         Bgt_Un_Int,
         Bgt_Un_Long,
+        Bgt_Un_Float,
+        Bgt_Un_Double,
+        BgtI_Un_Int,
+        BgtI_Un_Long,
+        BgtI_Un_Float,
+        BgtI_Un_Double,
         Ble_Un_Int,
         Ble_Un_Long,
+        BleI_Un_Int,
+        BleI_Un_Long,
         Blt_Un_Int,
         Blt_Un_Long,
+        BltI_Un_Int,
+        BltI_Un_Long,
+        BltI_Un_Float,
+        BltI_Un_Double,
+       
         Conv_I1_Int,
         Conv_I1_Long,
         Conv_I1_Float,
@@ -252,6 +284,8 @@ namespace Regulus.Core
         UnBox,
         Ldfld,
         Ldsfld,
+        Ldflda,
+        Ldsflda,
         Castclass,
         Initobj,
         Stfld,
@@ -455,6 +489,24 @@ namespace Regulus.Core
 
         [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
         public long Operand;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct ALPPInstruction
+    {
+        public const int Size = sizeof(OpCode) + sizeof(byte) + sizeof(long) + sizeof(int);
+
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(sizeof(OpCode))]
+        public byte RegisterA;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte))]
+        public long Operand1;
+
+        [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(long))]
+        public int Operand2;
     }
 
     [StructLayout(LayoutKind.Explicit)]

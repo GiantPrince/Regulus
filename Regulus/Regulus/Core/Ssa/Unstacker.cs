@@ -281,6 +281,9 @@ namespace Regulus.Core.Ssa
             switch (instruction.OpCode.Code)
             {
                 case Code.Ldc_I4:
+                    return new MoveInstruction(AbstractOpCode.Mov,
+                        new ValueOperand(OperandKind.Const, constantCounter++, (int)instruction.Operand),
+                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldc_I4_S:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Const, constantCounter++, (sbyte)instruction.Operand),

@@ -22,7 +22,12 @@ namespace Regulus
         
         public unsafe static void Main(string[] args)
         {
+            //Console.WriteLine(sizeof(GCHandle));
+            string[] strings = new string[2];
+            ReferenceTest t = new ReferenceTest(1);
             
+            GCHandle handle = GCHandle.Alloc(strings, GCHandleType.Pinned);
+            handle.Free();
             ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Release\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
 
@@ -40,7 +45,7 @@ namespace Regulus
             }
 
             ssaBuilder.PrintUseDefChain();
-
+            
             Console.WriteLine("==== optimized ====");
             Optimizer optimizer = new Optimizer(ssaBuilder);
             foreach (BasicBlock block in ssaBuilder.GetBlocks())
@@ -73,14 +78,18 @@ namespace Regulus
 
         public static void Add()
         {
-            int[] arr = new int[3];
+            int[] arr = new int[10];
             arr[0] = 1;
-            for (int i = 1; i < arr.Length; i++)
-            {
-                arr[i] += arr[i - 1];
-            }
-            Console.WriteLine(arr[2]);
 
+            for (int i = 0; i < 100000; i++)
+            {
+                if (i % 10 == 0)
+                    continue;
+                int j = i % 10;
+                arr[j] += arr[j - 1];
+            }
+            Console.WriteLine(arr[9]);
         }
+
     }
 }

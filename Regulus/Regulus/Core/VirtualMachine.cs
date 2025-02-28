@@ -12,10 +12,11 @@ namespace Regulus.Core
     public unsafe class VirtualMachine
     {
         private const int MAX_REGISTERS = 256;
+        private const int MAX_GCHANDLES = 32;
 
         private Value* Registers;
-        public GCHandle[] GCHandles = new GCHandle[MAX_REGISTERS];
-
+        private GCHandle[] GCHandles = new GCHandle[MAX_GCHANDLES];
+        private int _gchandleStackTop = 0;
         public object[] Objects;
         public Invoker[] Invokers;
         public string[] internedStrings;
@@ -64,8 +65,8 @@ namespace Regulus.Core
             {
                 
                 OpCode op = ((Instruction*)ip)->Op;
-                Console.WriteLine(op);
-                Debug.PrintVMRegisters(this, 0, 23);
+                //Console.WriteLine(op);
+                //Debug.PrintVMRegisters(this, 0, 23);
                 switch (op)
                 {
                     case OpCode.Mov:
@@ -83,7 +84,7 @@ namespace Regulus.Core
                         ABLPInstruction* addILongInstruction = (ABLPInstruction*)ip;
                         *(long*)&Registers[addILongInstruction->RegisterB].Upper =
                             *(long*)&Registers[addILongInstruction->RegisterA].Upper + addILongInstruction->Operand;
-                        ip += ABPInstruction.Size;
+                        ip += ABLPInstruction.Size;
                         break;
                     case OpCode.AddI_Float:
                         ABPInstruction* addIFloatInstruction = (ABPInstruction*)ip;
@@ -96,7 +97,7 @@ namespace Regulus.Core
                         ABLPInstruction* addIDoubleInstruction = (ABLPInstruction*)ip;
                         *(double*)&Registers[addIDoubleInstruction->RegisterB].Upper =
                             *(double*)&Registers[addIDoubleInstruction->RegisterA].Upper + *(double*)&addIDoubleInstruction->Operand;
-                        ip += ABPInstruction.Size;
+                        ip += ABLPInstruction.Size;
                         break;
 
                     case OpCode.AddI_Ovf_Int:
@@ -1218,7 +1219,7 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
 
@@ -1231,7 +1232,7 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
 
@@ -1244,7 +1245,7 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
 
@@ -1257,10 +1258,105 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
-
+                    case OpCode.BgtI_Int:
+                        APPInstruction* BgtIIntInstruction = (APPInstruction*)ip;
+                        if (Registers[BgtIIntInstruction->RegisterA].Upper >
+                            BgtIIntInstruction->Operand1)
+                        {
+                            ip += BgtIIntInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgtI_Long:
+                        ALPPInstruction* BgtILongInstruction = (ALPPInstruction*)ip;
+                        if (*(long*)&Registers[BgtILongInstruction->RegisterA].Upper >
+                            BgtILongInstruction->Operand1)
+                        {
+                            ip += BgtILongInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgtI_Float:
+                        APPInstruction* BgtIFloatInstruction = (APPInstruction*)ip;
+                        if (Registers[BgtIFloatInstruction->RegisterA].Upper >
+                            BgtIFloatInstruction->Operand1)
+                        {
+                            ip += BgtIFloatInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgtI_Double:
+                        ALPPInstruction* BgtIDoubleInstruction = (ALPPInstruction*)ip;
+                        if (Registers[BgtIDoubleInstruction->RegisterA].Upper >
+                            BgtIDoubleInstruction->Operand1)
+                        {
+                            ip += BgtIDoubleInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BltI_Int:
+                        APPInstruction* BltIIntInstruction = (APPInstruction*)ip;
+                        if (Registers[BltIIntInstruction->RegisterA].Upper <
+                            BltIIntInstruction->Operand1)
+                        {
+                            ip += BltIIntInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BltI_Long:
+                        ALPPInstruction* BltILongInstruction = (ALPPInstruction*)ip;
+                        if (*(long*)&Registers[BltILongInstruction->RegisterA].Upper <
+                            BltILongInstruction->Operand1)
+                        {
+                            ip += BltILongInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BltI_Float:
+                        APPInstruction* BltIFloatInstruction = (APPInstruction*)ip;
+                        if (Registers[BltIFloatInstruction->RegisterA].Upper <
+                            BltIFloatInstruction->Operand1)
+                        {
+                            ip += BltIFloatInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BltI_Double:
+                        ALPPInstruction* BltIDoubleInstruction = (ALPPInstruction*)ip;
+                        if (Registers[BltIDoubleInstruction->RegisterA].Upper <
+                            BltIDoubleInstruction->Operand1)
+                        {
+                            ip += BltIDoubleInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
                     case OpCode.Ble_Int:
                         ABPInstruction* bleIntInstruction = (ABPInstruction*)ip;
                         if (Registers[bleIntInstruction->RegisterA].Upper <=
@@ -2319,30 +2415,46 @@ namespace Regulus.Core
                         byte* I1arrayPtr = (byte*)I1startAddr.ToPointer();
                         I1arrayPtr = I1arrayPtr + (Registers[ldindI1Instruction->RegisterA].Upper * Registers[ldindI1Instruction->RegisterA].Lower);
                         Registers[ldindI1Instruction->RegisterB].Upper = *I1arrayPtr;
-                        I1addr.Free();
+                        //I1addr.Free();
                         ip += ABInstruction.Size;
+                        if (*(bool*)ip)
+                        {
+                            I1addr.Free();
+                        }
+                        ip++;
                         break;
 
                     case OpCode.Ldind_I4:
                         ABInstruction* ldindI4Instruction = (ABInstruction*)ip;
-                        GCHandle ldI4addr = GCHandles[ldindI4Instruction->RegisterA];
+                        GCHandle ldI4addr = GCHandles[Registers[ldindI4Instruction->RegisterA].Upper];
                         byte* ldI4arrayPtr = (byte*)ldI4addr.AddrOfPinnedObject();
                         
-                        ldI4arrayPtr = ldI4arrayPtr + (Registers[ldindI4Instruction->RegisterA].Upper * Registers[ldindI4Instruction->RegisterA].Lower);
+                        ldI4arrayPtr = ldI4arrayPtr + Registers[ldindI4Instruction->RegisterA].Lower;
                         Registers[ldindI4Instruction->RegisterB].Upper = *(int*)ldI4arrayPtr;
-                        //ldI4addr.Free();
                         ip += ABInstruction.Size;
+                        if (*(bool*)ip)
+                        {
+                            ldI4addr.Free();
+                            _gchandleStackTop--;
+                        }
+                        ip++;
                         break;
 
                     case OpCode.Stind_I4:
                         ABInstruction* stindI4Instruction = (ABInstruction*)ip;
-                        GCHandle stI4addr = GCHandles[stindI4Instruction->RegisterB];
+                        GCHandle stI4addr = GCHandles[Registers[stindI4Instruction->RegisterB].Upper];
                         byte* stI4arrayPtr = (byte*)stI4addr.AddrOfPinnedObject();
                         
-                        stI4arrayPtr = stI4arrayPtr + (Registers[stindI4Instruction->RegisterB].Upper * Registers[stindI4Instruction->RegisterB].Lower);
+                        stI4arrayPtr = stI4arrayPtr + Registers[stindI4Instruction->RegisterB].Lower;
                         *(int*)stI4arrayPtr = Registers[stindI4Instruction->RegisterA].Upper;
-                        stI4addr.Free();
+                        
                         ip += ABInstruction.Size;
+                        if (*(bool*)ip)
+                        {
+                            stI4addr.Free();
+                            _gchandleStackTop--;
+                        }
+                        ip++;
                         break;
 
                     case OpCode.Ldelem_I4I:
@@ -2353,15 +2465,17 @@ namespace Regulus.Core
                         ip += ABPInstruction.Size;
                         break;
 
-
+                    case OpCode.Ldflda:
+                        break;
                     case OpCode.Ldelema:
                         ABCPInstruction* ldelemaInstruction = (ABCPInstruction*)ip;
                         Array ldelemArray = Objects[ldelemaInstruction->RegisterB] as Array;
                         Type elemType = Types[ldelemaInstruction->Operand];
-                        GCHandles[ldelemaInstruction->RegisterC] = GCHandle.Alloc(ldelemArray, GCHandleType.Pinned);
-                        Registers[ldelemaInstruction->RegisterC].Upper = Registers[ldelemaInstruction->RegisterA].Upper;
-                        Registers[ldelemaInstruction->RegisterC].Lower = Marshal.SizeOf(elemType);
+                        GCHandles[_gchandleStackTop] = GCHandle.Alloc(ldelemArray, GCHandleType.Pinned);
+                        Registers[ldelemaInstruction->RegisterC].Upper = _gchandleStackTop++;
+                        Registers[ldelemaInstruction->RegisterC].Lower = Marshal.SizeOf(elemType) * Registers[ldelemaInstruction->RegisterA].Upper;
                         ip += ABCPInstruction.Size;
+                        
                         break;
 
                     case OpCode.Ldc_Int:
