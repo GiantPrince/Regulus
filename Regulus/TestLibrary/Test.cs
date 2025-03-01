@@ -40,17 +40,11 @@ namespace TestLibrary
         }
         public static void Add()
         {
-            int[] arr = new int[10];
-            arr[0] = 1;
-
-            for (int i = 0; i < 100000; i++)
-            {
-                if (i % 10 == 0)
-                    continue;
-                int j = i % 10;
-                arr[j] += arr[j - 1];
-            }
-            Console.WriteLine(arr[9]);
+            ReferenceStruct referenceStruct = new ReferenceStruct(2);
+            //referenceStruct.a = 1;
+            //referenceStruct.s = "hi";
+            Console.WriteLine(referenceStruct.a);
+            Console.WriteLine(referenceStruct.s);
         }
 
     }

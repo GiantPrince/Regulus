@@ -17,7 +17,7 @@ namespace Regulus.Core.Ssa
         {
             _ssaBuilder = ssaBuilder;
             TypeInference();
-            MarkFreePointerInstructions();
+            //MarkFreePointerInstructions();
             CopyPropagation();
             CriticalEdgeSplitting();
             ResolvePhiFunctions();
@@ -156,7 +156,7 @@ namespace Regulus.Core.Ssa
                     throw new Exception("Each use address instructions should be transform instruction");
 
                 }
-                useAddressInstruction.NeedFreePointer = true;
+                //useAddressInstruction.NeedFreePointer = true;
 
 
 
@@ -529,6 +529,14 @@ namespace Regulus.Core.Ssa
                     return ValueOperandType.Unknown;
                 case AbstractOpCode.Newarr:
                     return ValueOperandType.Object;
+                case AbstractOpCode.Ldloca:
+                    return ValueOperandType.LocalPointer;
+                case AbstractOpCode.Ldflda:
+                    return ValueOperandType.InstanceFieldPointer;
+                case AbstractOpCode.Ldelema:
+                    return ValueOperandType.ArrayPointer;
+                case AbstractOpCode.Ldsflda:
+                    return ValueOperandType.StaticFieldPointer;
                 
                 default:
                     return UnifiedTransformInstructionTypeInference(instruction);
@@ -678,6 +686,25 @@ namespace Regulus.Core.Ssa
             _ssaBuilder.SetBlocks(_ssaBuilder.GetBlocks().Where(bb => !IsEmptyBlock(bb)).ToList());
 
         }
+
+        private bool CanBeCopyPropagated(AbstractInstruction instruction)
+        {
+            if (instruction.Kind != InstructionKind.Move)
+                return false;
+
+            switch (instruction.Code)
+            {
+                case AbstractOpCode.Ldloca:
+                    return false;
+                //case AbstractOpCode.Ldstr
+            }
+
+            if (instruction.GetLeftHandSideOperand(0).OpType == ValueOperandType.String)
+            {
+                return false;
+            }
+            return true;
+        }
         private void CopyPropagation()
         {
             List<AbstractInstruction> worklist = CollectAllInstructions();
@@ -686,7 +713,7 @@ namespace Regulus.Core.Ssa
             {
                 AbstractInstruction i = worklist.Last();
                 worklist.Remove(i);
-                if (i.Kind == InstructionKind.Move)
+                if (CanBeCopyPropagated(i))
                 {
                     Operand def = i.GetLeftHandSideOperand(0);
 

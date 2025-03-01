@@ -19,7 +19,6 @@ namespace Regulus.Core.Ssa.Instruction
 
     public enum ValueOperandType
     {
-        None,
         Unknown,
         Integer,
         Long,
@@ -27,7 +26,10 @@ namespace Regulus.Core.Ssa.Instruction
         Double,
         Null,
         String,
-        Reference,
+        StaticFieldPointer,
+        InstanceFieldPointer,
+        ArrayPointer,
+        LocalPointer,
         Object
     }
     public class Operand
@@ -106,12 +108,19 @@ namespace Regulus.Core.Ssa.Instruction
                     return "Double";
                 case ValueOperandType.Object:
                     return "Object";
-                case ValueOperandType.String:
-                    return "String";
+                
                 case ValueOperandType.Null:
                     return "Null";
-                case ValueOperandType.Reference:
-                    return "Reference";
+                case ValueOperandType.String:
+                    return "String";
+                case ValueOperandType.ArrayPointer:
+                    return "ArrPtr";
+                case ValueOperandType.InstanceFieldPointer:
+                    return "FldPtr";
+                case ValueOperandType.StaticFieldPointer:
+                    return "SFldPtr";
+                case ValueOperandType.LocalPointer:
+                    return "LocPtr";
                 default:
                     throw new NotImplementedException();
             }

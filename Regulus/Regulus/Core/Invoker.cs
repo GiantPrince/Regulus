@@ -23,6 +23,11 @@ namespace Regulus.Core
         public const byte Double = 10;
         public const byte Object = 11;
         public const byte Void = 12;
+        public const byte LocalPointer = 13;
+        public const byte InstanceFieldPointer = 14;
+        public const byte StaticFieldPointer = 15;
+        public const byte ArrayPointer = 16;
+
 
 
 

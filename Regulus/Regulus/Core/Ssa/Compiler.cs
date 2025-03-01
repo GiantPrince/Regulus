@@ -193,6 +193,13 @@ namespace Regulus.Core.Ssa
                             ComputeRegisterLocation(op2),
                             value.GetStringIndex());
                         break;
+                    case ValueOperandType.LocalPointer:
+                        _emitter.EmitAPInstruction(
+                            OpCode.Ldloca,
+                            
+                            ComputeRegisterLocation(op2),
+                            value.GetInt());
+                        break;
 
 
                 }
@@ -316,6 +323,7 @@ namespace Regulus.Core.Ssa
             }
             else
             {
+                
                 _emitter.EmitType(Constants.Object);
             }
         }
@@ -1059,8 +1067,94 @@ namespace Regulus.Core.Ssa
                     return OpCode.Ldlen;
                 case AbstractOpCode.Ldind_I4:
                     return OpCode.Ldind_I4;
+                case AbstractOpCode.Stind_I1:
+                    switch (opType)
+                    {
+                        case ValueOperandType.ArrayPointer:
+                            return OpCode.Stind_I1_ArrayPointer;
+                        case ValueOperandType.LocalPointer:
+                            return OpCode.Stind_I1_LocalPointer;
+                        case ValueOperandType.StaticFieldPointer:
+                            return OpCode.Stind_I1_StaticFieldPointer;
+                        case ValueOperandType.InstanceFieldPointer:
+                            return OpCode.Stind_I1_InstanceFieldPointer;
+                        default:
+                            throw new NotImplementedException ();
+                    }
+                case AbstractOpCode.Stind_I2:
+                    switch (opType)
+                    {
+                        case ValueOperandType.ArrayPointer:
+                            return OpCode.Stind_I2_ArrayPointer;
+                        case ValueOperandType.LocalPointer:
+                            return OpCode.Stind_I2_LocalPointer;
+                        case ValueOperandType.StaticFieldPointer:
+                            return OpCode.Stind_I2_StaticFieldPointer;
+                        case ValueOperandType.InstanceFieldPointer:
+                            return OpCode.Stind_I2_InstanceFieldPointer;
+                        default:
+                            throw new NotImplementedException();
+                    }
+
                 case AbstractOpCode.Stind_I4:
-                    return OpCode.Stind_I4;
+                    switch (opType)
+                    {
+                        case ValueOperandType.ArrayPointer:
+                            return OpCode.Stind_I4_ArrayPointer;
+                        case ValueOperandType.LocalPointer:
+                            return OpCode.Stind_I4_LocalPointer;
+                        case ValueOperandType.StaticFieldPointer:
+                            return OpCode.Stind_I4_StaticFieldPointer;
+                        case ValueOperandType.InstanceFieldPointer:
+                            return OpCode.Stind_I4_InstanceFieldPointer;
+                        default:
+                            throw new NotImplementedException();
+                    }
+
+                case AbstractOpCode.Stind_I8:
+                    switch (opType)
+                    {
+                        case ValueOperandType.ArrayPointer:
+                            return OpCode.Stind_I8_ArrayPointer;
+                        case ValueOperandType.LocalPointer:
+                            return OpCode.Stind_I8_LocalPointer;
+                        case ValueOperandType.StaticFieldPointer:
+                            return OpCode.Stind_I8_StaticFieldPointer;
+                        case ValueOperandType.InstanceFieldPointer:
+                            return OpCode.Stind_I8_InstanceFieldPointer;
+                        default:
+                            throw new NotImplementedException();
+                    }
+
+                case AbstractOpCode.Stind_R4:
+                    switch (opType)
+                    {
+                        case ValueOperandType.ArrayPointer:
+                            return OpCode.Stind_R4_ArrayPointer;
+                        case ValueOperandType.LocalPointer:
+                            return OpCode.Stind_R4_LocalPointer;
+                        case ValueOperandType.StaticFieldPointer:
+                            return OpCode.Stind_R4_StaticFieldPointer;
+                        case ValueOperandType.InstanceFieldPointer:
+                            return OpCode.Stind_R4_InstanceFieldPointer;
+                        default:
+                            throw new NotImplementedException();
+                    }
+
+                case AbstractOpCode.Stind_R8:
+                    switch (opType)
+                    {
+                        case ValueOperandType.ArrayPointer:
+                            return OpCode.Stind_R8_ArrayPointer;
+                        case ValueOperandType.LocalPointer:
+                            return OpCode.Stind_R8_LocalPointer;
+                        case ValueOperandType.StaticFieldPointer:
+                            return OpCode.Stind_R8_StaticFieldPointer;
+                        case ValueOperandType.InstanceFieldPointer:
+                            return OpCode.Stind_R8_InstanceFieldPointer;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 case AbstractOpCode.Ldelema:
                     return OpCode.Ldelema;
 
@@ -1722,11 +1816,45 @@ namespace Regulus.Core.Ssa
             }
             else if (instruction.Code == AbstractOpCode.Stfld)
             {
-                _emitter.EmitABPInstruction(
-                OpCode.Stfld,
-                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
-                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
-                fieldIndex);
+                switch (instruction.GetLeftHandSideOperand(1).OpType)
+                {
+                    case ValueOperandType.LocalPointer:
+                        _emitter.EmitABPInstruction(
+                            OpCode.Stfld_LocalPointer,
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                            fieldIndex);
+                        break;
+                    case ValueOperandType.InstanceFieldPointer:
+                        _emitter.EmitABPInstruction(
+                            OpCode.Stfld_InstanceFieldPointer,
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                            fieldIndex);
+                        break;
+                    case ValueOperandType.StaticFieldPointer:
+                        _emitter.EmitABPInstruction(
+                            OpCode.Stfld_StaticFieldPointer,
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                            fieldIndex);
+                        break;
+                    case ValueOperandType.ArrayPointer:
+                        _emitter.EmitABPInstruction(
+                            OpCode.Stfld_ArrayPointer,
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                            fieldIndex);
+                        break;
+                    default:
+                        _emitter.EmitABPInstruction(
+                            OpCode.Stfld,
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
+                            ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                            fieldIndex);
+                        break;
+                }
+                
             }
             else if (instruction.Code == AbstractOpCode.Stsfld)
             {
@@ -1865,7 +1993,7 @@ namespace Regulus.Core.Ssa
                 GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
                 ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
                 ComputeRegisterLocation(instruction.GetRightHandSideOperand(0)));
-            _emitter.EmitBool(instruction.NeedFreePointer);
+            //_emitter.EmitBool(instruction.NeedFreePointer);
         }
 
         private void EmitLdelemaInstruction(TransformInstruction instruction)
@@ -1886,10 +2014,10 @@ namespace Regulus.Core.Ssa
         private void EmitStindInstruction(TransformInstruction instruction)
         {
             _emitter.EmitABInstruction(
-                GetOpCodeWithoutConst(instruction.Code, ValueOperandType.Unknown),
-                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)),
-                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)));
-            _emitter.EmitBool(instruction.NeedFreePointer);
+                GetOpCodeWithoutConst(instruction.Code, instruction.GetLeftHandSideOperand(1).OpType),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(1)),
+                ComputeRegisterLocation(instruction.GetLeftHandSideOperand(0)));
+            //_emitter.EmitBool(instruction.NeedFreePointer);
         }
         private void CompileTransformInstruction(TransformInstruction instruction)
         {

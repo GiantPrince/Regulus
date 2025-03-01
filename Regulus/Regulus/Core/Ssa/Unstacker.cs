@@ -522,7 +522,7 @@ namespace Regulus.Core.Ssa
                 case Code.Ldloca:
                 case Code.Ldloca_S:
                     return new MoveInstruction(AbstractOpCode.Ldloca,
-                        new ValueOperand(OperandKind.Const, constantCounter++, ((VariableDefinition)instruction.Operand).Index, ValueOperandType.Reference),
+                        new ValueOperand(OperandKind.Const, constantCounter++, ((VariableDefinition)instruction.Operand).Index, ValueOperandType.LocalPointer),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldnull:
                     return new MoveInstruction(AbstractOpCode.Ldnull,

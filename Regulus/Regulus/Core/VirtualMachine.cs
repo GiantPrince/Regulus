@@ -1966,13 +1966,16 @@ namespace Regulus.Core
                         object? obj = Activator.CreateInstance(objType);
                         // only support stack reference now
 
-                        int addr = Registers[initobjInstruction->RegisterA].Upper;
-                        Registers[addr].Upper = addr;
-                        Objects[addr] = obj;
-                        
+                        //Value* dest = *(Value**)&Registers[initobjInstruction->RegisterA].Upper;
+                        //Registers[addr].Upper = addr;
+                        Objects[Registers[initobjInstruction->RegisterA].Upper] = obj;
+                        ip += APInstruction.Size;
                         break;
+                    case OpCode.Stfld_LocalPointer:
+
                     case OpCode.Stfld:
                         ABPInstruction* stfldInstruction = (ABPInstruction*)ip;
+                        
                         FieldInfo stfield = Fields[stfldInstruction->Operand];
                         ip += ABPInstruction.Size;
                         switch (*ip)
@@ -2029,7 +2032,16 @@ namespace Regulus.Core
                                 throw new NotImplementedException();
                         }
                         ip += 1;
-                        stfield.SetValue(Objects[stfldInstruction->RegisterB], Objects[stfldInstruction->RegisterA]);
+                        switch (op)
+                        {
+                            case OpCode.Stfld:
+                                stfield.SetValue(Objects[stfldInstruction->RegisterB], Objects[stfldInstruction->RegisterA]);
+                                break;
+                            case OpCode.Stfld_LocalPointer:
+                                stfield.SetValue(Objects[Registers[stfldInstruction->RegisterB].Upper], Objects[stfldInstruction->RegisterA]);
+                                break;
+
+                        }
                         break;
 
                     case OpCode.Stsfld:
@@ -2426,35 +2438,404 @@ namespace Regulus.Core
 
                     case OpCode.Ldind_I4:
                         ABInstruction* ldindI4Instruction = (ABInstruction*)ip;
-                        GCHandle ldI4addr = GCHandles[Registers[ldindI4Instruction->RegisterA].Upper];
-                        byte* ldI4arrayPtr = (byte*)ldI4addr.AddrOfPinnedObject();
-                        
-                        ldI4arrayPtr = ldI4arrayPtr + Registers[ldindI4Instruction->RegisterA].Lower;
-                        Registers[ldindI4Instruction->RegisterB].Upper = *(int*)ldI4arrayPtr;
+                        //GCHandle ldI4addr = GCHandles[Registers[ldindI4Instruction->RegisterA].Upper];
+                        //byte* ldI4arrayPtr = (byte*)ldI4addr.AddrOfPinnedObject();
+
+                        //ldI4arrayPtr = ldI4arrayPtr + Registers[ldindI4Instruction->RegisterA].Lower;
+                        //Registers[ldindI4Instruction->RegisterB].Upper = *(int*)ldI4arrayPtr;
+                        //ip += ABInstruction.Size;
+                        //if (*(bool*)ip)
+                        //{
+                        //    ldI4addr.Free();
+                        //    _gchandleStackTop--;
+                        //}
+                        //ip++;
+                        int[] ldindI4Array = Objects[Registers[ldindI4Instruction->RegisterA].Upper] as int[];
+                        Registers[ldindI4Instruction->RegisterB].Upper = ldindI4Array[Registers[ldindI4Instruction->RegisterA].Lower];
                         ip += ABInstruction.Size;
-                        if (*(bool*)ip)
+                        break;
+                    case OpCode.Stind_I1_InstanceFieldPointer:
+                        ABInstruction* stindI1FieldPointerInstruction = (ABInstruction*)ip;
+                        int stindI1InstanceIndex = Registers[stindI1FieldPointerInstruction->RegisterA].Upper;
+                        int stindI1FieldIndex = Registers[stindI1FieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI1Field = Fields[stindI1FieldIndex];
+                        Type stindI1FieldType = stindI1Field.FieldType;
+                        object stindI1Instance = Objects[stindI1InstanceIndex];
+                        int stindI1Value = Registers[stindI1FieldPointerInstruction->RegisterB].Upper;
+                        if (stindI1FieldType == typeof(bool))
                         {
-                            ldI4addr.Free();
-                            _gchandleStackTop--;
+                            stindI1Field.SetValue(stindI1Instance, stindI1Value == 1);
+                            ip += ABInstruction.Size;
+                            break;
                         }
-                        ip++;
+
+                        if (stindI1FieldType == typeof(sbyte))
+                        {
+                            stindI1Field.SetValue(stindI1Instance, (sbyte)stindI1Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI1FieldType == typeof(byte))
+                        {
+                            stindI1Field.SetValue(stindI1Instance, (byte)stindI1Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
                         break;
 
-                    case OpCode.Stind_I4:
-                        ABInstruction* stindI4Instruction = (ABInstruction*)ip;
-                        GCHandle stI4addr = GCHandles[Registers[stindI4Instruction->RegisterB].Upper];
-                        byte* stI4arrayPtr = (byte*)stI4addr.AddrOfPinnedObject();
-                        
-                        stI4arrayPtr = stI4arrayPtr + Registers[stindI4Instruction->RegisterB].Lower;
-                        *(int*)stI4arrayPtr = Registers[stindI4Instruction->RegisterA].Upper;
-                        
-                        ip += ABInstruction.Size;
-                        if (*(bool*)ip)
+                    case OpCode.Stind_I2_InstanceFieldPointer:
+                        ABInstruction* stindI2FieldPointerInstruction = (ABInstruction*)ip;
+                        int stindI2InstanceIndex = Registers[stindI2FieldPointerInstruction->RegisterA].Upper;
+                        int stindI2FieldIndex = Registers[stindI2FieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI2Field = Fields[stindI2FieldIndex];
+                        Type stindI2FieldType = stindI2Field.FieldType;
+                        object stindI2Instance = Objects[stindI2InstanceIndex];
+                        int stindI2Value = Registers[stindI2FieldPointerInstruction->RegisterB].Upper;
+                        if (stindI2FieldType == typeof(ushort))
                         {
-                            stI4addr.Free();
-                            _gchandleStackTop--;
+                            stindI2Field.SetValue(stindI2Instance, stindI2Value == 1);
+                            ip += ABInstruction.Size;
+                            break;
                         }
-                        ip++;
+
+                        if (stindI2FieldType == typeof(char))
+                        {
+                            stindI2Field.SetValue(stindI2Instance, (sbyte)stindI2Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI2FieldType == typeof(short))
+                        {
+                            stindI2Field.SetValue(stindI2Instance, (byte)stindI2Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I4_InstanceFieldPointer:
+                        ABInstruction* stindI4FieldPointerInstruction = (ABInstruction*)ip;
+                        int stindI4InstanceIndex = Registers[stindI4FieldPointerInstruction->RegisterA].Upper;
+                        int stindI4FieldIndex = Registers[stindI4FieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI4Field = Fields[stindI4FieldIndex];
+                        Type stindI4FieldType = stindI4Field.FieldType;
+                        object stindI4Instance = Objects[stindI4InstanceIndex];
+                        int stindI4Value = Registers[stindI4FieldPointerInstruction->RegisterB].Upper;
+                        if (stindI4FieldType == typeof(int))
+                        {
+                            stindI4Field.SetValue(stindI4Instance, stindI4Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI4FieldType == typeof(uint))
+                        {
+                            stindI4Field.SetValue(stindI4Instance, (uint)stindI4Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I8_InstanceFieldPointer:
+                        ABInstruction* stindI8FieldPointerInstruction = (ABInstruction*)ip;
+                        int stindI8InstanceIndex = Registers[stindI8FieldPointerInstruction->RegisterA].Upper;
+                        int stindI8FieldIndex = Registers[stindI8FieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI8Field = Fields[stindI8FieldIndex];
+                        Type stindI8FieldType = stindI8Field.FieldType;
+                        object stindI8Instance = Objects[stindI8InstanceIndex];
+                        long stindI8Value = *(long*)&Registers[stindI8FieldPointerInstruction->RegisterB].Upper;
+                        if (stindI8FieldType == typeof(long))
+                        {
+                            stindI8Field.SetValue(stindI8Instance, stindI8Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI8FieldType == typeof(ulong))
+                        {
+                            stindI8Field.SetValue(stindI8Instance, (ulong)stindI8Value);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_R4_InstanceFieldPointer:
+                        ABInstruction* stindR4FieldPointerInstruction = (ABInstruction*)ip;
+                        int stindR4InstanceIndex = Registers[stindR4FieldPointerInstruction->RegisterA].Upper;
+                        int stindR4FieldIndex = Registers[stindR4FieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindR4Field = Fields[stindR4FieldIndex];
+                        
+                        object stindR4Instance = Objects[stindR4InstanceIndex];
+                        float stindR4Value = *(float*)&Registers[stindR4FieldPointerInstruction->RegisterB].Upper;
+                        stindR4Field.SetValue(stindR4Instance, stindR4Value);
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_R8_InstanceFieldPointer:
+                        ABInstruction* stindR8FieldPointerInstruction = (ABInstruction*)ip;
+                        int stindR8InstanceIndex = Registers[stindR8FieldPointerInstruction->RegisterA].Upper;
+                        int stindR8FieldIndex = Registers[stindR8FieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindR8Field = Fields[stindR8FieldIndex];
+
+                        object stindR8Instance = Objects[stindR8InstanceIndex];
+                        double stindR8Value = *(double*)&Registers[stindR8FieldPointerInstruction->RegisterB].Upper;
+                        stindR8Field.SetValue(stindR8Instance, stindR8Value);
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I1_LocalPointer:
+                    case OpCode.Stind_I2_LocalPointer:
+                    case OpCode.Stind_I4_LocalPointer:
+                    case OpCode.Stind_I8_LocalPointer:
+                    case OpCode.Stind_R4_LocalPointer:
+                    case OpCode.Stind_R8_LocalPointer:
+                        ABInstruction* stindI4LocalPointerInstruction = (ABInstruction*)ip;
+                        //Value* stindI4LocalPtr = *(Value**)&Registers[stindI4LocalPointerInstruction->RegisterB].Upper;
+                        Registers[stindI4LocalPointerInstruction->RegisterB] = Registers[stindI4LocalPointerInstruction->RegisterA];
+                        ip += ABInstruction.Size;
+                        //ABInstruction* stindI4Instruction = (ABInstruction*)ip;
+                        //GCHandle stI4addr = GCHandles[Registers[stindI4Instruction->RegisterB].Upper];
+                        //byte* stI4arrayPtr = (byte*)stI4addr.AddrOfPinnedObject();
+                        
+                        //stI4arrayPtr = stI4arrayPtr + Registers[stindI4Instruction->RegisterB].Lower;
+                        //*(int*)stI4arrayPtr = Registers[stindI4Instruction->RegisterA].Upper;
+                        
+                        //ip += ABInstruction.Size;
+                        //if (*(bool*)ip)
+                        //{
+                        //    stI4addr.Free();
+                        //    _gchandleStackTop--;
+                        //}
+                        //ip++;
+                        break;
+                    case OpCode.Stind_I1_StaticFieldPointer:
+                        ABInstruction* stindI1StaticFieldPointerInstruction = (ABInstruction*)ip;
+                        //int stindI1StaticInstanceIndex = Registers[stindI1StaticFieldPointerInstruction->RegisterA].Upper;
+                        int stindI1StaticFieldIndex = Registers[stindI1StaticFieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI1StaticField = Fields[stindI1StaticFieldIndex];
+                        Type stindI1StaticFieldType = stindI1StaticField.FieldType;
+
+                        //object stindI1StaticInstance = Objects[stindI1StaticInstanceIndex];
+                        int stindI1StaticValue = Registers[stindI1StaticFieldPointerInstruction->RegisterB].Upper;
+                        //stindI1StaticField.SetValue(null, stindI1StaticValue);
+                        if (stindI1StaticFieldType == typeof(bool))
+                        {
+                            stindI1StaticField.SetValue(null, stindI1StaticValue == 1);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI1StaticFieldType == typeof(sbyte))
+                        {
+                            stindI1StaticField.SetValue(null, (sbyte)stindI1StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI1StaticFieldType == typeof(byte))
+                        {
+                            stindI1StaticField.SetValue(null, (byte)stindI1StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I2_StaticFieldPointer:
+                        ABInstruction* stindI2StaticFieldPointerInstruction = (ABInstruction*)ip;
+                        //int stindI2StaticInstanceIndex = Registers[stindI2StaticFieldPointerInstruction->RegisterA].Upper;
+                        int stindI2StaticFieldIndex = Registers[stindI2StaticFieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI2StaticField = Fields[stindI2StaticFieldIndex];
+                        Type stindI2StaticFieldType = stindI2StaticField.FieldType;
+
+                        //object stindI2StaticInstance = Objects[stindI2StaticInstanceIndex];
+                        int stindI2StaticValue = Registers[stindI2StaticFieldPointerInstruction->RegisterB].Upper;
+                        //stindI2StaticField.SetValue(null, stindI2StaticValue);
+                        if (stindI2StaticFieldType == typeof(ushort))
+                        {
+                            stindI2StaticField.SetValue(null, (ushort)stindI2StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI2StaticFieldType == typeof(short))
+                        {
+                            stindI2StaticField.SetValue(null, (short)stindI2StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI2StaticFieldType == typeof(char))
+                        {
+                            stindI2StaticField.SetValue(null, (char)stindI2StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I4_StaticFieldPointer:
+                        ABInstruction* stindI4StaticFieldPointerInstruction = (ABInstruction*)ip;
+                        //int stindI4StaticInstanceIndex = Registers[stindI4StaticFieldPointerInstruction->RegisterA].Upper;
+                        int stindI4StaticFieldIndex = Registers[stindI4StaticFieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI4StaticField = Fields[stindI4StaticFieldIndex];
+                        Type stindI4StaticFieldType = stindI4StaticField.FieldType;
+
+                        //object stindI4StaticInstance = Objects[stindI4StaticInstanceIndex];
+                        int stindI4StaticValue = Registers[stindI4StaticFieldPointerInstruction->RegisterB].Upper;
+                        //stindI4StaticField.SetValue(null, stindI4StaticValue);
+                        if (stindI4StaticFieldType == typeof(uint))
+                        {
+                            stindI4StaticField.SetValue(null, (uint)stindI4StaticValue);
+
+                            ip += ABInstruction.Size; 
+                            break;
+                        }
+
+                        if (stindI4StaticFieldType == typeof(int))
+                        {
+                            stindI4StaticField.SetValue(null, stindI4StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I8_StaticFieldPointer:
+                        ABInstruction* stindI8StaticFieldPointerInstruction = (ABInstruction*)ip;
+                        //int stindI8StaticInstanceIndex = Registers[stindI8StaticFieldPointerInstruction->RegisterA].Upper;
+                        int stindI8StaticFieldIndex = Registers[stindI8StaticFieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindI8StaticField = Fields[stindI8StaticFieldIndex];
+                        Type stindI8StaticFieldType = stindI8StaticField.FieldType;
+
+                        //object stindI8StaticInstance = Objects[stindI8StaticInstanceIndex];
+                        long stindI8StaticValue = *(long*)&Registers[stindI8StaticFieldPointerInstruction->RegisterB].Upper;
+                        //stindI8StaticField.SetValue(null, stindI8StaticValue);
+                        if (stindI8StaticFieldType == typeof(long))
+                        {
+                            stindI8StaticField.SetValue(null, stindI8StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI8StaticFieldType == typeof(ulong))
+                        {
+                            stindI8StaticField.SetValue(null, (ulong)stindI8StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+
+                        if (stindI8StaticFieldType == typeof(char))
+                        {
+                            stindI8StaticField.SetValue(null, (char)stindI8StaticValue);
+                            ip += ABInstruction.Size;
+                            break;
+                        }
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_R4_StaticFieldPointer:
+                        ABInstruction* stindR4StaticFieldPointerInstruction = (ABInstruction*)ip;
+                        //int stindR4StaticInstanceIndex = Registers[stindR4StaticFieldPointerInstruction->RegisterA].Upper;
+                        int stindR4StaticFieldIndex = Registers[stindR4StaticFieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindR4StaticField = Fields[stindR4StaticFieldIndex];
+                        Type stindR4StaticFieldType = stindR4StaticField.FieldType;
+
+                        //object stindR4StaticInstance = Objects[stindR4StaticInstanceIndex];
+                        float stindR4StaticValue = *(float*)&Registers[stindR4StaticFieldPointerInstruction->RegisterB].Upper;
+                        //stindR4StaticField.SetValue(null, stindR4StaticValue);
+                        stindR4StaticField.SetValue(null, stindR4StaticValue);
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_R8_StaticFieldPointer:
+                        ABInstruction* stindR8StaticFieldPointerInstruction = (ABInstruction*)ip;
+                        //int stindR8StaticInstanceIndex = Registers[stindR8StaticFieldPointerInstruction->RegisterA].Upper;
+                        int stindR8StaticFieldIndex = Registers[stindR8StaticFieldPointerInstruction->RegisterA].Lower;
+                        FieldInfo stindR8StaticField = Fields[stindR8StaticFieldIndex];
+                        Type stindR8StaticFieldType = stindR8StaticField.FieldType;
+
+                        //object stindR8StaticInstance = Objects[stindR8StaticInstanceIndex];
+                        double stindR8StaticValue = *(double*)&Registers[stindR8StaticFieldPointerInstruction->RegisterB].Upper;
+                        //stindR8StaticField.SetValue(null, stindR8StaticValue);
+                        stindR8StaticField.SetValue(null, stindR8StaticValue);
+                        ip += ABInstruction.Size;
+                        break;
+                    case OpCode.Stind_I1_ArrayPointer:
+                        ABInstruction* stindI1ArrayPointerInstruction = (ABInstruction*)ip;
+                        Value* stindI1Addr = &Registers[stindI1ArrayPointerInstruction->RegisterA];
+                        object stindI1Array = Objects[stindI1Addr->Upper];
+                        ip += ABInstruction.Size;
+                        if (stindI1Array is bool[] stindI1BoolArray)
+                        {
+                            stindI1BoolArray[stindI1Addr->Lower] = Registers[stindI1ArrayPointerInstruction->RegisterB].Upper == 1;
+                            
+                            break;
+                        }
+
+                        if (stindI1Array is byte[] stindI1ByteArray)
+                        {
+                            stindI1ByteArray[stindI1Addr->Lower] = (byte)Registers[stindI1ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
+                        if (stindI1Array is sbyte[] stindI1SByteArray)
+                        {
+                            stindI1SByteArray[stindI1Addr->Lower] = (sbyte)Registers[stindI1ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+                        break;
+
+                    case OpCode.Stind_I2_ArrayPointer:
+                        ABInstruction* stindI2ArrayPointerInstruction = (ABInstruction*)ip;
+                        Value* stindI2Addr = &Registers[stindI2ArrayPointerInstruction->RegisterA];
+                        object stindI2Array = Objects[stindI2Addr->Upper];
+                        ip += ABInstruction.Size;
+                        if (stindI2Array is short[] stindI2ShortArray)
+                        {
+                            stindI2ShortArray[stindI2Addr->Lower] = (short)Registers[stindI2ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
+                        if (stindI2Array is ushort[] stindI2UShortArray)
+                        {
+                            stindI2UShortArray[stindI2Addr->Lower] = (ushort)Registers[stindI2ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
+                        break;
+
+                    case OpCode.Stind_I4_ArrayPointer:
+                        ABInstruction* stindI4ArrayPointerInstruction = (ABInstruction*)ip;
+                        Value* stindI4Addr = &Registers[stindI4ArrayPointerInstruction->RegisterA];
+                        object stindI4Array = Objects[stindI4Addr->Upper];
+                        ip += ABInstruction.Size;
+                        if (stindI4Array is int[] stindI4IntArray)
+                        {
+                            stindI4IntArray[stindI4Addr->Lower] = Registers[stindI4ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
+                        if (stindI4Array is uint[] stindI4UIntArray)
+                        {
+                            stindI4UIntArray[stindI4Addr->Lower] = (uint)Registers[stindI4ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
+                        break;
+
+                    case OpCode.Stind_I8_ArrayPointer:
+                        ABInstruction* stindI8ArrayPointerInstruction = (ABInstruction*)ip;
+                        Value* stindI8Addr = &Registers[stindI8ArrayPointerInstruction->RegisterA];
+                        object stindI8Array = Objects[stindI8Addr->Upper];
+                        ip += ABInstruction.Size;
+                        if (stindI8Array is long[] stindI8LongArray)
+                        {
+                            stindI8LongArray[stindI8Addr->Lower] = *(long*)&Registers[stindI8ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
+                        if (stindI8Array is ulong[] stindI8ULongArray)
+                        {
+                            stindI8ULongArray[stindI8Addr->Lower] = *(ulong*)&Registers[stindI8ArrayPointerInstruction->RegisterB].Upper;
+                            break;
+                        }
+
                         break;
 
                     case OpCode.Ldelem_I4I:
@@ -2466,14 +2847,23 @@ namespace Regulus.Core
                         break;
 
                     case OpCode.Ldflda:
+                    case OpCode.Ldsflda:
+                        APInstruction* ldsfldaInstruction = (APInstruction*)ip;
+                        Registers[ldsfldaInstruction->RegisterA].Upper = ldsfldaInstruction->Operand;
+                        break;
+                    case OpCode.Ldloca:
+                        APInstruction* ldlocaInstruction = (APInstruction*)ip;
+                        Registers[ldlocaInstruction->RegisterA].Upper = ldlocaInstruction->Operand;
+                        ip += APInstruction.Size;
                         break;
                     case OpCode.Ldelema:
                         ABCPInstruction* ldelemaInstruction = (ABCPInstruction*)ip;
-                        Array ldelemArray = Objects[ldelemaInstruction->RegisterB] as Array;
-                        Type elemType = Types[ldelemaInstruction->Operand];
-                        GCHandles[_gchandleStackTop] = GCHandle.Alloc(ldelemArray, GCHandleType.Pinned);
-                        Registers[ldelemaInstruction->RegisterC].Upper = _gchandleStackTop++;
-                        Registers[ldelemaInstruction->RegisterC].Lower = Marshal.SizeOf(elemType) * Registers[ldelemaInstruction->RegisterA].Upper;
+                        //Array ldelemArray = Objects[ldelemaInstruction->RegisterB] as Array;
+                        
+                        //Type elemType = Types[ldelemaInstruction->Operand];
+                        //GCHandles[_gchandleStackTop] = GCHandle.Alloc(ldelemArray, GCHandleType.Pinned);
+                        Registers[ldelemaInstruction->RegisterC].Upper = ldelemaInstruction->RegisterB;
+                        Registers[ldelemaInstruction->RegisterC].Lower = Registers[ldelemaInstruction->RegisterA].Upper;
                         ip += ABCPInstruction.Size;
                         
                         break;
@@ -2505,11 +2895,11 @@ namespace Regulus.Core
                         ip += APInstruction.Size;
                         break;
 
-                    case OpCode.Ldloca:
-                        ABInstruction* ldlocaInstruction = (ABInstruction*)ip;
-                        Registers[ldlocaInstruction->RegisterB].Upper = ldlocaInstruction->RegisterA;
-                        ip += ABInstruction.Size;
-                        break;
+                    //case OpCode.Ldloca:
+                    //    ABInstruction* ldlocaInstruction = (ABInstruction*)ip;
+                    //    Registers[ldlocaInstruction->RegisterB].Upper = ldlocaInstruction->RegisterA;
+                    //    ip += ABInstruction.Size;
+                    //    break;
 
                     case OpCode.Ret:
                         AInstruction* retInstruction = (AInstruction*)ip;
@@ -2517,6 +2907,8 @@ namespace Regulus.Core
                         return Registers[0];
                     case OpCode.Nop:
                         break;
+                    default:
+                        throw new NotImplementedException();
 
                 }
             }

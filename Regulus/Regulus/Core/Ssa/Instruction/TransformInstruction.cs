@@ -11,7 +11,7 @@ namespace Regulus.Core.Ssa.Instruction
     {
         private List<Operand> _leftOps;
         private List<Operand> _rightOps;
-        public bool NeedFreePointer = false;
+        //public bool NeedFreePointer = false;
 
         [AllowNull]
         private MetaOperand _meta;

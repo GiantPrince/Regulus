@@ -169,8 +169,8 @@ namespace Regulus.Core.Ssa.Instruction
                     return new ValueOperand(Kind, Index, BitConverter.ToSingle(_value));
                 case ValueOperandType.Double:
                     return new ValueOperand(Kind, Index, BitConverter.ToDouble(_value));
-                case ValueOperandType.Reference:
-                    return new ValueOperand(Kind, Index, BitConverter.ToInt32(_value));
+                //case ValueOperandType.Reference:
+                //    return new ValueOperand(Kind, Index, BitConverter.ToInt32(_value));
                 default:
                     return new ValueOperand(Kind, Index);
 
@@ -195,8 +195,10 @@ namespace Regulus.Core.Ssa.Instruction
                         return $"[{GetDouble()}]";
                     case ValueOperandType.String:
                         return $"[{s_internStrings[GetStringIndex()]}]";
-                    case ValueOperandType.Reference:
-                        return $"[Ref:{GetInt()}]";
+                    case ValueOperandType.LocalPointer:
+                        return $"[&{GetInt()}]";
+                    //case ValueOperandType.Reference:
+                    //    return $"[Ref:{GetInt()}]";
                     default:
                         throw new NotImplementedException();
                 }

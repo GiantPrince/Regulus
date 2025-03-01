@@ -162,6 +162,8 @@ namespace Regulus.Core.Ssa
                     _argCount.Add(parameterTypes.Count);
                     AddParameter(_methods.Count - 1, parameterTypes);
                 }
+                // should compare all parameters
+
                 return methodIndex;
             }
         }

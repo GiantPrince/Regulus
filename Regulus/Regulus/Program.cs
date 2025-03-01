@@ -23,11 +23,12 @@ namespace Regulus
         public unsafe static void Main(string[] args)
         {
             //Console.WriteLine(sizeof(GCHandle));
-            string[] strings = new string[2];
-            ReferenceTest t = new ReferenceTest(1);
+            //Test();
+            //string[] strings = new string[2];
+            //ReferenceTest t = new ReferenceTest(1);
             
-            GCHandle handle = GCHandle.Alloc(strings, GCHandleType.Pinned);
-            handle.Free();
+            //GCHandle handle = GCHandle.Alloc(strings, GCHandleType.Pinned);
+            //handle.Free();
             ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Release\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
 
@@ -76,12 +77,96 @@ namespace Regulus
             }
         }
 
+        public static void Test()
+        {
+            List<byte> bytes = new List<byte>() { 0, 1 };
+            int sum = 0;
+            Stopwatch sw = Stopwatch.StartNew();
+            
+            for (int i = 0; i < 1000000; i++)
+            {
+                sum += Split(bytes);
+            }
+            sw.Stop();
+            Console.WriteLine("Split = " + sw.ElapsedMilliseconds);
+            sum = 0;
+            sw.Restart();
+            for (int i = 0; i < 1000000; i++)
+            {
+                sum += NotSplit(bytes);
+            }
+            sw.Stop();
+            Console.WriteLine("NotSplit = " + sw.ElapsedMilliseconds);
+
+        }
+
+        public static int Split(List<byte> bytes)
+        {
+            switch (bytes[0])
+            {
+                case 1:
+                    return 1;
+                case 2: return 2;
+                case 3: return 3;
+                case 4: return 4;
+                case 5: return 5;
+                case 6: return 6;
+                case 7: return 7;
+                case 8: return 8;
+                case 9: return 9;
+            }
+            return -1;
+        }
+
+        public static int NotSplit(List<byte> bytes)
+        {
+            
+            switch (bytes[0])
+            {
+                case 0:
+                    switch (bytes[1])
+                    {
+                        case 1:
+                            return 1;
+                        case 2:
+                            return 2;
+                        case 3:
+                            return 3;
+                    }
+                    break;
+                case 1:
+                    switch (bytes[1])
+                    {
+                        case 1:
+                            return 4;
+                        case 2: 
+                            return 5;
+                        case 3: 
+                            return 6;
+                    }
+                    break;
+                case 2:
+                    switch (bytes[1])
+                    {
+                        case 1:
+                            return 7;
+                        case 2:
+                            return 8;
+                        case 3:
+                            return 9;
+                    }
+                    break;
+
+            }
+            return -1;
+        }
+
         public static void Add()
         {
             int[] arr = new int[10];
             arr[0] = 1;
 
-            for (int i = 0; i < 100000; i++)
+            for (int i = 0; i < 1000000; i++)
             {
                 if (i % 10 == 0)
                     continue;

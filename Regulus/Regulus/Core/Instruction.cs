@@ -289,6 +289,10 @@ namespace Regulus.Core
         Castclass,
         Initobj,
         Stfld,
+        Stfld_LocalPointer,
+        Stfld_InstanceFieldPointer,
+        Stfld_StaticFieldPointer,
+        Stfld_ArrayPointer,
         Stsfld,
         Newobj,
 
@@ -332,7 +336,32 @@ namespace Regulus.Core
         Ldind_R8,
 
         // Store
-        Stind_I4,
+        Stind_I1_ArrayPointer,
+        Stind_I1_InstanceFieldPointer,
+        Stind_I1_StaticFieldPointer,
+        Stind_I1_LocalPointer,
+        Stind_I2_ArrayPointer,
+        Stind_I2_InstanceFieldPointer,
+        Stind_I2_StaticFieldPointer,
+        Stind_I2_LocalPointer,
+        Stind_I4_ArrayPointer,
+        Stind_I4_InstanceFieldPointer,
+        Stind_I4_StaticFieldPointer,
+        Stind_I4_LocalPointer,
+        Stind_I8_ArrayPointer,
+        Stind_I8_InstanceFieldPointer,
+        Stind_I8_StaticFieldPointer,
+        Stind_I8_LocalPointer,
+        Stind_R4_ArrayPointer,
+        Stind_R4_InstanceFieldPointer,
+        Stind_R4_StaticFieldPointer,
+        Stind_R4_LocalPointer,
+        Stind_R8_ArrayPointer,
+        Stind_R8_InstanceFieldPointer,
+        Stind_R8_StaticFieldPointer,
+        Stind_R8_LocalPointer,
+        
+        Stind_Ref,
 
 
         // Call
