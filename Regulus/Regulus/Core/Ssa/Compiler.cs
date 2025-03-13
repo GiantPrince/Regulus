@@ -84,8 +84,10 @@ namespace Regulus.Core.Ssa
 
             Dictionary<Operand, BitArray> splitLiveRanges = ReAllocOperands(liveRanges, instructions);
             Dictionary<Operand, List<Operand>> edges = BuildInterferenceGraph(instructions, liveRanges);
+            List<Operand> localArguments = CollectLocalArguments(blocks);
             List<List<Operand>> argumentGroups = CollectFunctionArguments(blocks);
-            AllocateRegister(edges, argumentGroups);
+            AllocateRegisterForLocalArguments(localArguments);
+            AllocateRegister(edges, argumentGroups, localArguments.Count);
 
             foreach (BasicBlock bb in blocks)
             {
@@ -241,15 +243,33 @@ namespace Regulus.Core.Ssa
 
         private void CompileCallInstruction(CallInstruction callInstruction)
         {
-            List<string> parameterTypes = callInstruction.ParametersType.Select(t => t.AssemblyQualifiedName).ToList();
-
+            List<string> parameterTypes = callInstruction.ParameterTypesWithoutImplicitParameter.Select(t => t.AssemblyQualifiedName).ToList();
+            //int argCount = callInstruction.ArgCount - (callInstruction.IsStructConstructor ? 1 : 0);
             int methodIndex = _emitter.AddMethod(
                 callInstruction.DeclaringType,
                 callInstruction.Method,
                 callInstruction.IsGenericMethod,
                 callInstruction.CallVirt,
                 parameterTypes);
-            _emitter.EmitABPPInstruction(
+            if (callInstruction.IsStructConstructor)
+            {
+                _emitter.EmitABPPInstruction(
+                OpCode.Call,
+                callInstruction.HasLeftHandSideOperand() ?
+                ComputeRegisterLocation(callInstruction.GetLeftHandSideOperand(1)) :
+                (byte)0,
+                callInstruction.HasLeftHandSideOperand() ?
+                ComputeRegisterLocation(callInstruction.GetLeftHandSideOperand(0)) :
+                (byte)0,
+                methodIndex,
+                callInstruction.ArgCount - 1
+                );
+                WriteParameterTypes(callInstruction.ArgCount - 1, callInstruction.ParameterTypesWithoutImplicitParameter);
+                _emitter.EmitType(Constants.ObjectPointer);
+            }
+            else
+            {
+                _emitter.EmitABPPInstruction(
                 OpCode.Call,
                 callInstruction.HasLeftHandSideOperand() ?
                 ComputeRegisterLocation(callInstruction.GetLeftHandSideOperand(0)) :
@@ -260,19 +280,17 @@ namespace Regulus.Core.Ssa
                 methodIndex,
                 callInstruction.ArgCount
                 );
+                WriteParameterTypes(callInstruction);
 
-            WriteParameterTypes(callInstruction);
-
-            if (callInstruction.IsConstructor)
-            {
-                _emitter.EmitType(Constants.Object);
-            }
-            else
-            {
-                WriteType(callInstruction.ReturnType);
-            }
-            
-
+                if (callInstruction.IsConstructor)
+                {
+                    _emitter.EmitType(Constants.Object);
+                }
+                else
+                {
+                    WriteType(callInstruction.ReturnType);
+                }
+            }                                
         }
 
         private void WriteType(Type type)
@@ -335,9 +353,15 @@ namespace Regulus.Core.Ssa
                 Type type = callInstruction.ParametersType[i];
                 WriteType(type);
             }
+        }
 
-
-
+        private void WriteParameterTypes(int argCount, List<Type> argTypes)
+        {
+            for (int i = 0; i < argCount; i++)
+            {
+                Type type = argTypes[i];
+                WriteType(type);
+            }
         }
 
 
@@ -378,59 +402,7 @@ namespace Regulus.Core.Ssa
                 offset = sizeof(OpCode) + 2 * sizeof(byte);
             }
             _backPatchIndex.Add(new PatchInfo() { Start = start, Offset = offset });
-            //byte regA = ComputeRegisterLocation(op1);
-            //byte regB = ComputeRegisterLocation(op2);
             
-
-            //switch (instruction.Code)
-            //{
-            //    case AbstractOpCode.Beq:
-            //        _emitter.EmitABPInstruction(
-            //            OpCode.Beq,
-            //            regA,
-            //            regB,
-            //            target);
-            //        break;
-            //    case AbstractOpCode.Bne:
-            //        _emitter.EmitABPInstruction(
-            //            OpCode.Beq,
-            //            regA,
-            //            regB,
-            //            target);
-            //        break;
-            //    case AbstractOpCode.Bge:
-            //        _emitter.EmitABPInstruction(
-            //            OpCode.Bge_Int,
-            //            regA,
-            //            regB,
-            //            target);
-            //        break;
-            //    case AbstractOpCode.Bgt:
-            //        _emitter.EmitABPInstruction(
-            //            OpCode.Bgt_Int,
-            //            regA,
-            //            regB,
-            //            target);
-            //        break;
-            //    case AbstractOpCode.Ble:
-            //        _emitter.EmitABPInstruction(
-            //            OpCode.Ble_Int,
-            //            regA,
-            //            regB,
-            //            target);
-            //        break;
-            //    case AbstractOpCode.Blt:
-            //        _emitter.EmitABPInstruction(
-            //            OpCode.Blt_Int,
-            //            regA,
-            //            regB,
-            //            target);
-            //        break;
-
-
-
-            //}
-
         }
 
         private OpCode GetOpCodeWithoutConst(AbstractOpCode code, ValueOperandType opType)
@@ -2674,6 +2646,7 @@ namespace Regulus.Core.Ssa
         private List<List<Operand>> CollectFunctionArguments(List<BasicBlock> blocks)
         {
             List<List<Operand>> argumentGroups = new List<List<Operand>>();
+            
             foreach (var block in blocks)
             {
                 foreach (AbstractInstruction instruction in block.Instructions)
@@ -2693,10 +2666,59 @@ namespace Regulus.Core.Ssa
 
                 }
             }
+
+            // Collect local arguemnts
+
+
+
             return argumentGroups;
         }
 
-        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges, List<List<Operand>> argumentGroups)
+        private void AllocateRegisterForLocalArguments(List<Operand> localArguments)
+        {
+            int i = 0;
+            foreach (Operand operand in localArguments)
+            {
+                operand.AssignRegister(i++);
+            }
+        }
+
+        private List<Operand> CollectLocalArguments(List<BasicBlock> blocks)
+        {
+            //List<Operand> localArguments = new List<Operand>();
+            HashSet<Operand> localArguments = new HashSet<Operand>();
+            
+            foreach (BasicBlock block in blocks)
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    int leftOpCount = instruction.LeftHandSideOperandCount();
+                    for (int i = 0; i < leftOpCount; i++)
+                    {
+                        Operand op = instruction.GetLeftHandSideOperand(i);
+                        if (op.Kind == OperandKind.Arg)
+                        {
+                            localArguments.Add(op);
+                        }
+                        
+                    }
+                    int rightOpCount = instruction.RightHandSideOperandCount();
+                    for (int i = 0; i < rightOpCount; i++)
+                    {
+                        Operand op = instruction.GetRightHandSideOperand(i);
+                        if (op.Kind == OperandKind.Arg)
+                        {
+                            localArguments.Add(op);
+                        }
+
+                    }
+                }
+            }
+
+            return localArguments.ToList();
+        }
+
+        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges, List<List<Operand>> argumentGroups, int startRegIndex = 0)
         {
             Dictionary<Operand, int> registerAssignment = new Dictionary<Operand, int>();
 
@@ -2720,7 +2742,7 @@ namespace Regulus.Core.Ssa
                     forbiddenForEachOperand.Add(forbidden);
                 }
 
-                int startReg = 0;
+                int startReg = startRegIndex;
                 bool found = false;
                 while (!found)
                 {
@@ -2785,7 +2807,7 @@ namespace Regulus.Core.Ssa
                     }
                 }
 
-                int register = 0;
+                int register = startRegIndex;
                 while (usedRegisters.Contains(register))
                 {
                     register++;

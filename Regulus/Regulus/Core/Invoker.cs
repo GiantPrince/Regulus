@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace Regulus.Core
 {
@@ -27,10 +28,7 @@ namespace Regulus.Core
         public const byte InstanceFieldPointer = 14;
         public const byte StaticFieldPointer = 15;
         public const byte ArrayPointer = 16;
-
-
-
-
+        public const byte ObjectPointer = 17;
     }
     public class Invoker
     {
@@ -43,6 +41,53 @@ namespace Regulus.Core
         {
             _method = method;
             _hasThis = hasThis;
+        }
+
+        private unsafe void AssignObjectToValue(byte type, object obj, Value* value, object[] objects, int reg)
+        {
+            switch (type)
+            {
+                case Constants.Bool: // bool
+                    value->Upper = ((bool)obj) ? 1 : 0;
+                    break;
+                case Constants.Int: // int
+                    value->Upper = (int)obj;
+                    break;
+                case Constants.Sbyte:
+                    value->Upper = (sbyte)obj;
+                    break;
+                case Constants.Byte:
+                    value->Upper = (byte)obj;
+                    break;
+                case Constants.Short:
+                    value->Upper = (short)obj;
+                    break;
+                case Constants.UShort:
+                    value->Upper = (ushort)obj;
+                    break;
+                case Constants.UInt:
+                    *(uint*)&value->Upper = (uint)obj;
+                    break;
+                case Constants.Long:
+                    *(long*)&value->Upper = (long)obj;
+                    break;
+                case Constants.ULong:
+                    *(ulong*)&value->Upper = (ulong)obj;
+                    break;
+                case Constants.Float:
+                    *(float*)&value->Upper = (float)obj;
+                    break;
+                case Constants.Double:
+                    *(double*)&value->Upper = (double)obj;
+                    break;
+                case Constants.Object:
+                    //value->Upper = reg;
+                    objects[reg] = obj;
+                    break;
+                case Constants.ObjectPointer:
+                    objects[value->Upper] = obj;
+                    break;
+            }
         }
         
 
@@ -162,49 +207,19 @@ namespace Regulus.Core
                 
             }
 
-          
 
-            switch(paramsType[argCount])
+            AssignObjectToValue(paramsType[argCount], ret, result, objects, registerB);            
+
+            // Handle ref arguments
+            for (int i = 0; i < argCount; i++)
             {
-                case Constants.Bool: // bool
-                    result->Upper = ((bool)ret) ? 1 : 0;
-                    break;
-                case Constants.Int: // int
-                    result->Upper = (int)ret;
-                    break;
-                case Constants.Sbyte:
-                    result->Upper = (sbyte)ret;
-                    break;
-                case Constants.Byte:
-                    result->Upper = (byte)ret;
-                    break;
-                case Constants.Short:
-                    result->Upper = (short)ret;
-                    break;
-                case Constants.UShort:
-                    result->Upper = (ushort)ret;
-                    break;
-                case Constants.UInt:
-                    *(uint*)&result->Upper = (uint)ret;
-                    break;
-                case Constants.Long:
-                    *(long*)&result->Upper = (long)ret;
-                    break;
-                case Constants.ULong:
-                    *(ulong*)&result->Upper = (ulong)ret;
-                    break;
-                case Constants.Float:
-                    *(float*)&result->Upper = (float)ret;
-                    break;
-                case Constants.Double:
-                    *(double*)&result->Upper = (double)ret;
-                    break;
-                case Constants.Object:
-                    result->Upper = registerB;
-                    objects[registerB] = ret;
-                    break;
+                if (paramsType[i + argCount + 1] == 0)
+                {
+                    continue;
+                }
+
+                AssignObjectToValue(paramsType[i], parameters[i], &argbase[i], objects, registerB);
             }
-            
         }
 
     }

@@ -10,57 +10,82 @@ namespace Regulus.Core.Ssa.Instruction
 {
     public class CallInstruction : AbstractInstruction
     {
+        // Operands for callInstruction
         private List<Operand> _args;
-        private Operand _returnVal;
+        private Operand _returnOp;
+
+        // Number of arguments
         private int _argCount;
-        private bool _returnVoid;
-        private string _method;
-        private string _declaringType;
-        private string _returnTypeName;
+
+        // Method Name
+        private string _methodName;
         private string _methodFullName;
+
+        private string _declaringTypeName;
+           
         private bool _isGenericMethod;
         private bool _isConstructor;
-        private bool _callVirt;
+        private bool _callvirt;
+        private bool _hasImplicitParameter;
+        private bool _isStructConstructor;
+        private Type _returnType;
+        private Func<int, int> _indexCompute;
         public List<Type> ParametersType;
-        public Type ReturnType;
-        
-        
-        
+        //public Type ReturnType;
+
+        public Func<int, int> IndexCompute { set { _indexCompute = value; } }
+        public Type ReturnType {  get { return _returnType; } }
+        public bool IsStructConstructor { get { return _isStructConstructor; } }
         public bool IsConstructor {  get { return _isConstructor; } }
-        public string Method { get { return _method; } }
-        public string ReturnTypeName { get { return _returnTypeName; } }
-        public string DeclaringType { get { return _declaringType; } }
+        public string Method { get { return _methodName; } }
+        public string ReturnTypeName { get { return _returnType.Name; } }
+        public string DeclaringType { get { return _declaringTypeName; } }
         public int ArgCount { get { return _argCount; } }
         public bool IsGenericMethod {  get { return _isGenericMethod; } }
-        public bool CallVirt {  get { return _callVirt; } }
+        public bool CallVirt {  get { return _callvirt; } }
+        public List<Type> ParameterTypesWithoutImplicitParameter
+        { 
+            get 
+            { 
+                if (_hasImplicitParameter)
+                    return ParametersType.Skip(1).ToList();
+                return ParametersType;
+            } 
+        }
 
-        public CallInstruction(AbstractOpCode code, MethodReference method, int argCount) : base(code, InstructionKind.Call)
+        public CallInstruction(AbstractOpCode code, MethodReference method) : base(code, InstructionKind.Call)
         {
-            _returnTypeName = method.ReturnType.Name;
+            //_returnTypeName = method.ReturnType.Name;
             _isGenericMethod = method.IsGenericInstance;
+            _indexCompute = (int i) => i;
+            //method.HasThis
             if (method.DeclaringType.Scope is AssemblyNameReference assemblyReference)
             {
-                _declaringType = Assembly.CreateQualifiedName(assemblyReference.FullName, method.DeclaringType.FullName);
+                _declaringTypeName = Assembly.CreateQualifiedName(assemblyReference.FullName, method.DeclaringType.FullName);
             }
             else
             {
-                _declaringType = Assembly.CreateQualifiedName(method.DeclaringType.Module.Assembly.FullName, method.DeclaringType.FullName);
+                _declaringTypeName = Assembly.CreateQualifiedName(method.DeclaringType.Module.Assembly.FullName, method.DeclaringType.FullName);
             }
-            _callVirt = code == AbstractOpCode.Callvirt;
-            _method = method.Name;
+            _callvirt = code == AbstractOpCode.Callvirt;
+            _methodName = method.Name;
             _methodFullName = method.FullName;
-            _argCount = argCount;
+            _argCount = method.Parameters.Count;
             _args = new List<Operand>();
             ParametersType = new List<Type>();
-            
-            _returnVoid = method.ReturnType.Name.ToLower() == "void" && method.Name != ".ctor";
-            _isConstructor = method.Name == ".ctor" ? true : false;
-            
-            if (code == AbstractOpCode.Callvirt)
+            _hasImplicitParameter = false;
+            //_returnVoid = method.ReturnType.Name.ToLower() == "void" && code != AbstractOpCode.Newobj;
+            _isConstructor = method.Name == ".ctor";
+            _isStructConstructor = _isConstructor && code == AbstractOpCode.Call;
+            // newobj, must be constructor, same parameter, return new obj
+            // if has this should include one more parameter
+
+            if (method.HasThis && code != AbstractOpCode.Newobj)
             {
                 Type objectType = Type.GetType(method.DeclaringType.FullName) ?? throw new Exception("can not load object type " + method.DeclaringType.FullName);
                 ParametersType.Add(objectType);
-
+                _hasImplicitParameter = true;
+                _argCount++;
             }
             foreach (ParameterDefinition p in method.Parameters)
             {
@@ -79,9 +104,11 @@ namespace Regulus.Core.Ssa.Instruction
                 }
                 ParametersType.Add(parameterType);
             }
-            ReturnType = Type.GetType(method.ReturnType.FullName);
+            _returnType = Type.GetType(method.ReturnType.FullName);
             
         }
+
+
 
         private string GetMethodSignature(MethodReference method)
         {
@@ -125,32 +152,32 @@ namespace Regulus.Core.Ssa.Instruction
         public override Operand GetLeftHandSideOperand(int index)
         {
           
-            return _args[index];
+            return _args[_indexCompute(index)];
         }
 
         public override bool HasRightHandSideOperand()
         {
-            return !_returnVoid;
+            return _returnOp != null;  
         }
 
         public override int RightHandSideOperandCount()
         {
-            return _returnVoid ? 0 : 1;
+            return _returnOp == null ? 0 : 1;
         }
 
         public override Operand GetRightHandSideOperand(int index)
         {
-            return _returnVal;
+            return _returnOp;
         }
 
         public override void SetRightHandSideOperand(int index, Operand operand)
         {
-            _returnVal = operand;
+            _returnOp = operand;
         }
 
         public override void SetLeftHandSideOperand(int index, Operand operand)
         {
-            _args[index] = operand;
+            _args[_indexCompute(index)] = operand;
         }
 
         public void AddArgument(Operand arg)
@@ -158,9 +185,14 @@ namespace Regulus.Core.Ssa.Instruction
             _args.Add(arg);
         }
 
+        public void RemoveArgument(int index)
+        {
+            _args.RemoveAt(index);
+        }
+
         public void SetReturnOperand(Operand returnVal)
         {
-            _returnVal = returnVal;
+            _returnOp = returnVal;
         }
 
 

@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace Regulus.Core.Ssa.Instruction
 {
@@ -20,6 +22,7 @@ namespace Regulus.Core.Ssa.Instruction
     {
         private byte[] _value;
         private static List<string> s_internStrings = new List<string>();
+        private static Dictionary<int, ValueOperandType> s_localTypes = new Dictionary<int, ValueOperandType>();
 
         public static string[] GetInternedStrings()
         {
@@ -28,13 +31,18 @@ namespace Regulus.Core.Ssa.Instruction
         public ValueOperand(OperandKind kind, int index, ValueOperandType type) : base(kind, index, type)
         {
             _value = new byte[1];
-            
+       
         }
 
-        public ValueOperand(OperandKind kind, int index, int value, ValueOperandType type) : base(kind, index, type)
+        public ValueOperand(OperandKind kind, int index, int value, ValueOperandType type, ValueOperandType localType) : base(kind, index, type)
         {
-            _value = BitConverter.GetBytes(value);
+            //_value = BitConverter.GetBytes(value);
+            if (!s_localTypes.ContainsKey(value))
+            {
+                s_localTypes.Add(value, localType);
+            }
 
+            _value = BitConverter.GetBytes(value);
         }
 
 
@@ -175,6 +183,17 @@ namespace Regulus.Core.Ssa.Instruction
                     return new ValueOperand(Kind, Index);
 
             }
+        }
+
+        public void ResolveLocalPointer()
+        {
+            if (OpType != ValueOperandType.LocalPointer)
+            {
+                throw new InvalidOperationException("Only localpointer can be resolved");
+            }
+            OpType = s_localTypes[GetInt()];
+            Kind = OperandKind.Local;
+            Index = GetInt();
         }
 
         private string ValueToString()

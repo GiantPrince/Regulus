@@ -22,14 +22,7 @@ namespace Regulus
         
         public unsafe static void Main(string[] args)
         {
-            //Console.WriteLine(sizeof(GCHandle));
-            //Test();
-            //string[] strings = new string[2];
-            //ReferenceTest t = new ReferenceTest(1);
-            
-            //GCHandle handle = GCHandle.Alloc(strings, GCHandleType.Pinned);
-            //handle.Free();
-            ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Release\\net8.0\\TestLibrary.dll");
+            ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
 
             MethodDefinition methodDef = typeDef.Methods.First(method => { return method.Name.Contains("Add"); });
@@ -67,6 +60,8 @@ namespace Regulus
                 virtualMachine.Types = types.ToArray();
                 //virtualMachine.GCHandles = new System.Runtime.InteropServices.GCHandle[]
                 Stopwatch sw = Stopwatch.StartNew();
+                virtualMachine.SetRegister(0, 3);
+                virtualMachine.SetRegister(1, 2);
                 virtualMachine.Run(ip);
                 sw.Stop();
                 Console.WriteLine("a" + sw.ElapsedMilliseconds);

@@ -48,6 +48,12 @@ namespace Regulus.Core
             Registers[index] = value;
         }
 
+        public void SetRegister(int index, int value)
+        {
+            Registers[index].Upper = value;
+        }
+
+
         public void ResetRegister()
         {
             Value empty = new Value();

@@ -16,8 +16,9 @@ namespace Regulus.Core.Ssa
         public Optimizer(SsaBuilder ssaBuilder)
         {
             _ssaBuilder = ssaBuilder;
+            //EarlyResolvePointers();
             TypeInference();
-            //MarkFreePointerInstructions();
+            
             CopyPropagation();
             CriticalEdgeSplitting();
             ResolvePhiFunctions();
@@ -39,6 +40,78 @@ namespace Regulus.Core.Ssa
             }
         }
 
+        private bool IsLocalPointerInstruction(AbstractInstruction instruction)
+        {
+            if (instruction.Code == AbstractOpCode.Ldloca)
+                return true;
+            return false;
+        }
+
+        private bool IsStructConstructor(AbstractInstruction instruction)
+        {
+            if (instruction is CallInstruction callInstruction)
+            {
+                return callInstruction.IsStructConstructor;
+            }
+            return false;
+        }
+
+        private bool ResolveStructConstructorLocalPointer(AbstractInstruction instruction)
+        {
+
+            List<Use> uses = _ssaBuilder.GetUses(instruction);
+            if (uses.Count != 1)
+            {
+                // TODO: should consider more situation
+                return false;
+            }
+
+            Use use = uses[0];
+
+            if (!IsStructConstructor(use.Instruction))
+            {
+                return false;
+            }
+
+            CallInstruction callInstruction = (CallInstruction)use.Instruction;
+            Operand localPtr = callInstruction.GetLeftHandSideOperand(0);
+            //callInstruction.RemoveArgument(0);
+            callInstruction.SetReturnOperand(localPtr);
+            instruction.IsObselete = true;
+            uses.RemoveAt(0);
+
+            return true;
+        }
+
+        private void TransformLdlocaToMoveInstruction(AbstractInstruction instruction)
+        {
+            instruction.Code = AbstractOpCode.Mov;
+            ValueOperand locaOp = (ValueOperand)instruction.GetLeftHandSideOperand(0);
+            locaOp.ResolveLocalPointer();
+        }
+
+        private void EarlyResolvePointers()
+        {
+            foreach (BasicBlock block in _ssaBuilder.GetBlocks())
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    if (!IsLocalPointerInstruction(instruction))
+                    {
+                        continue;
+                    }
+
+                    if (ResolveStructConstructorLocalPointer(instruction))
+                    {
+                        continue;
+                    }
+                    TransformLdlocaToMoveInstruction(instruction);
+                }
+            }
+
+            ClearEmptyInstructions();
+        }
+
         private void CriticalEdgeSplitting()
         {
             List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
@@ -47,7 +120,7 @@ namespace Regulus.Core.Ssa
             {
                 BasicBlock block = blocks[i];
                 int predCount = block.Predecessors.Count;
-                for(int p = 0; p < predCount; p++)
+                for (int p = 0; p < predCount; p++)
                 {
                     int pred = block.Predecessors[p];
                     BasicBlock predBlock = blocks[pred];
@@ -192,7 +265,7 @@ namespace Regulus.Core.Ssa
         {
             List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
 
-            for (int i = 0; i < blocks.Count; i++) 
+            for (int i = 0; i < blocks.Count; i++)
             {
                 BasicBlock block = blocks[i];
                 ResolvePhiFunction(block, block.PhiInstructions);
@@ -216,7 +289,7 @@ namespace Regulus.Core.Ssa
                         leftOp,
                         phi.GetRightHandSideOperand(0));
                     BasicBlock sourceBlock = phi.GetSourceBlock(i);
-                    
+
                     List<MoveInstruction> moveInstructions;
                     if (resolveMoveFunctions.TryGetValue(sourceBlock, out moveInstructions))
                     {
@@ -232,8 +305,8 @@ namespace Regulus.Core.Ssa
 
             }
 
-            
-            foreach (KeyValuePair<BasicBlock ,List<MoveInstruction>> kv in resolveMoveFunctions)
+
+            foreach (KeyValuePair<BasicBlock, List<MoveInstruction>> kv in resolveMoveFunctions)
             {
                 // check critical edge
                 if (kv.Key.Successors.Count >= 2)
@@ -260,7 +333,7 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        
+
         private void ParallelCopySequentialization(List<MoveInstruction> moveInstructions, out List<MoveInstruction> parallelInstructions)
         {
             Stack<Operand> ready = new Stack<Operand>();
@@ -313,11 +386,11 @@ namespace Regulus.Core.Ssa
                     ready.Push(b);
                 }
             }
-            
-            
+
+
         }
 
-  
+
 
         private void AddMoveInstructionsToEndOfBlock(BasicBlock block, List<MoveInstruction> moveInstruction)
         {
@@ -335,7 +408,7 @@ namespace Regulus.Core.Ssa
                 block.Instructions.Add(lastInstruction);
                 return;
             }
-            block.Instructions.AddRange(moveInstruction);            
+            block.Instructions.AddRange(moveInstruction);
         }
 
         private List<AbstractInstruction> CollectAllInstructions()
@@ -410,14 +483,14 @@ namespace Regulus.Core.Ssa
                 case AbstractOpCode.Conv_Ovf_I4_Un:
                     inferencedType = ValueOperandType.Integer;
                     break;
-                
+
                 case AbstractOpCode.Conv_Ovf_I8:
                 case AbstractOpCode.Conv_I8:
                 case AbstractOpCode.Conv_Ovf_I8_Un:
                 case AbstractOpCode.Conv_U8:
                     inferencedType = ValueOperandType.Long;
                     break;
-                
+
                 case AbstractOpCode.Conv_R4:
                     inferencedType = ValueOperandType.Float;
                     break;
@@ -463,7 +536,7 @@ namespace Regulus.Core.Ssa
 
         private ValueOperandType TransformInstructionTypeInference(TransformInstruction instruction)
         {
-            switch(instruction.Code)
+            switch (instruction.Code)
             {
                 // conv instructions
                 case AbstractOpCode.Conv_I1:
@@ -537,7 +610,7 @@ namespace Regulus.Core.Ssa
                     return ValueOperandType.ArrayPointer;
                 case AbstractOpCode.Ldsflda:
                     return ValueOperandType.StaticFieldPointer;
-                
+
                 default:
                     return UnifiedTransformInstructionTypeInference(instruction);
 
@@ -573,7 +646,7 @@ namespace Regulus.Core.Ssa
             switch (instruction.Kind)
             {
                 case InstructionKind.Move:
-                    
+
                     inferencedType = instruction.GetLeftHandSideOperand(0).OpType;
                     break;
                 case InstructionKind.Transform:
@@ -594,7 +667,7 @@ namespace Regulus.Core.Ssa
                 default:
                     throw new NotImplementedException();
             }
-            if (inferencedType == ValueOperandType.Unknown && instruction.Code != AbstractOpCode.Ldloca) 
+            if (inferencedType == ValueOperandType.Unknown && instruction.Code != AbstractOpCode.Ldloca)
                 needExtraIteration = true;
             return inferencedType;
         }
@@ -606,13 +679,13 @@ namespace Regulus.Core.Ssa
             while (queue.Count > 0)
             {
                 AbstractInstruction i = queue.Dequeue();
-                
+
 
                 ValueOperandType inferencedType = TypeInference(i, out bool needExtraIteration);
                 if (inferencedType != ValueOperandType.Unknown && i.HasRightHandSideOperand())
                 {
                     i.GetRightHandSideOperand(0).OpType = inferencedType;
-                    
+
                     foreach (Use use in _ssaBuilder.GetUses(i))
                     {
                         use.Instruction.GetLeftHandSideOperand(use.OperandIndex).OpType = inferencedType;
@@ -627,13 +700,13 @@ namespace Regulus.Core.Ssa
 
         private bool IsEmptyBlock(BasicBlock block)
         {
-            return block.Instructions.Count == 1 && block.Instructions.First().Code == AbstractOpCode.Br;            
+            return block.Instructions.Count == 1 && block.Instructions.First().Code == AbstractOpCode.Br;
         }
 
         private void AdjustSuccessorTarget(BasicBlock succBlock, BasicBlock oldTarget, BasicBlock newTarget)
         {
             int pred = succBlock.Predecessors.IndexOf(oldTarget.Index);
-            if (pred == -1) 
+            if (pred == -1)
             {
                 throw new ArgumentException("Can not find predeccessor");
             }
@@ -652,7 +725,7 @@ namespace Regulus.Core.Ssa
 
             AbstractInstruction lastBranchInstruction = predBlock.Instructions.Last();
             int brCount = lastBranchInstruction.BranchTargetCount();
-            for (int i = 0; i < brCount; i++) 
+            for (int i = 0; i < brCount; i++)
             {
                 if (oldTarget == lastBranchInstruction.GetBranchTarget(i))
                 {
@@ -660,10 +733,10 @@ namespace Regulus.Core.Ssa
                     break;
                 }
             }
-            
+
         }
 
-        
+
         private void EliminateEmptyBlocks()
         {
             List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
@@ -696,7 +769,7 @@ namespace Regulus.Core.Ssa
             {
                 case AbstractOpCode.Ldloca:
                     return false;
-                //case AbstractOpCode.Ldstr
+                    //case AbstractOpCode.Ldstr
             }
 
             if (instruction.GetLeftHandSideOperand(0).OpType == ValueOperandType.String)
@@ -728,7 +801,7 @@ namespace Regulus.Core.Ssa
                         else
                         {
                             use.Instruction.SetLeftHandSideOperand(use.OperandIndex, def);
-                            
+
                         }
                         worklist.Add(use.Instruction);
                     }
@@ -741,7 +814,7 @@ namespace Regulus.Core.Ssa
                         i.IsObselete = false;
                     }
                 }
-                
+
             }
         }
 

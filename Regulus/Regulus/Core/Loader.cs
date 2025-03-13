@@ -39,12 +39,22 @@ namespace Regulus.Core
                     types.Add(LoadType(reader));
                 }
 
+                int numOfMethodNames = reader.ReadInt32();
+                string[] methodNames = new string[numOfMethodNames];
+
+                for (int i = 0; i < numOfMethodNames; i++)
+                {
+                   methodNames[i] = reader.ReadString();
+                   
+                }
+
                 int numOfMethods = reader.ReadInt32();
                 for (int i = 0; i < numOfMethods; i++)
                 {
-                   
-                    methods.Add(LoadMethod(types, reader));
+                    methods.Add(LoadMethod(types, methodNames, reader));
                 }
+
+
 
                 int numOfFields = reader.ReadInt32();
                 for (int i = 0; i < numOfFields; i++)
@@ -71,10 +81,10 @@ namespace Regulus.Core
 
         }
 
-        private static MethodBase LoadMethod(List<Type> types, BinaryReader reader)
+        private static MethodBase LoadMethod(List<Type> types, string[] methodNames, BinaryReader reader)
         {
             Type declaringType = types[reader.ReadInt32()];
-            string methodName = reader.ReadString();
+            string methodName = methodNames[reader.ReadInt32()];
             bool isGenericMethod = reader.ReadBoolean();
             bool callvirt = reader.ReadBoolean();
             int argCount = reader.ReadInt32();

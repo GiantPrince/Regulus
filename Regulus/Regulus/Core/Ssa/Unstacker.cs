@@ -24,7 +24,6 @@ namespace Regulus.Core.Ssa
             public int StackDepth;
         }
 
-
         public void Unstack(ControlFlowGraph cfg)
         {
             Blocks = cfg.Blocks;
@@ -51,10 +50,7 @@ namespace Regulus.Core.Ssa
             }
 
         }
-
-
-
-
+ 
 
         public int UnstackBasicBlock(MethodDefinition method, BasicBlock bb, int stackDepth = 0)
         {
@@ -255,18 +251,16 @@ namespace Regulus.Core.Ssa
 
         public CallInstruction CreateCallInstruction(Code code, MethodReference method, ref int stackDepth)
         {
-            int argCount = method.Parameters.Count;
-            if (code == Code.Callvirt)
-            {
-                argCount += 1;
-            }
-            stackDepth -= argCount;
-            CallInstruction call = new CallInstruction(ToAbstractOpCode(code), method, argCount);
-            for (int i = 0; i < argCount; i++)
+            // newobj, must be constructor, same parameter, return new obj
+            // if has this should include one more parameter
+            
+            CallInstruction call = new CallInstruction(ToAbstractOpCode(code), method);
+            stackDepth -= call.ArgCount;
+            for (int i = 0; i < call.ArgCount; i++)
             {
                 call.AddArgument(new Operand(OperandKind.Stack, stackDepth + i));
             }
-            if (call.HasRightHandSideOperand())
+            if (code == Code.Newobj || method.ReturnType.Name.ToLower() != "void")
             {
                 call.SetReturnOperand(new Operand(OperandKind.Stack, stackDepth++));
             }
@@ -522,7 +516,9 @@ namespace Regulus.Core.Ssa
                 case Code.Ldloca:
                 case Code.Ldloca_S:
                     return new MoveInstruction(AbstractOpCode.Ldloca,
-                        new ValueOperand(OperandKind.Const, constantCounter++, ((VariableDefinition)instruction.Operand).Index, ValueOperandType.LocalPointer),
+                        new ValueOperand(OperandKind.Const, constantCounter++, 
+                        ((VariableDefinition)instruction.Operand).Index, ValueOperandType.LocalPointer,
+                        Operand.StringToValueType(((VariableDefinition)instruction.Operand).VariableType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldnull:
                     return new MoveInstruction(AbstractOpCode.Ldnull,

@@ -18,6 +18,7 @@ namespace Regulus.Core.Ssa
         List<int> _methodIndexToType;
         List<int> _parameterIndexToType;
         List<string> _methods;
+        List<int> _methodIndexToName;
         List<bool> _isGenericMethod;
         List<int> _fieldIndexToType;
         List<string> _fields;
@@ -38,6 +39,7 @@ namespace Regulus.Core.Ssa
             _fields = new List<string>();
             _fieldIndexToType = new List<int>();
             _callvirt = new List<bool>();
+            _methodIndexToName = new List<int>();
         }
 
         public List<byte> GetBytes()
@@ -132,6 +134,33 @@ namespace Regulus.Core.Ssa
            
         }
 
+        private bool IsOverloadMethod(int methodIndex, List<string> parameterTypes)
+        {
+            if (_argCount[methodIndex] != parameterTypes.Count)
+            {
+                return true;
+            }
+
+            int acc = 0;
+            for (int i = 0; i < methodIndex; i++)
+            {
+                acc += _argCount[i];
+            }
+
+            for (int i = 0; i < parameterTypes.Count; i++)
+            {
+                int typeIndex = _types.IndexOf(parameterTypes[i]);
+                if (typeIndex != _parameterIndexToType[acc + i])
+                {
+                    return true;
+                }
+            }
+
+            return false;
+
+
+        }
+
         public int AddMethod(string declaringType, string method, bool isGenericMethod, bool callvirt, List<string> parameterTypes)
         {
             
@@ -147,7 +176,8 @@ namespace Regulus.Core.Ssa
                 _methodIndexToType.Add(typeIndex);
                 _argCount.Add(parameterTypes.Count);
                 AddParameter(_methods.Count - 1, parameterTypes);
-                return _methods.Count - 1;
+                _methodIndexToName.Add(_methods.Count - 1);
+                return _methodIndexToName.Count - 1;
             }
             else
             {
@@ -160,11 +190,21 @@ namespace Regulus.Core.Ssa
                     _callvirt.Add(callvirt);
                     _methodIndexToType.Add(typeIndex);
                     _argCount.Add(parameterTypes.Count);
+                    _methodIndexToName.Add(_methods.Count - 1);
                     AddParameter(_methods.Count - 1, parameterTypes);
                 }
-                // should compare all parameters
+                else if (IsOverloadMethod(methodIndex, parameterTypes))
+                {
+                    _methodIndexToName.Add(methodIndex);
+                    _isGenericMethod.Add(isGenericMethod);
+                    _callvirt.Add(callvirt);
+                    _methodIndexToType.Add(typeIndex);
+                    _argCount.Add(parameterTypes.Count);
+                    AddParameter(methodIndex, parameterTypes);
+                }
+                
 
-                return methodIndex;
+                return _methodIndexToName.Count - 1;
             }
         }
 
@@ -179,8 +219,13 @@ namespace Regulus.Core.Ssa
             EmitIntMeta(_methods.Count);
             for (int i = 0; i < _methods.Count; i++)
             {
-                EmitIntMeta(_methodIndexToType[i]);
                 EmitStringMeta(_methods[i]);
+            }
+            EmitIntMeta(_methodIndexToName.Count);
+            for (int i = 0; i < _methodIndexToName.Count; i++)
+            {
+                EmitIntMeta(_methodIndexToType[i]);
+                EmitIntMeta(_methodIndexToName[i]);
                 EmitBoolMeta(_isGenericMethod[i]);
                 EmitBoolMeta(_callvirt[i]);
                 EmitIntMeta(_argCount[i]);
@@ -190,6 +235,19 @@ namespace Regulus.Core.Ssa
                 }
                 acc += _argCount[i];
             }
+            //for (int i = 0; i < _methods.Count; i++)
+            //{
+            //    EmitIntMeta(_methodIndexToType[i]);
+            //    EmitStringMeta(_methods[i]);
+            //    EmitBoolMeta(_isGenericMethod[i]);
+            //    EmitBoolMeta(_callvirt[i]);
+            //    EmitIntMeta(_argCount[i]);
+            //    for (int j = 0; j < _argCount[i]; j++)
+            //    {
+            //        EmitIntMeta(_parameterIndexToType[acc + j]);
+            //    }
+            //    acc += _argCount[i];
+            //}
 
             EmitIntMeta(_fields.Count);
 
