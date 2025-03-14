@@ -40,6 +40,11 @@ namespace Regulus.Core.Ssa.Tree
 
         }
 
+        public DomTreeNode GetNode(BasicBlock block)
+        {
+            return domTreeNodes[block.Index];
+        }
+
         public DomTreeNode GetNode(int index)
         {
             return domTreeNodes[index];

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Mono.Cecil;
 using System.Reflection;
+using Regulus.Util;
 
 namespace Regulus.Core.Ssa.Instruction
 {
@@ -59,14 +60,16 @@ namespace Regulus.Core.Ssa.Instruction
             _isGenericMethod = method.IsGenericInstance;
             _indexCompute = (int i) => i;
             //method.HasThis
-            if (method.DeclaringType.Scope is AssemblyNameReference assemblyReference)
-            {
-                _declaringTypeName = Assembly.CreateQualifiedName(assemblyReference.FullName, method.DeclaringType.FullName);
-            }
-            else
-            {
-                _declaringTypeName = Assembly.CreateQualifiedName(method.DeclaringType.Module.Assembly.FullName, method.DeclaringType.FullName);
-            }
+            //if (method.DeclaringType.Scope is AssemblyNameReference assemblyReference)
+            //{
+            //    _declaringTypeName = Assembly.CreateQualifiedName(assemblyReference.FullName, method.DeclaringType.FullName);
+            //}
+            //else
+            //{
+            //    _declaringTypeName = Assembly.CreateQualifiedName(method.DeclaringType.Module.Assembly.FullName, method.DeclaringType.FullName);
+            //}
+            _declaringTypeName = SerializationHelper.GetQualifiedName(method.DeclaringType);
+
             _callvirt = code == AbstractOpCode.Callvirt;
             _methodName = method.Name;
             _methodFullName = method.FullName;
@@ -82,7 +85,7 @@ namespace Regulus.Core.Ssa.Instruction
 
             if (method.HasThis && code != AbstractOpCode.Newobj)
             {
-                Type objectType = Type.GetType(method.DeclaringType.FullName) ?? throw new Exception("can not load object type " + method.DeclaringType.FullName);
+                Type objectType = SerializationHelper.ResolveTypeFromString(method.DeclaringType.FullName);
                 ParametersType.Add(objectType);
                 _hasImplicitParameter = true;
                 _argCount++;
@@ -90,12 +93,19 @@ namespace Regulus.Core.Ssa.Instruction
             foreach (ParameterDefinition p in method.Parameters)
             {
                 Type parameterType = null;
+
                 if (method is GenericInstanceMethod genericInstanceMethod && p.ParameterType is GenericParameter genericParameter)
-                {                    
+                {
                     parameterType = Type.GetType(genericInstanceMethod.GenericArguments[genericParameter.Position].FullName);
+                }
+                else if (method.DeclaringType is GenericInstanceType genericInstanceType && p.ParameterType is GenericParameter genericTypeParameter) 
+                {
+                    parameterType = Type.GetType(genericInstanceType.GenericArguments[genericTypeParameter.Position].FullName);
                 }
                 else
                 {
+                    //method.GenericParameters
+                    
                     parameterType = Type.GetType(p.ParameterType.FullName);
                 }
                 if (parameterType == null)
@@ -104,7 +114,7 @@ namespace Regulus.Core.Ssa.Instruction
                 }
                 ParametersType.Add(parameterType);
             }
-            _returnType = Type.GetType(method.ReturnType.FullName);
+            _returnType = SerializationHelper.ResolveReturnType(method);
             
         }
 

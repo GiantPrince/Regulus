@@ -185,15 +185,14 @@ namespace Regulus.Core.Ssa.Instruction
             }
         }
 
-        public void ResolveLocalPointer()
+        public Operand ResolveLocalPointer()
         {
             if (OpType != ValueOperandType.LocalPointer)
             {
                 throw new InvalidOperationException("Only localpointer can be resolved");
             }
-            OpType = s_localTypes[GetInt()];
-            Kind = OperandKind.Local;
-            Index = GetInt();
+            return new Operand(OperandKind.Local, GetInt(), s_localTypes[GetInt()]);
+            
         }
 
         private string ValueToString()

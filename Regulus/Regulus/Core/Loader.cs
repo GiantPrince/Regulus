@@ -17,7 +17,7 @@ namespace Regulus.Core
         {
             string[] strings = new string[LoadInt(reader)];
 
-            
+
             for (int i = 0; i < strings.Length; i++)
             {
                 strings[i] = reader.ReadString();
@@ -31,8 +31,8 @@ namespace Regulus.Core
             methods = new List<MethodBase>();
             types = new List<Type>();
             fields = new List<FieldInfo>();
-            using (BinaryReader reader = new BinaryReader(bytes)) 
-            { 
+            using (BinaryReader reader = new BinaryReader(bytes))
+            {
                 int numOfTypes = reader.ReadInt32();
                 for (int i = 0; i < numOfTypes; i++)
                 {
@@ -44,8 +44,8 @@ namespace Regulus.Core
 
                 for (int i = 0; i < numOfMethodNames; i++)
                 {
-                   methodNames[i] = reader.ReadString();
-                   
+                    methodNames[i] = reader.ReadString();
+
                 }
 
                 int numOfMethods = reader.ReadInt32();
@@ -70,11 +70,11 @@ namespace Regulus.Core
             Type declaringType = types[reader.ReadInt32()];
             string fieldName = reader.ReadString();
             FieldInfo? fieldInfo = declaringType.GetField(
-                fieldName, 
+                fieldName,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (fieldInfo == null)
             {
-                throw new Exception("Can not load field " +  fieldName);
+                throw new Exception("Can not load field " + fieldName);
 
             }
             return fieldInfo;
@@ -126,35 +126,39 @@ namespace Regulus.Core
                 BindingFlags.Public |
                 BindingFlags.NonPublic |
                 BindingFlags.Static |
-                BindingFlags.Instance, parameterType.Skip(1).ToArray());
+                BindingFlags.Instance, parameterType.ToArray());
             }
             else
                 method = declaringType.GetMethod(
-                methodName, 
-                BindingFlags.Public | 
-                BindingFlags.NonPublic | 
-                BindingFlags.Static | 
+                methodName,
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Static |
                 BindingFlags.Instance, parameterType.ToArray());
             if (method == null)
             {
                 throw new Exception("Can not load method " + methodName);
             }
-            return method; 
+            return method;
 
         }
 
         public static Type LoadType(BinaryReader reader)
         {
-            string s = reader.ReadString();
-            Type? type = Type.GetType(s);
+
+            string typeName = reader.ReadString();
+            Type type = Type.GetType(typeName);
             if (type == null)
             {
-                throw new Exception("Can not load type" + s);
+                throw new Exception("Cannot load type: " + typeName);
             }
             return type;
+
+
+
         }
 
-        
+
         public static unsafe Type[] LoadTypes(BinaryReader reader)
         {
             Type[] types = new Type[LoadInt(reader)];

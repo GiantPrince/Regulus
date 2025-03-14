@@ -16,9 +16,9 @@ namespace Regulus.Core.Ssa
         public Optimizer(SsaBuilder ssaBuilder)
         {
             _ssaBuilder = ssaBuilder;
-            //EarlyResolvePointers();
-            TypeInference();
             
+            TypeInference();
+            ResolveLocalPointers();
             CopyPropagation();
             CriticalEdgeSplitting();
             ResolvePhiFunctions();
@@ -110,6 +110,74 @@ namespace Regulus.Core.Ssa
             }
 
             ClearEmptyInstructions();
+        }
+
+        private IEnumerable<AbstractInstruction> AbstractInstructions()
+        {
+            foreach (BasicBlock block in _ssaBuilder.GetBlocks())
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    yield return instruction;
+                }
+            }
+        }
+
+        private void ResolveLocalPointers()
+        {
+            foreach (BasicBlock block in _ssaBuilder.GetBlocks())
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    if (!IsLocalPointerInstruction(instruction))
+                    {
+                        continue;
+                    }
+                    ValueOperand locaOp = instruction.GetLeftHandSideOperand(0) as ValueOperand;
+                    Operand resolveOp = locaOp.ResolveLocalPointer();
+                    if (ResolveLocalPointer(block, instruction, resolveOp))
+                    {
+                        instruction.IsObselete = true;
+                    }
+
+                }
+            }
+            ClearEmptyInstructions();
+        }
+
+        /// <summary>
+        /// Resolve a local pointer (ldloca) recursively
+        /// </summary>
+        /// <param name="instruction">instruction which define the local pointer to be resolved</param>
+        /// <param name="resolveOp">the operand resolved by calling ValueOperand.resolveLocalPointer</param>
+        /// <returns>whether or not the resolve is successful</returns>
+        private bool ResolveLocalPointer(BasicBlock block, AbstractInstruction instruction, Operand resolveOp)
+        {
+            bool result = true;
+            List<Use> uses = _ssaBuilder.GetUses(instruction);
+            foreach (Use use in uses)
+            {
+                if (use.Instruction.Kind == InstructionKind.Move)
+                {
+                    result = result && ResolveLocalPointer(block, use.Instruction, resolveOp);
+                }
+                else if (use.Instruction.Kind == InstructionKind.Transform)
+                {
+                    // can not solve now
+                    result = false;
+                }
+                else if (use.Instruction.Kind == InstructionKind.Call)
+                {
+                    resolveOp.Version = _ssaBuilder.FindLatestVersion(block, instruction, resolveOp);
+                    use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+
+            }
+            return result;
         }
 
         private void CriticalEdgeSplitting()

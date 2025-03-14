@@ -21,7 +21,7 @@ namespace Regulus.Core.Ssa
         public int OperandIndex;
     }
 
-    
+
     public class SsaBuilder
     {
         private class VariableStack
@@ -104,7 +104,7 @@ namespace Regulus.Core.Ssa
                 return i;
             }
 
-            
+
             public int Top(Operand op)
             {
                 return GetStackTop(new Variable(op)).Version;
@@ -131,13 +131,13 @@ namespace Regulus.Core.Ssa
         private DomFrontier _domFrontier;
         private VariableStack _variableStack;
         private Dictionary<AbstractInstruction, List<Use>> _uses;
-        
 
-        public SsaBuilder(MethodDefinition method) 
+
+        public SsaBuilder(MethodDefinition method)
         {
             _variableStack = new VariableStack();
             _uses = new Dictionary<AbstractInstruction, List<Use>>();
-            
+
             _cfg = new ControlFlowGraph(method);
             _domTree = new DomTree(_cfg.Blocks);
             _domFrontier = new DomFrontier(_cfg.Blocks, _domTree);
@@ -159,9 +159,60 @@ namespace Regulus.Core.Ssa
 
         public List<Use> GetUses(AbstractInstruction instruction)
         {
-            if (_uses.TryGetValue(instruction, out var use)) 
+            if (_uses.TryGetValue(instruction, out var use))
                 return use;
             return new List<Use>();
+        }
+
+        /// <summary>
+        /// Find latest version of a specific operand
+        /// </summary>
+        /// <param name="block">The basic block of the specific operand</param>
+        /// <param name="instruction">The instruction of the specific operand</param>
+        /// <param name="op">The operand</param>
+        /// <returns>The latest version</returns>
+        public int FindLatestVersion(BasicBlock block, AbstractInstruction instruction, Operand op)
+        {
+            int instructionIndex = block.Instructions.IndexOf(instruction);
+            return FindLatestVersion(block, op, instructionIndex);
+        }
+
+        private int FindLatestVersion(BasicBlock block, Operand op, int instructionCount)
+        {
+
+            for (int i = instructionCount - 1; i >= 0; --i)
+            {
+                AbstractInstruction prevInstruction = block.Instructions[i];
+                if (!prevInstruction.HasRightHandSideOperand())
+                {
+                    continue;
+                }
+                Operand def = prevInstruction.GetRightHandSideOperand(0);
+                if (def.Kind == op.Kind && def.Index == op.Index)
+                {
+                    return def.Version;
+                }
+            }
+            // Also iterate all phi instructions
+            for (int i = block.PhiInstructions.Count - 1; i >= 0; i--)
+            {
+                AbstractInstruction prevInstruction = block.PhiInstructions[i];
+                if (!prevInstruction.HasRightHandSideOperand())
+                {
+                    continue;
+                }
+                Operand def = prevInstruction.GetRightHandSideOperand(0);
+                if (def.Kind == op.Kind && def.Index == op.Index)
+                {
+                    return def.Version;
+                }
+            }
+            BasicBlock parentBlock = _domTree.GetNode(block.Index).Parent.Block;
+            if (parentBlock.Index == block.Index)
+            {
+                return Operand.DefaultVersion;
+            }
+            return FindLatestVersion(parentBlock, op, parentBlock.Instructions.Count);
         }
 
         public void PrintUseDefChain()
@@ -176,7 +227,7 @@ namespace Regulus.Core.Ssa
                 }
             }
         }
-      
+
 
         private void GenerateName(Operand op, AbstractInstruction instruction)
         {
@@ -237,7 +288,7 @@ namespace Regulus.Core.Ssa
                 foreach (PhiInstruction phiInstruction in SuccBlock.PhiInstructions)
                 {
                     int index = phiInstruction.GetBlockIndex(block);
-                    
+
                     ReplaceWithTopName(index, phiInstruction.GetLeftHandSideOperand(index), phiInstruction);
                 }
             }
@@ -286,11 +337,11 @@ namespace Regulus.Core.Ssa
                 op.Index = i;
                 yield return op;
             }
-           
+
 
         }
 
-        
+
         public void InsertPhiFunction(MethodDefinition method, ControlFlowGraph cfg, DomTree domTree, DomFrontier domFrontier)
         {
             Stack<BasicBlock> workList = new Stack<BasicBlock>();
@@ -306,7 +357,7 @@ namespace Regulus.Core.Ssa
                     if (block.ContainDefinitionOf(op))
                     {
                         workList.Push(block);
-                        
+
                     }
                 }
                 foreach (BasicBlock block in workList)
@@ -327,9 +378,9 @@ namespace Regulus.Core.Ssa
                             continue;
                         }
                         AlreadyHasPhiFunc.Add(frontier.Index);
-                        
+
                         frontier.PhiInstructions.Add(new PhiInstruction(op.Clone()));
-                        
+
 
                         if (everOnWorkList.Contains(frontier.Index))
                         {

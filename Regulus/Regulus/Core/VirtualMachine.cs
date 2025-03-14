@@ -2119,7 +2119,7 @@ namespace Regulus.Core
                         // then argCount bytes for parameter type
                         ip += ABPPInstruction.Size;
                         Invokers[callInstruction->Operand1].Invoke(Objects, Registers + callInstruction->RegisterA, ip, callInstruction->Operand2, Registers + callInstruction->RegisterB, callInstruction->RegisterB);
-                        ip += sizeof(byte) * (callInstruction->Operand2 + 1);
+                        ip += sizeof(byte) * (2 * callInstruction->Operand2 + 1);
                         break;
                     case OpCode.Ldelem_I1:
                         ABCInstruction* ldelemI1Instruction = (ABCInstruction*)ip;

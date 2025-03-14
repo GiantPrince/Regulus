@@ -34,13 +34,13 @@ namespace Regulus.Core.Ssa.Instruction
     }
     public class Operand
     {
-        private const int defaultVersion = -1;
+        public const int DefaultVersion = -1;
         public OperandKind Kind;
         public ValueOperandType OpType;
         public int Index;
         public int Version;
 
-        public Operand(OperandKind kind, int index, int version = defaultVersion)
+        public Operand(OperandKind kind, int index, int version = DefaultVersion)
         {
             Kind = kind;
             Index = index;
@@ -48,13 +48,15 @@ namespace Regulus.Core.Ssa.Instruction
             OpType = ValueOperandType.Unknown;
         }
 
-        public Operand(OperandKind kind, int index, ValueOperandType type, int version = defaultVersion)
+        public Operand(OperandKind kind, int index, ValueOperandType type, int version = DefaultVersion)
         {
             Kind = kind;
             Index = index;
             Version = version;
             OpType = type;
         }
+
+      
 
         public virtual Operand Clone()
         {
@@ -63,7 +65,7 @@ namespace Regulus.Core.Ssa.Instruction
         
         public virtual bool IsDefault()
         {
-            return Version == defaultVersion;
+            return Version == DefaultVersion;
         }
 
         public static ValueOperandType StringToValueType(string name)
@@ -128,16 +130,16 @@ namespace Regulus.Core.Ssa.Instruction
         private string FormatOperand(string type, int index, int version)
         {
             if (OpType == ValueOperandType.Unknown)
-                return version == defaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
+                return version == DefaultVersion ? $"{type}{index}" : $"{type}{index}_{version}";
             else
-                return version == defaultVersion ? $"{type}{index}[{ValueOperandTypeToString(OpType)}]" : $"{type}{index}_{version}[{ValueOperandTypeToString(OpType)}]";
+                return version == DefaultVersion ? $"{type}{index}[{ValueOperandTypeToString(OpType)}]" : $"{type}{index}_{version}[{ValueOperandTypeToString(OpType)}]";
         }
 
         public void AssignRegister(int index)
         {
             Kind = OperandKind.Reg;
             Index = index;
-            Version = defaultVersion;
+            Version = DefaultVersion;
         }
 
         public override string ToString()

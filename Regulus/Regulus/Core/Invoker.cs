@@ -81,10 +81,11 @@ namespace Regulus.Core
                     *(double*)&value->Upper = (double)obj;
                     break;
                 case Constants.Object:
-                    //value->Upper = reg;
+                    value->Upper = reg;
                     objects[reg] = obj;
                     break;
                 case Constants.ObjectPointer:
+                    
                     objects[value->Upper] = obj;
                     break;
             }
@@ -93,7 +94,6 @@ namespace Regulus.Core
 
         public unsafe void Invoke(object[] objects, Value* argbase, byte* paramsType, int argCount, Value* result, int registerB)
         {
-            object[] parameters = new object[argCount];
             object instance = null;
             
             if (_hasThis && !_method.IsConstructor)
@@ -140,6 +140,8 @@ namespace Regulus.Core
                 argCount -= 1;
                 argbase = argbase + 1;
             }
+            object[] parameters = new object[argCount];
+
             for (int i = 0; i < argCount; i++)
             {
                 switch(paramsType[i])

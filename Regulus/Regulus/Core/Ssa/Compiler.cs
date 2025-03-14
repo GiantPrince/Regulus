@@ -244,6 +244,7 @@ namespace Regulus.Core.Ssa
         private void CompileCallInstruction(CallInstruction callInstruction)
         {
             List<string> parameterTypes = callInstruction.ParameterTypesWithoutImplicitParameter.Select(t => t.AssemblyQualifiedName).ToList();
+            List<bool> isRefTypes = callInstruction.ParametersType.Select(t => t.IsByRef).ToList();
             //int argCount = callInstruction.ArgCount - (callInstruction.IsStructConstructor ? 1 : 0);
             int methodIndex = _emitter.AddMethod(
                 callInstruction.DeclaringType,
@@ -266,6 +267,10 @@ namespace Regulus.Core.Ssa
                 );
                 WriteParameterTypes(callInstruction.ArgCount - 1, callInstruction.ParameterTypesWithoutImplicitParameter);
                 _emitter.EmitType(Constants.ObjectPointer);
+                for (int i = 0; i < callInstruction.ArgCount - 1; i++)
+                {
+                    _emitter.EmitBool(isRefTypes[i]);
+                }
             }
             else
             {
@@ -290,7 +295,13 @@ namespace Regulus.Core.Ssa
                 {
                     WriteType(callInstruction.ReturnType);
                 }
-            }                                
+
+                for (int i = 0; i < callInstruction.ArgCount; i++)
+                {
+                    _emitter.EmitBool(isRefTypes[i]);
+                }
+            }    
+            
         }
 
         private void WriteType(Type type)
@@ -635,6 +646,20 @@ namespace Regulus.Core.Ssa
                             return OpCode.Cgt_Float;
                         case ValueOperandType.Double:
                             return OpCode.Cgt_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Clt:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Clt_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Clt_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Clt_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Clt_Double;
                         default:
                             throw new NotImplementedException();
                     }
@@ -2030,6 +2055,8 @@ namespace Regulus.Core.Ssa
                 case AbstractOpCode.Cgt:
                 case AbstractOpCode.Cgt_Un:
                 case AbstractOpCode.Ceq:
+                case AbstractOpCode.Clt:
+                case AbstractOpCode.Clt_Un:
                     EmitNonCommutativeBinaryInstructionWithConstCheck(
                         instruction.Code,
                         instruction.GetLeftHandSideOperand(0),

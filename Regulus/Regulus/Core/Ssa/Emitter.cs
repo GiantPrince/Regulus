@@ -161,6 +161,11 @@ namespace Regulus.Core.Ssa
 
         }
 
+        private void AddRefInfo(List<bool> isRef)
+        {
+
+        }
+
         public int AddMethod(string declaringType, string method, bool isGenericMethod, bool callvirt, List<string> parameterTypes)
         {
             
@@ -233,6 +238,7 @@ namespace Regulus.Core.Ssa
                 {
                     EmitIntMeta(_parameterIndexToType[acc + j]);
                 }
+                
                 acc += _argCount[i];
             }
             //for (int i = 0; i < _methods.Count; i++)
