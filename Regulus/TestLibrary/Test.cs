@@ -41,18 +41,17 @@ namespace TestLibrary
         {
             b++;
         }
-        public static void Add(int a, int b)
+        public static void Add(ref int a, int b)
         {
-            ReferenceTest test = new ReferenceTest(1);
-            for (int i = 0; i < a; i++)
-            {
-                test.keyValuePairs.Add(i.ToString(), i.ToString());
-            }
-
-            for (int i = 0; i < b; i++)
-            {
-                Console.WriteLine(test.keyValuePairs[i.ToString()]);
-            }
+            int c = a;
+            int d = b;
+            ReferenceTest.Sub(ref c, ref d);
+            //ReferenceTest.Sub(ref c, 1, ref d);
+            //Console.WriteLine(c);
+            //Console.WriteLine(d);
+            //Console.WriteLine(a);
+            //Console.WriteLine(b);
+            //Console.WriteLine(ReferenceTest.Add(a, a));
         }
 
     }

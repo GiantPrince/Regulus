@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,9 +17,24 @@ namespace Regulus
         public ReferenceTest(int c) { a = c; s = "hello"; s_s = "hi"; keyValuePairs = new Dictionary<string, string>(); }
         ///public Dictionary<string, string> dic = new Dictionary<string, string>();
 
-        public void Add(ref int a) { s_a = a; }
+        public void Add(ref int a) { a += 1; }
         public void Out(out int a) { a = s_a; }
         public ref int getA() { return ref a; }
+        public static int Add(int a, int b)
+        {
+            return a + b;
+        }
+        public static void Sub(ref int a, ref int b)
+        {
+            a -= 1;
+            b -= 1;
+        }
+
+        public static void Sub(ref int a, int c, ref int b)
+        {
+            a -= c;
+            b -= c;
+        }
 
         
     }

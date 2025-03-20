@@ -18,8 +18,7 @@ namespace Regulus
         c
     }
     public class Program
-    {
-        
+    {        
         public unsafe static void Main(string[] args)
         {
             ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
@@ -48,8 +47,8 @@ namespace Regulus
             }
 
             Compiler compiler = new Compiler();
-            compiler.Compile(ssaBuilder.GetBlocks(), methodDef.Parameters.Count, methodDef.Body.Variables.Count, methodDef.Body.MaxStackSize);
-                       
+            compiler.Compile(0, ssaBuilder.GetBlocks(), ssaBuilder, methodDef.Parameters.Count);
+            
             fixed (byte* ip = compiler.GetByteCode())
             {
                 Loader.LoadMeta(compiler.GetMeta(), out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
@@ -60,8 +59,8 @@ namespace Regulus
                 virtualMachine.Types = types.ToArray();
                 //virtualMachine.GCHandles = new System.Runtime.InteropServices.GCHandle[]
                 Stopwatch sw = Stopwatch.StartNew();
-                virtualMachine.SetRegister(0, 3);
-                virtualMachine.SetRegister(1, 2);
+                virtualMachine.SetRegisterInt32(0, 3);
+                virtualMachine.SetRegisterInt32(1, 2);
                 virtualMachine.Run(ip);
                 sw.Stop();
                 Console.WriteLine("a" + sw.ElapsedMilliseconds);

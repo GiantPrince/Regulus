@@ -8,24 +8,22 @@ using System.Text;
 namespace Regulus.Core
 {
     using System.Reflection;
+    using System.Reflection.Metadata;
     using Regulus.Debug;
     public unsafe class VirtualMachine
     {
         private const int MAX_REGISTERS = 256;
-        private const int MAX_GCHANDLES = 32;
-
+       
         private Value* Registers;
-        private GCHandle[] GCHandles = new GCHandle[MAX_GCHANDLES];
+        public static byte** s_code;
+        public static int s_codeSize;
         private int _gchandleStackTop = 0;
         public object[] Objects;
         public Invoker[] Invokers;
         public string[] internedStrings;
         public FieldInfo[] Fields;
         public Type[] Types;
-
         
-
-
 
         public VirtualMachine()
         {
@@ -36,6 +34,14 @@ namespace Regulus.Core
         ~VirtualMachine()
         {
             Marshal.FreeHGlobal((nint)Registers);
+            for (int i = 0; i < s_codeSize; i++)
+            {
+                if (s_code[i] != (byte*)0)
+                {
+                    Marshal.FreeHGlobal((nint)s_code[i]);
+                }
+            }
+            Marshal.FreeHGlobal((nint)s_code);
         }
 
         public Value GetRegister(int index)
@@ -48,11 +54,36 @@ namespace Regulus.Core
             Registers[index] = value;
         }
 
-        public void SetRegister(int index, int value)
+        public void SetRegisterInt32(int index, int value)
         {
             Registers[index].Upper = value;
         }
 
+        public void SetRegisterInt64(int index, long value)
+        {
+            *(long*)&Registers[index].Upper = value;
+        }
+
+        public void SetRegisterFloat(int index, float value)
+        {
+            *(float*)&Registers[index].Upper = value;
+        }
+
+        public void SetRegisterDouble(int index, double value)
+        {
+            *(double*)&Registers[index].Upper = value;
+        }
+
+        public void SetRegisterObject(int index, object value)
+        {
+            Registers[index].Upper = index;
+            Objects[index] = value;
+        }
+
+        public void SetRegisterPointer(int index, int pointer)
+        {
+            *(Value**)&Registers[index].Upper = &Registers[pointer];
+        }
 
         public void ResetRegister()
         {
@@ -2119,7 +2150,7 @@ namespace Regulus.Core
                         // then argCount bytes for parameter type
                         ip += ABPPInstruction.Size;
                         Invokers[callInstruction->Operand1].Invoke(Objects, Registers + callInstruction->RegisterA, ip, callInstruction->Operand2, Registers + callInstruction->RegisterB, callInstruction->RegisterB);
-                        ip += sizeof(byte) * (2 * callInstruction->Operand2 + 1);
+                        ip += sizeof(byte) * (2 * callInstruction->Operand2 + 1); 
                         break;
                     case OpCode.Ldelem_I1:
                         ABCInstruction* ldelemI1Instruction = (ABCInstruction*)ip;
@@ -2428,18 +2459,18 @@ namespace Regulus.Core
 
                     case OpCode.Ldind_I1:
                         ABInstruction* ldindI1Instruction = (ABInstruction*)ip;
-                        GCHandle I1addr = GCHandles[ldindI1Instruction->RegisterA];
-                        nint I1startAddr = GCHandle.ToIntPtr(I1addr);
-                        byte* I1arrayPtr = (byte*)I1startAddr.ToPointer();
-                        I1arrayPtr = I1arrayPtr + (Registers[ldindI1Instruction->RegisterA].Upper * Registers[ldindI1Instruction->RegisterA].Lower);
-                        Registers[ldindI1Instruction->RegisterB].Upper = *I1arrayPtr;
-                        //I1addr.Free();
-                        ip += ABInstruction.Size;
-                        if (*(bool*)ip)
-                        {
-                            I1addr.Free();
-                        }
-                        ip++;
+                        //GCHandle I1addr = GCHandles[ldindI1Instruction->RegisterA];
+                        //nint I1startAddr = GCHandle.ToIntPtr(I1addr);
+                        //byte* I1arrayPtr = (byte*)I1startAddr.ToPointer();
+                        //I1arrayPtr = I1arrayPtr + (Registers[ldindI1Instruction->RegisterA].Upper * Registers[ldindI1Instruction->RegisterA].Lower);
+                        //Registers[ldindI1Instruction->RegisterB].Upper = *I1arrayPtr;
+                        ////I1addr.Free();
+                        //ip += ABInstruction.Size;
+                        //if (*(bool*)ip)
+                        //{
+                        //    I1addr.Free();
+                        //}
+                        //ip++;
                         break;
 
                     case OpCode.Ldind_I4:
@@ -2597,7 +2628,7 @@ namespace Regulus.Core
                     case OpCode.Stind_R8_LocalPointer:
                         ABInstruction* stindI4LocalPointerInstruction = (ABInstruction*)ip;
                         //Value* stindI4LocalPtr = *(Value**)&Registers[stindI4LocalPointerInstruction->RegisterB].Upper;
-                        Registers[stindI4LocalPointerInstruction->RegisterB] = Registers[stindI4LocalPointerInstruction->RegisterA];
+                        **(Value**)&Registers[stindI4LocalPointerInstruction->RegisterB].Upper = Registers[stindI4LocalPointerInstruction->RegisterA];
                         ip += ABInstruction.Size;
                         //ABInstruction* stindI4Instruction = (ABInstruction*)ip;
                         //GCHandle stI4addr = GCHandles[Registers[stindI4Instruction->RegisterB].Upper];
@@ -2859,8 +2890,14 @@ namespace Regulus.Core
                         break;
                     case OpCode.Ldloca:
                         APInstruction* ldlocaInstruction = (APInstruction*)ip;
-                        Registers[ldlocaInstruction->RegisterA].Upper = ldlocaInstruction->Operand;
+                        *(Value**)&Registers[ldlocaInstruction->RegisterA].Upper = Registers + ldlocaInstruction->Operand;
                         ip += APInstruction.Size;
+                        break;
+                    case OpCode.Ldarga:
+                        APInstruction* ldargaInstruction = (APInstruction*)ip;
+                        *(Value**)&Registers[ldargaInstruction->RegisterA].Upper = Registers + ldargaInstruction->Operand;
+                        ip += APInstruction.Size;
+
                         break;
                     case OpCode.Ldelema:
                         ABCPInstruction* ldelemaInstruction = (ABCPInstruction*)ip;
@@ -2900,13 +2937,6 @@ namespace Regulus.Core
                         Registers[ldStrInstruction->RegisterA].Upper = ldStrInstruction->RegisterA;
                         ip += APInstruction.Size;
                         break;
-
-                    //case OpCode.Ldloca:
-                    //    ABInstruction* ldlocaInstruction = (ABInstruction*)ip;
-                    //    Registers[ldlocaInstruction->RegisterB].Upper = ldlocaInstruction->RegisterA;
-                    //    ip += ABInstruction.Size;
-                    //    break;
-
                     case OpCode.Ret:
                         AInstruction* retInstruction = (AInstruction*)ip;
                         Registers[0] = Registers[retInstruction->RegisterA];

@@ -28,6 +28,11 @@ namespace Regulus.Core.Ssa.Instruction
         {
             return s_internStrings.ToArray();
         }
+
+        public ValueOperand(OperandKind kind, int index, int version, bool isFixed, byte[] value, ValueOperandType type) : base(kind, index, type, version, isFixed)
+        {
+            _value = value;
+        }
         public ValueOperand(OperandKind kind, int index, ValueOperandType type) : base(kind, index, type)
         {
             _value = new byte[1];
@@ -165,33 +170,19 @@ namespace Regulus.Core.Ssa.Instruction
 
         public override unsafe Operand Clone()
         {
-            switch (OpType)
-            {
-                case ValueOperandType.Null:
-                    return new ValueOperand(Kind, Index);
-                case ValueOperandType.Integer:
-                    return new ValueOperand(Kind, Index, BitConverter.ToInt32(_value));
-                case ValueOperandType.Long:
-                    return new ValueOperand(Kind, Index, BitConverter.ToInt64(_value));
-                case ValueOperandType.Float:
-                    return new ValueOperand(Kind, Index, BitConverter.ToSingle(_value));
-                case ValueOperandType.Double:
-                    return new ValueOperand(Kind, Index, BitConverter.ToDouble(_value));
-                //case ValueOperandType.Reference:
-                //    return new ValueOperand(Kind, Index, BitConverter.ToInt32(_value));
-                default:
-                    return new ValueOperand(Kind, Index);
-
-            }
+            return new ValueOperand(Kind, Index, Version, IsFixed, _value, OpType);
         }
 
         public Operand ResolveLocalPointer()
         {
-            if (OpType != ValueOperandType.LocalPointer)
+            if (OpType != ValueOperandType.LocalPointer && OpType != ValueOperandType.ArgPointer)
             {
                 throw new InvalidOperationException("Only localpointer can be resolved");
             }
-            return new Operand(OperandKind.Local, GetInt(), s_localTypes[GetInt()]);
+            if (OpType == ValueOperandType.LocalPointer)
+                return new Operand(OperandKind.Local, GetInt(), s_localTypes[GetInt()]);
+            else
+                return new Operand(OperandKind.Arg, GetInt(), s_localTypes[GetInt()]);
             
         }
 
@@ -214,6 +205,8 @@ namespace Regulus.Core.Ssa.Instruction
                     case ValueOperandType.String:
                         return $"[{s_internStrings[GetStringIndex()]}]";
                     case ValueOperandType.LocalPointer:
+                        return $"[&{GetInt()}]";
+                    case ValueOperandType.ArgPointer:
                         return $"[&{GetInt()}]";
                     //case ValueOperandType.Reference:
                     //    return $"[Ref:{GetInt()}]";

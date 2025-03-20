@@ -29,6 +29,15 @@ namespace Regulus.Core
         public const byte StaticFieldPointer = 15;
         public const byte ArrayPointer = 16;
         public const byte ObjectPointer = 17;
+
+        // ref arg
+        public const byte Reference = 18;
+        public const byte NoReference = 18;
+        public const byte PointerReference = 19;
+
+        // for compound flags
+        public const byte Address = 1 << 5;
+        
     }
     public class Invoker
     {
@@ -84,8 +93,7 @@ namespace Regulus.Core
                     value->Upper = reg;
                     objects[reg] = obj;
                     break;
-                case Constants.ObjectPointer:
-                    
+                case Constants.ObjectPointer:                
                     objects[value->Upper] = obj;
                     break;
             }
@@ -95,6 +103,7 @@ namespace Regulus.Core
         public unsafe void Invoke(object[] objects, Value* argbase, byte* paramsType, int argCount, Value* result, int registerB)
         {
             object instance = null;
+            int parameterObjectArrayLength = argCount;
             
             if (_hasThis && !_method.IsConstructor)
             {
@@ -137,12 +146,12 @@ namespace Regulus.Core
                         instance = objects[argbase[0].Upper];
                         break;
                 }
-                argCount -= 1;
+                parameterObjectArrayLength--;
                 argbase = argbase + 1;
             }
-            object[] parameters = new object[argCount];
+            object[] parameters = new object[parameterObjectArrayLength];
 
-            for (int i = 0; i < argCount; i++)
+            for (int i = 0; i < parameterObjectArrayLength; i++)
             {
                 switch(paramsType[i])
                 {
@@ -199,8 +208,7 @@ namespace Regulus.Core
             {
                 if (argCount == 0)
                 {
-                    ret = _method.Invoke(instance, null);
-                    argCount += 1;
+                    ret = _method.Invoke(instance, null);                    
                 }
                 else
                 {
@@ -213,14 +221,20 @@ namespace Regulus.Core
             AssignObjectToValue(paramsType[argCount], ret, result, objects, registerB);            
 
             // Handle ref arguments
-            for (int i = 0; i < argCount; i++)
+            for (int i = 0; i < parameterObjectArrayLength; i++)
             {
-                if (paramsType[i + argCount + 1] == 0)
+                if (paramsType[i + argCount + 1] == Constants.NoReference)
                 {
                     continue;
                 }
 
-                AssignObjectToValue(paramsType[i], parameters[i], &argbase[i], objects, registerB);
+                Value* value = &argbase[i];
+                if (paramsType[i + argCount + 1] == Constants.PointerReference)
+                {
+                    value = *(Value**)&argbase[i].Upper;
+                }
+
+                AssignObjectToValue(paramsType[i], parameters[i], value, objects, registerB);
             }
         }
 

@@ -29,6 +29,7 @@ namespace Regulus.Core.Ssa.Instruction
         private bool _callvirt;
         private bool _hasImplicitParameter;
         private bool _isStructConstructor;
+        private bool _isNewMethod;
         private Type _returnType;
         private Func<int, int> _indexCompute;
         public List<Type> ParametersType;
@@ -57,17 +58,9 @@ namespace Regulus.Core.Ssa.Instruction
         public CallInstruction(AbstractOpCode code, MethodReference method) : base(code, InstructionKind.Call)
         {
             //_returnTypeName = method.ReturnType.Name;
+            
             _isGenericMethod = method.IsGenericInstance;
             _indexCompute = (int i) => i;
-            //method.HasThis
-            //if (method.DeclaringType.Scope is AssemblyNameReference assemblyReference)
-            //{
-            //    _declaringTypeName = Assembly.CreateQualifiedName(assemblyReference.FullName, method.DeclaringType.FullName);
-            //}
-            //else
-            //{
-            //    _declaringTypeName = Assembly.CreateQualifiedName(method.DeclaringType.Module.Assembly.FullName, method.DeclaringType.FullName);
-            //}
             _declaringTypeName = SerializationHelper.GetQualifiedName(method.DeclaringType);
 
             _callvirt = code == AbstractOpCode.Callvirt;

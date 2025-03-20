@@ -30,6 +30,7 @@ namespace Regulus.Core.Ssa.Instruction
         InstanceFieldPointer,
         ArrayPointer,
         LocalPointer,
+        ArgPointer,
         Object
     }
     public class Operand
@@ -39,28 +40,35 @@ namespace Regulus.Core.Ssa.Instruction
         public ValueOperandType OpType;
         public int Index;
         public int Version;
+        public bool IsFixed;
 
-        public Operand(OperandKind kind, int index, int version = DefaultVersion)
+        private Operand originalOp;
+
+        public Operand(OperandKind kind, int index, int version = DefaultVersion, bool isFixed = false)
         {
             Kind = kind;
             Index = index;
             Version = version;
             OpType = ValueOperandType.Unknown;
+            originalOp = this;
+            IsFixed = isFixed;
         }
 
-        public Operand(OperandKind kind, int index, ValueOperandType type, int version = DefaultVersion)
+        public Operand(OperandKind kind, int index, ValueOperandType type, int version = DefaultVersion, bool isFixed = false)
         {
             Kind = kind;
             Index = index;
             Version = version;
             OpType = type;
+            originalOp = this;
+            IsFixed = isFixed;
         }
 
       
 
         public virtual Operand Clone()
         {
-            return new Operand(Kind, Index, Version);
+            return new Operand(Kind, Index, Version, IsFixed);
         }
         
         public virtual bool IsDefault()
@@ -123,6 +131,8 @@ namespace Regulus.Core.Ssa.Instruction
                     return "SFldPtr";
                 case ValueOperandType.LocalPointer:
                     return "LocPtr";
+                case ValueOperandType.ArgPointer:
+                    return "ArgPtr";
                 default:
                     throw new NotImplementedException();
             }
@@ -137,9 +147,15 @@ namespace Regulus.Core.Ssa.Instruction
 
         public void AssignRegister(int index)
         {
+            originalOp = Clone();
             Kind = OperandKind.Reg;
             Index = index;
             Version = DefaultVersion;
+        }
+
+        public Operand GetOriginalOp()
+        {
+            return originalOp;
         }
 
         public override string ToString()

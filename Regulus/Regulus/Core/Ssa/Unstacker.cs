@@ -520,6 +520,13 @@ namespace Regulus.Core.Ssa
                         ((VariableDefinition)instruction.Operand).Index, ValueOperandType.LocalPointer,
                         Operand.StringToValueType(((VariableDefinition)instruction.Operand).VariableType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
+                case Code.Ldarga:
+                case Code.Ldarga_S:
+                    return new MoveInstruction(AbstractOpCode.Ldarga,
+                        new ValueOperand(OperandKind.Const, constantCounter++,
+                        ((ParameterDefinition)instruction.Operand).Index, ValueOperandType.ArgPointer,
+                        Operand.StringToValueType(((ParameterDefinition)instruction.Operand).ParameterType.Name)),
+                        new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldnull:
                     return new MoveInstruction(AbstractOpCode.Ldnull,
                         new ValueOperand(OperandKind.Const, constantCounter++),

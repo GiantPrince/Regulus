@@ -18,7 +18,7 @@ namespace Regulus.Core.Ssa
             _ssaBuilder = ssaBuilder;
             
             TypeInference();
-            ResolveLocalPointers();
+            ResolvePointers();
             CopyPropagation();
             CriticalEdgeSplitting();
             ResolvePhiFunctions();
@@ -40,7 +40,7 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        private bool IsLocalPointerInstruction(AbstractInstruction instruction)
+        private bool IsPointerInstruction(AbstractInstruction instruction)
         {
             if (instruction.Code == AbstractOpCode.Ldloca)
                 return true;
@@ -96,7 +96,7 @@ namespace Regulus.Core.Ssa
             {
                 foreach (AbstractInstruction instruction in block.Instructions)
                 {
-                    if (!IsLocalPointerInstruction(instruction))
+                    if (!IsPointerInstruction(instruction))
                     {
                         continue;
                     }
@@ -123,18 +123,20 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        private void ResolveLocalPointers()
+        private void ResolvePointers()
         {
             foreach (BasicBlock block in _ssaBuilder.GetBlocks())
             {
                 foreach (AbstractInstruction instruction in block.Instructions)
                 {
-                    if (!IsLocalPointerInstruction(instruction))
+                    if (!IsPointerInstruction(instruction))
                     {
                         continue;
                     }
                     ValueOperand locaOp = instruction.GetLeftHandSideOperand(0) as ValueOperand;
                     Operand resolveOp = locaOp.ResolveLocalPointer();
+                    // resolveOp should be fixed
+                    resolveOp.IsFixed = true;
                     if (ResolveLocalPointer(block, instruction, resolveOp))
                     {
                         instruction.IsObselete = true;
@@ -168,8 +170,17 @@ namespace Regulus.Core.Ssa
                 }
                 else if (use.Instruction.Kind == InstructionKind.Call)
                 {
-                    resolveOp.Version = _ssaBuilder.FindLatestVersion(block, instruction, resolveOp);
-                    use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp);
+                    AbstractInstruction prevDefInstruction = _ssaBuilder.FindLatestDefinition(block, instruction, resolveOp);
+                    // all uses of prevDef should be fixed
+                    List<Use> prevDefUses = _ssaBuilder.GetUses(prevDefInstruction);
+                    foreach (Use prevDefUse in prevDefUses)
+                    {
+                        prevDefUse.Instruction.GetLeftHandSideOperand(prevDefUse.OperandIndex).IsFixed = true;
+                    }
+                    // add use
+                    _ssaBuilder.AddUse(prevDefInstruction, new Use(use.Instruction, use.OperandIndex)); 
+                    resolveOp.Version = prevDefInstruction.GetRightHandSideOperand(0).Version;
+                    use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());
                 }
                 else
                 {
@@ -836,11 +847,17 @@ namespace Regulus.Core.Ssa
             switch (instruction.Code)
             {
                 case AbstractOpCode.Ldloca:
+                case AbstractOpCode.Ldarga:                
                     return false;
                     //case AbstractOpCode.Ldstr
             }
 
-            if (instruction.GetLeftHandSideOperand(0).OpType == ValueOperandType.String)
+            ValueOperandType opType = instruction.GetLeftHandSideOperand(0).OpType;
+            //if (opType == ValueOperandType.LocalPointer || opType == ValueOperandType.ArgPointer)
+            //{
+            //    return false;
+            //}
+            if (opType == ValueOperandType.String)
             {
                 return false;
             }
@@ -866,12 +883,23 @@ namespace Regulus.Core.Ssa
                             delete = false;
                             use.Instruction.SetLeftHandSideOperand(use.OperandIndex, i.GetRightHandSideOperand(0));
                         }
+                        else if (use.Instruction.GetLeftHandSideOperand(use.OperandIndex).IsFixed)
+                        {
+                            delete = false;
+                            //Operand defClone = i.GetRightHandSideOperand(0).Clone();
+                            //defClone.IsFixed = true;
+                            //use.Instruction.SetLeftHandSideOperand(use.OperandIndex, defClone);
+                        }
                         else
                         {
                             use.Instruction.SetLeftHandSideOperand(use.OperandIndex, def);
 
                         }
                         worklist.Add(use.Instruction);
+                    }
+                    if (i.IsObselete)
+                    {
+                        continue;
                     }
                     if (delete)
                     {

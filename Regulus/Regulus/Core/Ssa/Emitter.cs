@@ -7,243 +7,365 @@ using System.Threading.Tasks;
 
 namespace Regulus.Core.Ssa
 {
+    //  [typeIndex][nameIndex][argCountIndex][argCountTypeIndex]
+    //  
+    //
+
     public class Emitter
     {
-        
-        List<byte> bytecodes;
+
+        private class FieldEntry
+        {
+            public int TypeId;
+            public int NameId;
+
+            public override bool Equals(object? y)
+            {
+                if (y == null)
+                    return false;
+                if (y is FieldEntry entry)
+                {
+                    return NameId == entry.NameId &&
+                        TypeId == entry.TypeId;
+                }
+                return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return NameId.GetHashCode() * 17 + TypeId.GetHashCode();
+            }
+        }
+        private class MethodEntry
+        {
+            public int TypeId;
+            public int NameId;
+            public int ArgCount;
+            public int ArgTypeId;
+            public bool Callvirt;
+            public bool IsGeneric;
+
+            public override bool Equals(object? y)
+            {
+                if (y == null)
+                    return false;
+                if (y is MethodEntry entry)
+                {
+                    return NameId == entry.NameId &&
+                        ArgCount == entry.ArgCount &&
+                        ArgTypeId == entry.ArgTypeId &&
+                        Callvirt == entry.Callvirt &&
+                        IsGeneric == entry.IsGeneric &&
+                        ArgCount != entry.ArgCount;
+                }
+                return false;
+            }
+
+            public override int GetHashCode()
+            {
+
+                return NameId.GetHashCode() ^
+                    ArgCount.GetHashCode() ^
+                    ArgTypeId.GetHashCode() ^
+                    Callvirt.GetHashCode() ^
+                    TypeId.GetHashCode() ^
+                    IsGeneric.GetHashCode();
+            }
+        }
+
+        private class ArgTypeEntry
+        {
+            public List<int> ArgTypeIds;
+            public override bool Equals(object y)
+            {
+                if (y == null)
+                    return false;
+
+                if (ArgTypeIds == null)
+                    return false;
+
+                if (y is ArgTypeEntry entry)
+                {
+                    if (entry.ArgTypeIds == null)
+                        return false;
+                    return ArgTypeIds.SequenceEqual(entry.ArgTypeIds);
+                }
+                return false;
+
+            }
+
+
+            public override int GetHashCode()
+            {
+                if (ArgTypeIds == null)
+                    return 0;
+
+                int hash = 17;
+                foreach (var id in ArgTypeIds)
+                {
+                    hash = hash * 23 + id.GetHashCode();
+                }
+                return hash;
+            }
+
+        }
+
+        private class ArgTypeComparer : IEqualityComparer<ArgTypeEntry>
+        {
+            public bool Equals(ArgTypeEntry x, ArgTypeEntry y)
+            {
+                if (x == null || y == null)
+                    return false;
+
+                return x.ArgTypeIds.SequenceEqual(y.ArgTypeIds);
+            }
+
+
+            public int GetHashCode(ArgTypeEntry obj)
+            {
+                if (obj == null || obj.ArgTypeIds == null)
+                    return 0;
+
+                int hash = 17;
+                foreach (var id in obj.ArgTypeIds)
+                {
+                    hash = hash * 23 + id.GetHashCode();
+                }
+                return hash;
+            }
+
+        }
+
+        private class MethodEntryComparer : IEqualityComparer<MethodEntry>
+        {
+            public bool Equals(MethodEntry? x, MethodEntry? y)
+            {
+                if (x == null || y == null)
+                    return false;
+                return x.NameId == y.NameId &&
+                    x.ArgCount == y.ArgCount &&
+                    x.ArgTypeId == y.ArgTypeId &&
+                    x.Callvirt == y.Callvirt &&
+                    x.IsGeneric == y.IsGeneric &&
+                    x.ArgCount != y.ArgCount;
+            }
+
+            public int GetHashCode(MethodEntry x)
+            {
+                if (x == null)
+                    return 0;
+
+                return x.NameId.GetHashCode() ^
+                    x.ArgCount.GetHashCode() ^
+                    x.ArgTypeId.GetHashCode() ^
+                    x.Callvirt.GetHashCode() ^
+                    x.TypeId.GetHashCode() ^
+                    x.IsGeneric.GetHashCode();
+            }
+        }
+
+        Dictionary<int, List<byte>> _bytecodes;
         Stream meta;
         List<string> _types;
-        //List<int> _methodCount;
-        List<int> _argCount;
-        List<int> _methodIndexToType;
-        List<int> _parameterIndexToType;
-        List<string> _methods;
-        List<int> _methodIndexToName;
-        List<bool> _isGenericMethod;
-        List<int> _fieldIndexToType;
-        List<string> _fields;
-        List<bool> _callvirt;
+        List<string> _methodNames;
+        List<ArgTypeEntry> _argTypes;
+        List<MethodEntry> _methods;
+        List<string> _fieldNames;
+        List<FieldEntry> _fields;
+        int _currentMethodIndex;
 
         public Emitter()
         {
-            bytecodes = new List<byte>();
-            meta = new MemoryStream();
-           
+            _bytecodes = new Dictionary<int, List<byte>>();          meta = new MemoryStream();
             _types = new List<string>();
-            _methodIndexToType = new List<int>();
-            _parameterIndexToType = new List<int>();
-            _methods = new List<string>();
-            //_methodCount = new List<int>();
-            _argCount = new List<int>();
-            _isGenericMethod = new List<bool>();
-            _fields = new List<string>();
-            _fieldIndexToType = new List<int>();
-            _callvirt = new List<bool>();
-            _methodIndexToName = new List<int>();
+            _methodNames = new List<string>();
+            _argTypes = new List<ArgTypeEntry>();
+            _methods = new List<MethodEntry>();
+            _fieldNames = new List<string>();
+            _fields = new List<FieldEntry>();
+            
         }
 
         public List<byte> GetBytes()
         {
-            return bytecodes;
+            return _bytecodes[_currentMethodIndex];
         }
 
+        public void Init(int methodIndex)
+        {
+            _currentMethodIndex = methodIndex;
+            
+            if (!_bytecodes.ContainsKey(methodIndex))
+            {
+                _bytecodes.Add(methodIndex, new List<byte>());                
+            }
+        }
+       
         public Stream GetMeta()
         {
             return meta;
         }
-
         public int GetByteCount()
         {
-            return bytecodes.Count;
+            return _bytecodes[_currentMethodIndex].Count;
         }
 
         public void EmitInt(int value)
         {
-            bytecodes.AddRange(BitConverter.GetBytes(value));
+            _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
         }
 
         public void EmitBool(bool value)
         {
-            bytecodes.AddRange(BitConverter.GetBytes(value));
+            _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
         }
 
         public void EmitByte(byte value)
         {
-            bytecodes.Add(value);
+            _bytecodes[_currentMethodIndex].Add(value);
         }
         public void EmitBytes(byte[] bytes)
         {
-            bytecodes.AddRange(bytes);
+            _bytecodes[_currentMethodIndex].AddRange(bytes);
         }
         public void EmitOpCode(OpCode opcode)
         {
-            bytecodes.AddRange(BitConverter.GetBytes((ushort)opcode));
+            _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes((ushort)opcode));
         }
 
         public void EmitType(byte type)
         {
-            bytecodes.Add(type);
-        }
-
-        private void AddParameter(int methodIndex, List<string> parameters)
-        {
-            
-            for (int i = 0; i < parameters.Count; i++)
-            {
-                int typeIndex = _types.IndexOf(parameters[i]);
-                if (typeIndex == -1)
-                {
-                    _types.Add(parameters[i]);
-                    typeIndex = _types.Count - 1;
-                }
-                _parameterIndexToType.Add(typeIndex);
-            }
+            _bytecodes[_currentMethodIndex].Add(type);
         }
 
         public int AddType(string type)
         {
-            int typeIndex = _types.IndexOf(type);
-            if (typeIndex == -1)
-            {
-                typeIndex = _types.Count;
-                _types.Add(type);
-                //_methodCount.Add(0);
-            }
-            return typeIndex;
+            return GetTypeId(type);
+        }
+
+        private int GetFieldNameId(string fieldName)
+        {
+            return GetId(_fieldNames, fieldName);
+        }
+
+        private int GetFieldIndex(FieldEntry field)
+        {
+            return GetId(_fields, field);
         }
 
         public int AddInstanceField(string declaringType, string field)
         {
-            int typeIndex = _types.IndexOf(declaringType);
-            if (typeIndex == -1)
+            int typeIndex = GetTypeId(declaringType);
+
+            int fieldNameIndex = GetFieldNameId(field);
+
+            FieldEntry fieldEntry = new FieldEntry()
             {
-                typeIndex = _types.Count;
-                _types.Add(declaringType);
-            }
-
-            int fieldIndex = _fields.IndexOf(field);
-            if (fieldIndex == -1)
-            {
-                fieldIndex = _fields.Count;
-                _fields.Add(field);
-                _fieldIndexToType.Add(typeIndex);
-            }
-
-            return fieldIndex;
-            
-           
-        }
-
-        private bool IsOverloadMethod(int methodIndex, List<string> parameterTypes)
-        {
-            if (_argCount[methodIndex] != parameterTypes.Count)
-            {
-                return true;
-            }
-
-            int acc = 0;
-            for (int i = 0; i < methodIndex; i++)
-            {
-                acc += _argCount[i];
-            }
-
-            for (int i = 0; i < parameterTypes.Count; i++)
-            {
-                int typeIndex = _types.IndexOf(parameterTypes[i]);
-                if (typeIndex != _parameterIndexToType[acc + i])
-                {
-                    return true;
-                }
-            }
-
-            return false;
+                TypeId = typeIndex,
+                NameId = fieldNameIndex
+            };
+            return GetFieldIndex(fieldEntry);
 
 
         }
 
-        private void AddRefInfo(List<bool> isRef)
-        {
 
+        private int GetId<T>(List<T> list, T name)
+        {
+            int id = list.IndexOf(name);
+            if (id == -1)
+            {
+                id = list.Count;
+                list.Add(name);
+            }
+            return id;
+        }
+
+        private int GetTypeId(string type)
+        {
+            return GetId(_types, type);
+        }
+
+        private int GetMethodNameId(string methodName)
+        {
+            return GetId(_methodNames, methodName);
+        }
+
+        private List<int> GetArgTypeIds(List<string> parameterTypes)
+        {
+            return parameterTypes.Select(p => GetId(_types, p)).ToList();
+        }
+
+        private int GetArgTypeEntryId(List<int> parameterTypeIds)
+        {
+            ArgTypeEntry entry = new ArgTypeEntry() { ArgTypeIds = parameterTypeIds };
+            return GetId(_argTypes, entry);
+        }
+
+
+
+        private int GetMethodId(MethodEntry entry)
+        {
+            return GetId(_methods, entry);
         }
 
         public int AddMethod(string declaringType, string method, bool isGenericMethod, bool callvirt, List<string> parameterTypes)
         {
-            
-            int typeIndex = _types.IndexOf(declaringType);
-            if (typeIndex == -1)
-            {
-                typeIndex = _types.Count;
-                _types.Add(declaringType);
-                //_methodCount.Add(1);
-                _methods.Add(method);
-                _isGenericMethod.Add(isGenericMethod);
-                _callvirt.Add(callvirt);
-                _methodIndexToType.Add(typeIndex);
-                _argCount.Add(parameterTypes.Count);
-                AddParameter(_methods.Count - 1, parameterTypes);
-                _methodIndexToName.Add(_methods.Count - 1);
-                return _methodIndexToName.Count - 1;
-            }
-            else
-            {
-                //_methodCount[typeIndex]++;
-                int methodIndex = _methods.IndexOf(method);
-                if (methodIndex == -1)
-                {
-                    _methods.Add(method);
-                    _isGenericMethod.Add(isGenericMethod);
-                    _callvirt.Add(callvirt);
-                    _methodIndexToType.Add(typeIndex);
-                    _argCount.Add(parameterTypes.Count);
-                    _methodIndexToName.Add(_methods.Count - 1);
-                    AddParameter(_methods.Count - 1, parameterTypes);
-                }
-                else if (IsOverloadMethod(methodIndex, parameterTypes))
-                {
-                    _methodIndexToName.Add(methodIndex);
-                    _isGenericMethod.Add(isGenericMethod);
-                    _callvirt.Add(callvirt);
-                    _methodIndexToType.Add(typeIndex);
-                    _argCount.Add(parameterTypes.Count);
-                    AddParameter(methodIndex, parameterTypes);
-                }
-                
+            // First check the types
+            int typeId = GetTypeId(declaringType);
 
-                return _methodIndexToName.Count - 1;
-            }
+            // Then check the name
+            int methodNameId = GetMethodNameId(method);
+
+            int argCount = parameterTypes.Count;
+
+            int parameterTypesId = GetArgTypeEntryId(GetArgTypeIds(parameterTypes));
+
+            MethodEntry methodEntry = new MethodEntry()
+            {
+                TypeId = typeId,
+                NameId = methodNameId,
+                ArgCount = argCount,
+                ArgTypeId = parameterTypesId,
+                Callvirt = callvirt,
+                IsGeneric = isGenericMethod
+            };
+
+            return GetMethodId(methodEntry);
+
         }
 
         public void EmitTypeMethodInfoToMeta()
-        {
-            int acc = 0;
+        {            
             EmitIntMeta(_types.Count);
             for (int i = 0; i < _types.Count; i++)
             {
                 EmitStringMeta(_types[i]);
             }
+            EmitIntMeta(_methodNames.Count);
+            for (int i = 0; i < _methodNames.Count; i++)
+            {
+                EmitStringMeta(_methodNames[i]);
+            }
             EmitIntMeta(_methods.Count);
             for (int i = 0; i < _methods.Count; i++)
             {
-                EmitStringMeta(_methods[i]);
-            }
-            EmitIntMeta(_methodIndexToName.Count);
-            for (int i = 0; i < _methodIndexToName.Count; i++)
-            {
-                EmitIntMeta(_methodIndexToType[i]);
-                EmitIntMeta(_methodIndexToName[i]);
-                EmitBoolMeta(_isGenericMethod[i]);
-                EmitBoolMeta(_callvirt[i]);
-                EmitIntMeta(_argCount[i]);
-                for (int j = 0; j < _argCount[i]; j++)
+                MethodEntry entry = _methods[i];
+                EmitIntMeta(entry.TypeId);
+                EmitIntMeta(entry.NameId);
+                EmitBoolMeta(entry.IsGeneric);
+                EmitBoolMeta(entry.Callvirt);
+                EmitIntMeta(entry.ArgCount);
+                for (int j = 0; j < entry.ArgCount; j++)
                 {
-                    EmitIntMeta(_parameterIndexToType[acc + j]);
+                    EmitIntMeta(_argTypes[entry.ArgTypeId].ArgTypeIds[j]);
                 }
-                
-                acc += _argCount[i];
             }
+
+
             //for (int i = 0; i < _methods.Count; i++)
             //{
-            //    EmitIntMeta(_methodIndexToType[i]);
+            //    EmitIntMeta(__currentMethodIndexToType[i]);
             //    EmitStringMeta(_methods[i]);
             //    EmitBoolMeta(_isGenericMethod[i]);
             //    EmitBoolMeta(_callvirt[i]);
@@ -255,25 +377,49 @@ namespace Regulus.Core.Ssa
             //    acc += _argCount[i];
             //}
 
+            EmitIntMeta(_fieldNames.Count);
+            for (int i = 0; i < _fieldNames.Count; i++)
+            {
+                EmitStringMeta(_fieldNames[i]);
+            }
+
             EmitIntMeta(_fields.Count);
 
             for (int i = 0; i < _fields.Count; i++)
             {
-                EmitIntMeta(_fieldIndexToType[i]);
-                EmitStringMeta(_fields[i]);
+                EmitIntMeta(_fields[i].TypeId);
+                EmitIntMeta(_fields[i].NameId);
+            }
+
+            // here should write bytecode
+            
+            EmitIntMeta(_bytecodes.Count);
+            EmitIntMeta(_bytecodes.Keys.Max());
+            foreach (KeyValuePair<int, List<byte>> bytecode in _bytecodes)
+            {
+                EmitIntMeta(bytecode.Key);
+                EmitIntMeta(bytecode.Value.Count);
+                EmitBytesMeta(bytecode.Value.ToArray());
             }
             meta.Seek(0, SeekOrigin.Begin);
         }
 
-        public void EmitBoolMeta(bool b)
+        private void EmitBytesMeta(byte[] bytes)
+        {
+            using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
+            {
+                writer.Write(bytes);
+            }
+        }
+
+        private void EmitBoolMeta(bool b)
         {
             using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
             {
                 writer.Write(b);
             }
         }
-
-        public void EmitIntMeta(int i)
+        private void EmitIntMeta(int i)
         {
             using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
             {
@@ -281,7 +427,9 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        public void EmitStringMeta(string s)
+        
+
+        private void EmitStringMeta(string s)
         {
             using (BinaryWriter writer = new BinaryWriter(meta, Encoding.UTF8, true))
             {
@@ -292,96 +440,91 @@ namespace Regulus.Core.Ssa
         public void EmitAPPInstruction(OpCode opcode, byte a, int op1, int op2)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.AddRange(BitConverter.GetBytes(op1));
-            bytecodes.AddRange(BitConverter.GetBytes(op2));
+            EmitByte(a);
+            EmitInt(op1);
+            EmitInt(op2);
         }
 
-        public void EmitABCInstruction(OpCode opcode, byte a, byte b, byte c) 
+        public void EmitABCInstruction(OpCode opcode, byte a, byte b, byte c)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.Add(b);
-            bytecodes.Add(c);
+            EmitByte(a);
+            EmitByte(b);
+            EmitByte(c);
         }
 
         public void EmitAInstruction(OpCode opcode, byte a)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
+            EmitByte(a);
         }
 
         public void EmitABPInstruction(OpCode opcode, byte a, byte b, int p)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);            
-            bytecodes.Add(b);            
-
-            byte[] cBytes = BitConverter.GetBytes(p);
-            
-            bytecodes.AddRange(cBytes);              
+            EmitByte(a);
+            EmitByte(b);
+            EmitBytes(BitConverter.GetBytes(p));
         }
 
         public void EmitABPInstruction(OpCode opcode, byte a, byte b, byte[] p)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.Add(b);
-
-            
-            bytecodes.AddRange(p);
+            EmitByte(a);
+            EmitByte(b);
+            EmitBytes(p);
         }
 
         public void EmitABCPInstruction(OpCode opcode, byte registerA, byte registerB, byte registerC, int operand)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(registerA);
-            bytecodes.Add(registerB);
-            bytecodes.Add(registerC);
-            bytecodes.AddRange(BitConverter.GetBytes(operand));
+
+            EmitByte(registerA);
+            EmitByte(registerB);
+            EmitByte(registerC);
+            EmitInt(operand);
         }
         public void EmitABPPInstruction(OpCode opcode, byte registerA, byte RegisterB, int methodIndex, int argCount)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(registerA);
-            bytecodes.Add(RegisterB);
-            bytecodes.AddRange(BitConverter.GetBytes(methodIndex));
-            bytecodes.AddRange(BitConverter.GetBytes(argCount));
+            EmitByte(registerA);
+            EmitByte(RegisterB);
+            EmitInt(methodIndex);
+            EmitInt(argCount);
         }
 
         public void EmitPInstruction(OpCode opcode, int offset)
         {
             EmitOpCode(opcode);
-            int tmp = BitConverter.ToInt32(BitConverter.GetBytes(offset));
-            bytecodes.AddRange(BitConverter.GetBytes(offset));
+            EmitInt(offset);
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, int p)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.AddRange(BitConverter.GetBytes(p));
+            EmitByte(a);
+            EmitInt(p);
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, float p)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.AddRange(BitConverter.GetBytes(p));
+            EmitByte(a);
+            EmitBytes(BitConverter.GetBytes(p));            
         }
 
         public void EmitAPInstruction(OpCode opcode, byte a, byte[] p)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.AddRange(p);
+            EmitByte(a);
+            EmitBytes(p);
         }
 
         public void EmitABInstruction(OpCode opcode, byte a, byte b)
         {
             EmitOpCode(opcode);
-            bytecodes.Add(a);
-            bytecodes.Add(b);
+            EmitByte(a);
+            EmitByte(b);            
         }
 
     }

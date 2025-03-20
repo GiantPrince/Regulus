@@ -104,6 +104,16 @@ namespace Regulus.Core.Ssa
                 return i;
             }
 
+            public int NewVersion(Operand op)
+            {
+                return GetCounter(new Variable(op));
+            }
+
+            public void IncrementVersion(Operand op)
+            {
+                IncrementCounter(new Variable(op));
+            }
+
 
             public int Top(Operand op)
             {
@@ -164,20 +174,113 @@ namespace Regulus.Core.Ssa
             return new List<Use>();
         }
 
+        public void AddUse(AbstractInstruction instruction, Use use)
+        {
+            if (_uses.TryGetValue(instruction, out List<Use> uses))
+            {
+                uses.Add(use);
+            }
+            else
+            {
+                _uses.Add(instruction, new List<Use>() { use });
+            }
+        }
+
+        /// <summary>
+        /// Get new version of a specific operand
+        /// </summary>
+        /// <param name="operand"></param>
+        /// <returns></returns>
+        public int GetNewVersion(Operand operand)
+        {
+            return _variableStack.NewVersion(operand);
+        }
+
+        public void UpdateVersion(Operand operand)
+        {
+            _variableStack.IncrementVersion(operand);
+        }
+
+        /// <summary>
+        /// Update oldOperand with new one starting from the instruction of the block
+        /// the operand comparer is for finding equal operand of oldOperand
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="instruction"></param>
+        /// <param name="oldOperand"></param>
+        /// <param name="newOperand"></param>
+        public void UpdateOperand(BasicBlock block, AbstractInstruction instruction, Operand oldOperand, Operand newOperand, IEqualityComparer<Operand> comparer)
+        {
+            int instructionIndex = block.Instructions.IndexOf(instruction);
+            if (instructionIndex == -1)
+            {
+                throw new ArgumentException("Can not find instruction in block");
+
+            }
+
+            for (int i = instructionIndex + 1; i < block.Instructions.Count; i++)
+            {
+                UpdateOperand(block.Instructions[i], oldOperand, newOperand, comparer);
+            }
+
+            BasicBlock parentBlock = _domTree.GetNode(block.Index).Parent.Block;
+            if (parentBlock.Index == block.Index)
+            {
+                return;
+            }
+            UpdateOperand(parentBlock, oldOperand, newOperand, comparer);
+        }
+
+        private void UpdateOperand(AbstractInstruction instruction, Operand oldOperand, Operand newOperand, IEqualityComparer<Operand> comparer)
+        {
+            int leftOpCount = instruction.LeftHandSideOperandCount();
+            for (int i = 0; i < leftOpCount; i++)
+            {
+                if (comparer.Equals(instruction.GetLeftHandSideOperand(i), oldOperand))
+                {
+                    instruction.SetLeftHandSideOperand(i, newOperand);
+                }
+            }
+
+            int rightOpCount = instruction.RightHandSideOperandCount();
+            for (int i = 0; i < rightOpCount; i++)
+            {
+                if (comparer.Equals(instruction.GetRightHandSideOperand(i), oldOperand))
+                {
+                    instruction.SetRightHandSideOperand(i, newOperand);
+                }
+            }
+        }
+
+        private void UpdateOperand(BasicBlock block, Operand oldOperand, Operand newOperand, IEqualityComparer<Operand> comparer)
+        {
+            foreach (AbstractInstruction instruction in block.Instructions)
+            {
+                UpdateOperand(instruction, oldOperand, newOperand, comparer);
+            }
+
+            BasicBlock parentBlock = _domTree.GetNode(block.Index).Parent.Block;
+            if (parentBlock.Index == block.Index)
+            {
+                return;
+            }
+            UpdateOperand(parentBlock, oldOperand, newOperand, comparer);
+        }
+
         /// <summary>
         /// Find latest version of a specific operand
         /// </summary>
-        /// <param name="block">The basic block of the specific operand</param>
-        /// <param name="instruction">The instruction of the specific operand</param>
+        /// <param name="block">The basic block in which the specific operand is</param>
+        /// <param name="instruction">The instruction in which the specific operand is</param>
         /// <param name="op">The operand</param>
         /// <returns>The latest version</returns>
-        public int FindLatestVersion(BasicBlock block, AbstractInstruction instruction, Operand op)
+        public AbstractInstruction FindLatestDefinition(BasicBlock block, AbstractInstruction instruction, Operand op)
         {
             int instructionIndex = block.Instructions.IndexOf(instruction);
             return FindLatestVersion(block, op, instructionIndex);
         }
 
-        private int FindLatestVersion(BasicBlock block, Operand op, int instructionCount)
+        private AbstractInstruction FindLatestVersion(BasicBlock block, Operand op, int instructionCount)
         {
 
             for (int i = instructionCount - 1; i >= 0; --i)
@@ -190,7 +293,7 @@ namespace Regulus.Core.Ssa
                 Operand def = prevInstruction.GetRightHandSideOperand(0);
                 if (def.Kind == op.Kind && def.Index == op.Index)
                 {
-                    return def.Version;
+                    return prevInstruction;
                 }
             }
             // Also iterate all phi instructions
@@ -204,13 +307,13 @@ namespace Regulus.Core.Ssa
                 Operand def = prevInstruction.GetRightHandSideOperand(0);
                 if (def.Kind == op.Kind && def.Index == op.Index)
                 {
-                    return def.Version;
+                    return prevInstruction;
                 }
             }
             BasicBlock parentBlock = _domTree.GetNode(block.Index).Parent.Block;
             if (parentBlock.Index == block.Index)
             {
-                return Operand.DefaultVersion;
+                return new AbstractInstruction(AbstractOpCode.Nop, InstructionKind.Empty);
             }
             return FindLatestVersion(parentBlock, op, parentBlock.Instructions.Count);
         }

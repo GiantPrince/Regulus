@@ -325,6 +325,7 @@ namespace Regulus.Core
         Ldc_Double,
         LdStr,
         Ldloca,
+        Ldarga,
         Ldind_I1,
         Ldind_I2,
         Ldind_I4,

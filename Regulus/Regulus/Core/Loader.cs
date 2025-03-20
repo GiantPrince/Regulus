@@ -1,19 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Regulus.Core
 {
     public class Loader
     {
-        public static unsafe int LoadInt(BinaryReader reader)
+        public static int LoadInt(BinaryReader reader)
         {
             return reader.ReadInt32();
         }
-        public static unsafe string[] LoadInternedStrings(BinaryReader reader)
+        public static string[] LoadInternedStrings(BinaryReader reader)
         {
             string[] strings = new string[LoadInt(reader)];
 
@@ -26,56 +22,88 @@ namespace Regulus.Core
             return strings;
         }
 
-        public static void LoadMeta(Stream bytes, out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields)
+
+        public unsafe static void LoadMeta(Stream bytes, out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields)
         {
             methods = new List<MethodBase>();
             types = new List<Type>();
             fields = new List<FieldInfo>();
             using (BinaryReader reader = new BinaryReader(bytes))
             {
+                // Load all the types that can be accessed through reflection
                 int numOfTypes = reader.ReadInt32();
                 for (int i = 0; i < numOfTypes; i++)
                 {
                     types.Add(LoadType(reader));
                 }
 
+                // Load all the method names
                 int numOfMethodNames = reader.ReadInt32();
                 string[] methodNames = new string[numOfMethodNames];
 
                 for (int i = 0; i < numOfMethodNames; i++)
                 {
                     methodNames[i] = reader.ReadString();
-
                 }
 
+                // Load methods that can be accessed through reflection
                 int numOfMethods = reader.ReadInt32();
                 for (int i = 0; i < numOfMethods; i++)
                 {
                     methods.Add(LoadMethod(types, methodNames, reader));
                 }
 
+                // Load field names
+                int numOfFieldNames = reader.ReadInt32();
+                string[] fieldNames = new string[numOfFieldNames];
 
+                for (int i = 0; i < numOfFieldNames; i++)
+                {
+                    fieldNames[i] = reader.ReadString();
+                }
 
+                // Load fields that can be accessed through reflection
                 int numOfFields = reader.ReadInt32();
                 for (int i = 0; i < numOfFields; i++)
                 {
-                    fields.Add(LoadField(types, reader));
+                    fields.Add(LoadField(types, fieldNames, reader));
                 }
+
+                // Load bytecode
+                int numOfBytecode = reader.ReadInt32();
+                int maxPatchIndex = reader.ReadInt32();
+                byte** codes = (byte**)Marshal.AllocHGlobal(sizeof(byte*) * (maxPatchIndex + 1));
+                for (int i = 0; i < numOfBytecode; i++)
+                {
+                    int patchIndex = reader.ReadInt32();
+                    int bytecodeSize = reader.ReadInt32();
+                    byte* code = (byte*)Marshal.AllocHGlobal(sizeof(byte) * bytecodeSize);
+                    for (int j = 0; j < bytecodeSize; j++)
+                    {
+                        code[j] = reader.ReadByte();
+                    }
+                    codes[patchIndex] = code;
+                }
+
+                VirtualMachine.s_code = codes;
+                VirtualMachine.s_codeSize = maxPatchIndex + 1;
+
+
+
             }
 
         }
 
-        private static FieldInfo LoadField(List<Type> types, BinaryReader reader)
+        private static FieldInfo LoadField(List<Type> types, string[] fieldNames, BinaryReader reader)
         {
             Type declaringType = types[reader.ReadInt32()];
-            string fieldName = reader.ReadString();
+            string fieldName = fieldNames[reader.ReadInt32()];
             FieldInfo? fieldInfo = declaringType.GetField(
                 fieldName,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (fieldInfo == null)
             {
                 throw new Exception("Can not load field " + fieldName);
-
             }
             return fieldInfo;
 

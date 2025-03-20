@@ -65,6 +65,7 @@ namespace Regulus.Core.Ssa.Instruction
         Stind_Ref,
 
         Ldloca,
+        Ldarga,
         Ldnull,
         Dup,
         Neg,
@@ -360,6 +361,7 @@ namespace Regulus.Core.Ssa.Instruction
                 case AbstractOpCode.Stind_R8: return "Stind_R8";
                 case AbstractOpCode.Stind_I: return "Stind_I";
                 case AbstractOpCode.Stind_Ref: return "Stind_Ref";
+                case AbstractOpCode.Ldarga: return "Ldarga";
                 default:
                     return "Unknown OpCode";
             }
