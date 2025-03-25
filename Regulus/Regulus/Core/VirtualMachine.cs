@@ -54,12 +54,12 @@ namespace Regulus.Core
             Registers[index] = value;
         }
 
-        public void SetRegisterInt32(int index, int value)
+        public void SetRegisterInt(int index, int value)
         {
             Registers[index].Upper = value;
         }
 
-        public void SetRegisterInt64(int index, long value)
+        public void SetRegisterLong(int index, long value)
         {
             *(long*)&Registers[index].Upper = value;
         }
@@ -80,9 +80,9 @@ namespace Regulus.Core
             Objects[index] = value;
         }
 
-        public void SetRegisterPointer(int index, int pointer)
+        public void SetRegisterPointer(int index, void* pointer)
         {
-            *(Value**)&Registers[index].Upper = &Registers[pointer];
+            *(void**)&Registers[index].Upper = pointer;
         }
 
         public void ResetRegister()
@@ -2939,8 +2939,8 @@ namespace Regulus.Core
                         break;
                     case OpCode.Ret:
                         AInstruction* retInstruction = (AInstruction*)ip;
-                        Registers[0] = Registers[retInstruction->RegisterA];
-                        return Registers[0];
+                        return Registers[retInstruction->RegisterA];
+                        //return Registers[0];
                     case OpCode.Nop:
                         break;
                     default:

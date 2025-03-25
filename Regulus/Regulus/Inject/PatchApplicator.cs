@@ -12,24 +12,16 @@ namespace Regulus.Inject
     {
         private static VirtualMachine _vm;
         private static bool[] _hasPatch;
-
-        public void Init(string patchPath)
+        
+        public PatchApplicator(VirtualMachine vm, bool[] hasPatch)
         {
-            // load from the patch
-            using (FileStream patch = File.OpenRead(patchPath))
-            {
-                Loader.LoadMeta(patch, out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
-            }
+            _vm = vm;
+            _hasPatch = hasPatch;
         }
 
-        public bool HasPatch(int patchId)
-        {
-            return patchId < _hasPatch.Length && _hasPatch[patchId];
-        }
-
-
-
-
-
+        //public static bool HasPatch(int patchId)
+        //{
+        //    return patchId < _hasPatch.Length && _hasPatch[patchId];
+        //}
     }
 }

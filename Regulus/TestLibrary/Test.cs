@@ -2,57 +2,27 @@
 using System.Net.Security;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
-using Regulus;
+using Regulus.Core;
+using Regulus.Inject;
 
 namespace TestLibrary
 {
-    public struct s
+    public class Dog
     {
-        int a;
-        public s(int v)
+        public int barkCount;
+        public Dog() { barkCount = 0; }
+
+        public static void Init()
         {
-            a = v;
+            bool[] hasPatch = { true, true, true };
+            VirtualMachine vm = new VirtualMachine();
+            Activator.CreateInstance(Type.GetType("Regulus.PatchRepository"), [ vm, hasPatch ]);
         }
 
-        public void hello()
+        [Tag(TagType.Patch)]
+        public void Bark()
         {
-            a++;
+            barkCount++;
         }
-    }
-
-    public ref struct rs
-    {
-        public int a;
-        public rs(int v)
-        {
-            a = v;
-        }
-    }
-    public class Test
-    {
-        int b;
-        static Dictionary<string, string> dict;// = new Dictionary<string, string>();
-        public Test(int a)
-        {
-            b = a;
-            dict = new Dictionary<string, string>();
-        }
-        public void sub()
-        {
-            b++;
-        }
-        public static void Add(ref int a, int b)
-        {
-            int c = a;
-            int d = b;
-            ReferenceTest.Sub(ref c, ref d);
-            //ReferenceTest.Sub(ref c, 1, ref d);
-            //Console.WriteLine(c);
-            //Console.WriteLine(d);
-            //Console.WriteLine(a);
-            //Console.WriteLine(b);
-            //Console.WriteLine(ReferenceTest.Add(a, a));
-        }
-
     }
 }

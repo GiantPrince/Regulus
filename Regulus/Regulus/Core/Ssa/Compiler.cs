@@ -152,7 +152,14 @@ namespace Regulus.Core.Ssa
 
         private void CompileReturnInstruction(ReturnInstruction returnInstruction)
         {
-            _emitter.EmitAInstruction(OpCode.Ret, ComputeRegisterLocation(returnInstruction.GetLeftHandSideOperand(0)));
+            if (returnInstruction.HasLeftHandSideOperand())
+            {
+                _emitter.EmitAInstruction(OpCode.Ret, ComputeRegisterLocation(returnInstruction.GetLeftHandSideOperand(0)));
+            }
+            else
+            {
+                _emitter.EmitAInstruction(OpCode.Ret, 0);
+            }
         }
 
         private void CompilerCondBranchInstruction(CondBranchInstruction condBranchInstruction)

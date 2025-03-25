@@ -17,15 +17,14 @@ namespace Regulus.Inject
             return s_id;
         }
 
-        public static List<MethodDefinition> ScanPatchMethod(string ddlPath)
+        public static List<MethodDefinition> ScanPatchMethod(AssemblyDefinition assembly)
         {           
-            ModuleDefinition module = ModuleDefinition.ReadModule(ddlPath);
             List<MethodDefinition> patchMethod = new List<MethodDefinition>();
-            foreach (TypeDefinition type in module.Types)
+            foreach (TypeDefinition type in assembly.MainModule.Types)
             {
                 patchMethod.AddRange(type.Methods.Where(m => IsPatched(m)));
             }
-            ScanTaggedMethod(module);
+            ScanTaggedMethod(assembly.MainModule);
             return patchMethod;
         }
 

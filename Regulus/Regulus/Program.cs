@@ -4,8 +4,9 @@ using Mono.Cecil;
 using Regulus.Core.Ssa;
 using System.Collections;
 using Regulus.Core.Ssa.Instruction;
-using System.Runtime.InteropServices;
+
 using System.Diagnostics;
+using Regulus.Inject;
 
 namespace Regulus
 {
@@ -18,8 +19,40 @@ namespace Regulus
         c
     }
     public class Program
-    {        
-        public unsafe static void Main(string[] args)
+    {       
+        public static void MethodToInject(int a, int b)
+        {
+            Console.WriteLine(a);
+            Console.WriteLine(b);
+            Console.WriteLine(a + b);
+        }
+
+        public static string GetBackupFile(string file)
+        {
+            string fileName = Path.GetFileName(file);
+            string dir = "C:\\Users\\Harry\\Desktop";
+            return Path.Combine(dir, fileName);
+        }
+        public static void Inject(string path)
+        {
+            string bakPath = GetBackupFile(path);
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
+            List<MethodDefinition> methods = TagFilter.ScanPatchMethod(assembly);
+            Injector.Inject(assembly, methods.First(), 1);
+            //assembly.MainModule.AssemblyReferences.Add()
+            assembly.Write(bakPath);                        
+        }
+
+        public static void Write(string path)
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+            File.Move(GetBackupFile(path), path);
+        }
+
+        public unsafe static void Test()
         {
             ModuleDefinition module = ModuleDefinition.ReadModule("D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll");
             TypeDefinition typeDef = module.Types.First(type => { return type.Name.Contains("Test"); });
@@ -38,7 +71,7 @@ namespace Regulus
             }
 
             ssaBuilder.PrintUseDefChain();
-            
+
             Console.WriteLine("==== optimized ====");
             Optimizer optimizer = new Optimizer(ssaBuilder);
             foreach (BasicBlock block in ssaBuilder.GetBlocks())
@@ -48,7 +81,7 @@ namespace Regulus
 
             Compiler compiler = new Compiler();
             compiler.Compile(0, ssaBuilder.GetBlocks(), ssaBuilder, methodDef.Parameters.Count);
-            
+
             fixed (byte* ip = compiler.GetByteCode())
             {
                 Loader.LoadMeta(compiler.GetMeta(), out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
@@ -59,116 +92,26 @@ namespace Regulus
                 virtualMachine.Types = types.ToArray();
                 //virtualMachine.GCHandles = new System.Runtime.InteropServices.GCHandle[]
                 Stopwatch sw = Stopwatch.StartNew();
-                virtualMachine.SetRegisterInt32(0, 3);
-                virtualMachine.SetRegisterInt32(1, 2);
+                virtualMachine.SetRegisterInt(0, 3);
+                virtualMachine.SetRegisterInt(1, 2);
                 virtualMachine.Run(ip);
                 sw.Stop();
                 Console.WriteLine("a" + sw.ElapsedMilliseconds);
                 sw.Restart();
-                Add();
+
                 sw.Stop();
                 Console.WriteLine("b" + sw.ElapsedMilliseconds);
             }
         }
-
-        public static void Test()
+        public unsafe static void Main(string[] args)
         {
-            List<byte> bytes = new List<byte>() { 0, 1 };
-            int sum = 0;
-            Stopwatch sw = Stopwatch.StartNew();
-            
-            for (int i = 0; i < 1000000; i++)
-            {
-                sum += Split(bytes);
-            }
-            sw.Stop();
-            Console.WriteLine("Split = " + sw.ElapsedMilliseconds);
-            sum = 0;
-            sw.Restart();
-            for (int i = 0; i < 1000000; i++)
-            {
-                sum += NotSplit(bytes);
-            }
-            sw.Stop();
-            Console.WriteLine("NotSplit = " + sw.ElapsedMilliseconds);
+            string path = "D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll";
 
+            Inject(path);
+            //Write(path);
         }
 
-        public static int Split(List<byte> bytes)
-        {
-            switch (bytes[0])
-            {
-                case 1:
-                    return 1;
-                case 2: return 2;
-                case 3: return 3;
-                case 4: return 4;
-                case 5: return 5;
-                case 6: return 6;
-                case 7: return 7;
-                case 8: return 8;
-                case 9: return 9;
-            }
-            return -1;
-        }
-
-        public static int NotSplit(List<byte> bytes)
-        {
-            
-            switch (bytes[0])
-            {
-                case 0:
-                    switch (bytes[1])
-                    {
-                        case 1:
-                            return 1;
-                        case 2:
-                            return 2;
-                        case 3:
-                            return 3;
-                    }
-                    break;
-                case 1:
-                    switch (bytes[1])
-                    {
-                        case 1:
-                            return 4;
-                        case 2: 
-                            return 5;
-                        case 3: 
-                            return 6;
-                    }
-                    break;
-                case 2:
-                    switch (bytes[1])
-                    {
-                        case 1:
-                            return 7;
-                        case 2:
-                            return 8;
-                        case 3:
-                            return 9;
-                    }
-                    break;
-
-            }
-            return -1;
-        }
-
-        public static void Add()
-        {
-            int[] arr = new int[10];
-            arr[0] = 1;
-
-            for (int i = 0; i < 1000000; i++)
-            {
-                if (i % 10 == 0)
-                    continue;
-                int j = i % 10;
-                arr[j] += arr[j - 1];
-            }
-            Console.WriteLine(arr[9]);
-        }
+        
 
     }
 }
