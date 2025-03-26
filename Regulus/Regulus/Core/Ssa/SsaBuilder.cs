@@ -91,6 +91,10 @@ namespace Regulus.Core.Ssa
             {
                 if (_stacks.TryGetValue(v, out Stack<StackItem> stack))
                 {
+                    if (stack.Count == 0)
+                    {
+                        return s_emptyStackItem;
+                    }
                     return stack.Peek();
                 }
                 return s_emptyStackItem;
@@ -149,6 +153,10 @@ namespace Regulus.Core.Ssa
             _uses = new Dictionary<AbstractInstruction, List<Use>>();
 
             _cfg = new ControlFlowGraph(method);
+            foreach (BasicBlock bb in _cfg.Blocks)
+            {
+                Console.WriteLine(bb);
+            }
             _domTree = new DomTree(_cfg.Blocks);
             _domFrontier = new DomFrontier(_cfg.Blocks, _domTree);
             InsertPhiFunction(method, _cfg, _domTree, _domFrontier);
@@ -385,9 +393,9 @@ namespace Regulus.Core.Ssa
                     GenerateName(instruction.GetRightHandSideOperand(i), instruction);
                 }
             }
-            foreach (int succ in block.Successors)
+            foreach (BasicBlock SuccBlock in block.Successors)
             {
-                BasicBlock SuccBlock = _cfg.Blocks[succ];
+                //BasicBlock SuccBlock = _cfg.Blocks[succ];
                 foreach (PhiInstruction phiInstruction in SuccBlock.PhiInstructions)
                 {
                     int index = phiInstruction.GetBlockIndex(block);

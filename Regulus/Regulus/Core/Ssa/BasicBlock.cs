@@ -13,15 +13,15 @@ namespace Regulus.Core.Ssa
         public int StartIndex;
         public int EndIndex;
         public int LiveInStackSize;
-        public List<int> Predecessors;
-        public List<int> Successors;
+        public List<BasicBlock> Predecessors;
+        public List<BasicBlock> Successors;
         public List<AbstractInstruction> Instructions;
         public List<PhiInstruction> PhiInstructions;
         public BasicBlock(int index)
         {
             Index = index;
-            Predecessors = new List<int>();
-            Successors = new List<int>();
+            Predecessors = new List<BasicBlock>();
+            Successors = new List<BasicBlock>();
             Instructions = new List<AbstractInstruction>();
             PhiInstructions = new List<PhiInstruction>();
         }
@@ -70,15 +70,15 @@ namespace Regulus.Core.Ssa
             stringBuilder.AppendLine($"Basic Block {Index} ({StartIndex}-{EndIndex})");
             stringBuilder.AppendLine($"LiveInStackSize: {LiveInStackSize}");
             stringBuilder.Append("Pred: ");
-            foreach (int i in Predecessors)
+            foreach (BasicBlock i in Predecessors)
             {
-                stringBuilder.Append($"#{i} ");
+                stringBuilder.Append($"#{i.Index} ");
             }
             stringBuilder.AppendLine();
             stringBuilder.Append("Succ: ");
-            foreach (int i in Successors)
+            foreach (BasicBlock i in Successors)
             {
-                stringBuilder.Append($"#{i} ");
+                stringBuilder.Append($"#{i.Index} ");
             }
             stringBuilder.AppendLine();
             foreach (PhiInstruction phiInstruction in PhiInstructions)

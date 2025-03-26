@@ -156,93 +156,93 @@ namespace Regulus.Inject
             var vmField = patchApplicator.Fields.First(f => f.Name == "_vm");
             var vmType = module.ImportReference(typeof(Core.VirtualMachine));
             
-            System.Reflection.MethodInfo Print = typeof(Console).GetMethod("WriteLine", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, [typeof(string)]);
+            //System.Reflection.MethodInfo Print = typeof(Console).GetMethod("WriteLine", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, [typeof(string)]);
             
-            il.Emit(OpCodes.Ldstr, $"This is patch {patchIndex}\n");
-            il.Emit(OpCodes.Call, module.ImportReference(Print));
-            il.Emit(OpCodes.Ret);
-            //// 1. Load VirtualMachine instance
-            //il.Emit(OpCodes.Ldsfld, vmField);
-
-            //// 2. Prepare all parameters
-            //int registerIndex = 0;
-            //foreach (var param in patchMethod.Parameters)
-            //{
-            //    var paramType = param.ParameterType;
-            //    bool isByRef = paramType.IsByReference;
-
-            //    il.Emit(OpCodes.Dup); // Duplicate VM reference
-
-            //    // 2a. Set register index
-            //    il.Emit(OpCodes.Ldc_I4, registerIndex);
-
-            //    // 2b. Load parameter value/address
-            //    if (isByRef)
-            //    {
-            //        // Handle ref/out parameters
-            //        il.Emit(OpCodes.Ldarga, param);
-                    
-            //        var setPointer = module.ImportReference(
-            //            typeof(Core.VirtualMachine).GetMethod("SetRegisterPointer"));
-            //        il.Emit(OpCodes.Callvirt, setPointer);
-            //    }
-            //    else if (paramType.IsValueType)
-            //    {
-            //        // Handle value types
-            //        il.Emit(OpCodes.Ldarg, param);
-
-            //        switch (paramType.MetadataType)
-            //        {
-            //            case MetadataType.Int32:
-            //                il.Emit(OpCodes.Callvirt,
-            //                    module.ImportReference(typeof(Core.VirtualMachine)
-            //                        .GetMethod("SetRegisterInt")));
-            //                break;
-            //            case MetadataType.Int64:
-            //                il.Emit(OpCodes.Callvirt,
-            //                    module.ImportReference(typeof(Core.VirtualMachine)
-            //                        .GetMethod("SetRegisterLong")));
-            //                break;
-            //            case MetadataType.Single:
-            //                il.Emit(OpCodes.Callvirt,
-            //                    module.ImportReference(typeof(Core.VirtualMachine)
-            //                        .GetMethod("SetRegisterFloat")));
-            //                break;
-            //            case MetadataType.Double:
-            //                il.Emit(OpCodes.Callvirt,
-            //                    module.ImportReference(typeof(Core.VirtualMachine)
-            //                        .GetMethod("SetRegisterDouble")));
-            //                break;
-            //            default:
-            //                // Box other value types
-            //                il.Emit(OpCodes.Box, paramType);
-            //                il.Emit(OpCodes.Callvirt,
-            //                    module.ImportReference(typeof(Core.VirtualMachine)
-            //                        .GetMethod("SetRegisterObject")));
-            //                break;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        // Handle reference types
-            //        il.Emit(OpCodes.Ldarg, param);
-            //        il.Emit(OpCodes.Callvirt,
-            //            module.ImportReference(typeof(Core.VirtualMachine)
-            //                .GetMethod("SetRegisterObject")));
-            //    }
-
-            //    registerIndex++;
-            //}
-
-            //// 3. Call Run with patch index
-            //il.Emit(OpCodes.Dup); // Duplicate VM reference
-            //il.Emit(OpCodes.Ldc_I4, patchIndex);
-            //var runMethod = module.ImportReference(
-            //    typeof(Core.VirtualMachine).GetMethod("Run"));
-            //il.Emit(OpCodes.Callvirt, runMethod);
-
-            //// 4. Return from method
+            //il.Emit(OpCodes.Ldstr, $"This is patch {patchIndex}\n");
+            //il.Emit(OpCodes.Call, module.ImportReference(Print));
             //il.Emit(OpCodes.Ret);
+            // 1. Load VirtualMachine instance
+            il.Emit(OpCodes.Ldsfld, vmField);
+
+            // 2. Prepare all parameters
+            int registerIndex = 0;
+            foreach (var param in patchMethod.Parameters)
+            {
+                var paramType = param.ParameterType;
+                bool isByRef = paramType.IsByReference;
+
+                il.Emit(OpCodes.Dup); // Duplicate VM reference
+
+                // 2a. Set register index
+                il.Emit(OpCodes.Ldc_I4, registerIndex);
+
+                // 2b. Load parameter value/address
+                if (isByRef)
+                {
+                    // Handle ref/out parameters
+                    il.Emit(OpCodes.Ldarga, param);
+
+                    var setPointer = module.ImportReference(
+                        typeof(Core.VirtualMachine).GetMethod("SetRegisterPointer"));
+                    il.Emit(OpCodes.Callvirt, setPointer);
+                }
+                else if (paramType.IsValueType)
+                {
+                    // Handle value types
+                    il.Emit(OpCodes.Ldarg, param);
+
+                    switch (paramType.MetadataType)
+                    {
+                        case MetadataType.Int32:
+                            il.Emit(OpCodes.Callvirt,
+                                module.ImportReference(typeof(Core.VirtualMachine)
+                                    .GetMethod("SetRegisterInt")));
+                            break;
+                        case MetadataType.Int64:
+                            il.Emit(OpCodes.Callvirt,
+                                module.ImportReference(typeof(Core.VirtualMachine)
+                                    .GetMethod("SetRegisterLong")));
+                            break;
+                        case MetadataType.Single:
+                            il.Emit(OpCodes.Callvirt,
+                                module.ImportReference(typeof(Core.VirtualMachine)
+                                    .GetMethod("SetRegisterFloat")));
+                            break;
+                        case MetadataType.Double:
+                            il.Emit(OpCodes.Callvirt,
+                                module.ImportReference(typeof(Core.VirtualMachine)
+                                    .GetMethod("SetRegisterDouble")));
+                            break;
+                        default:
+                            // Box other value types
+                            il.Emit(OpCodes.Box, paramType);
+                            il.Emit(OpCodes.Callvirt,
+                                module.ImportReference(typeof(Core.VirtualMachine)
+                                    .GetMethod("SetRegisterObject")));
+                            break;
+                    }
+                }
+                else
+                {
+                    // Handle reference types
+                    il.Emit(OpCodes.Ldarg, param);
+                    il.Emit(OpCodes.Callvirt,
+                        module.ImportReference(typeof(Core.VirtualMachine)
+                            .GetMethod("SetRegisterObject")));
+                }
+
+                registerIndex++;
+            }
+
+            // 3. Call Run with patch index
+            il.Emit(OpCodes.Dup); // Duplicate VM reference
+            il.Emit(OpCodes.Ldc_I4, patchIndex);
+            var runMethod = module.ImportReference(
+                typeof(Core.VirtualMachine).GetMethod("Run"));
+            il.Emit(OpCodes.Callvirt, runMethod);
+
+            // 4. Return from method
+            il.Emit(OpCodes.Ret);
 
             // Optimize and rebuild method
             patchMethod.Body.OptimizeMacros();

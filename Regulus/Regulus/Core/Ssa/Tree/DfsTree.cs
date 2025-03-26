@@ -55,9 +55,9 @@ namespace Regulus.Core.Ssa.Tree
             };
             nodes.Add(newNode);
             
-            foreach (int successor in basicBlock.Successors)
+            foreach (BasicBlock successor in basicBlock.Successors)
             {
-                Dfs(blocks[successor], newNode);
+                Dfs(successor, newNode);
             }
         }
 

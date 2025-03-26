@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Mono.Cecil;
+using Mono.CompilerServices.SymbolWriter;
 using Regulus.Core.Ssa;
 
 namespace Regulus.Inject
@@ -17,6 +18,10 @@ namespace Regulus.Inject
             Compiler compiler = new Compiler();
             foreach (MethodDefinition method in patchMethods)
             {
+                foreach (var i in method.Body.Instructions)
+                {
+                    Console.WriteLine(i);
+                }
                 SsaBuilder ssaBuilder = new SsaBuilder(method);
                 Optimizer optimizer = new Optimizer(ssaBuilder);
                 compiler.Compile(TagFilter.GetMethodId(method), ssaBuilder.GetBlocks(), ssaBuilder, method.Parameters.Count);

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Regulus.Core.Ssa.Instruction;
 
 namespace Regulus.Core.Ssa
 {
@@ -215,6 +216,12 @@ namespace Regulus.Core.Ssa
             _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
         }
 
+        public void EmitLong(long value)
+        {
+            _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
+
+        }
+
         public void EmitBool(bool value)
         {
             _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
@@ -342,6 +349,12 @@ namespace Regulus.Core.Ssa
             {
                 EmitStringMeta(_types[i]);
             }
+            string[] internedStrings = ValueOperand.GetInternedStrings();
+            EmitIntMeta(internedStrings.Length);
+            for (int i = 0; i < internedStrings.Length; i++)
+            {
+                EmitStringMeta(internedStrings[i]);
+            }
             EmitIntMeta(_methodNames.Count);
             for (int i = 0; i < _methodNames.Count; i++)
             {
@@ -361,21 +374,6 @@ namespace Regulus.Core.Ssa
                     EmitIntMeta(_argTypes[entry.ArgTypeId].ArgTypeIds[j]);
                 }
             }
-
-
-            //for (int i = 0; i < _methods.Count; i++)
-            //{
-            //    EmitIntMeta(__currentMethodIndexToType[i]);
-            //    EmitStringMeta(_methods[i]);
-            //    EmitBoolMeta(_isGenericMethod[i]);
-            //    EmitBoolMeta(_callvirt[i]);
-            //    EmitIntMeta(_argCount[i]);
-            //    for (int j = 0; j < _argCount[i]; j++)
-            //    {
-            //        EmitIntMeta(_parameterIndexToType[acc + j]);
-            //    }
-            //    acc += _argCount[i];
-            //}
 
             EmitIntMeta(_fieldNames.Count);
             for (int i = 0; i < _fieldNames.Count; i++)
@@ -525,6 +523,12 @@ namespace Regulus.Core.Ssa
             EmitOpCode(opcode);
             EmitByte(a);
             EmitByte(b);            
+        }
+
+        public void EmitLPInstruction(OpCode opcode, long l)
+        {
+            EmitOpCode(opcode);
+            EmitLong(l);
         }
 
     }

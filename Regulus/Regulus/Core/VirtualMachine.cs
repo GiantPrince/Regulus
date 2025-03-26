@@ -12,10 +12,10 @@ namespace Regulus.Core
     using Regulus.Debug;
     public unsafe class VirtualMachine
     {
-        private const int MAX_REGISTERS = 256;
+        public const int MAX_REGISTERS = 256;
        
-        private Value* Registers;
-        public static byte** s_code;
+        public static Value* s_registers;
+        public static byte** s_bytecode;
         public static int s_codeSize;
         private int _gchandleStackTop = 0;
         public object[] Objects;
@@ -27,62 +27,62 @@ namespace Regulus.Core
 
         public VirtualMachine()
         {
-            Registers = (Value*)Marshal.AllocHGlobal(sizeof(Value) * MAX_REGISTERS);
+            s_registers = (Value*)Marshal.AllocHGlobal(sizeof(Value) * MAX_REGISTERS);
             Objects = new object[MAX_REGISTERS];
         }
 
         ~VirtualMachine()
         {
-            Marshal.FreeHGlobal((nint)Registers);
+            Marshal.FreeHGlobal((nint)s_registers);
             for (int i = 0; i < s_codeSize; i++)
             {
-                if (s_code[i] != (byte*)0)
+                if (s_bytecode[i] != (byte*)0)
                 {
-                    Marshal.FreeHGlobal((nint)s_code[i]);
+                    Marshal.FreeHGlobal((nint)s_bytecode[i]);
                 }
             }
-            Marshal.FreeHGlobal((nint)s_code);
+            Marshal.FreeHGlobal((nint)s_bytecode);
         }
 
         public Value GetRegister(int index)
         {
-            return Registers[index];
+            return s_registers[index];
         }
 
         public void SetRegister(int index, Value value)
         {
-            Registers[index] = value;
+            s_registers[index] = value;
         }
 
         public void SetRegisterInt(int index, int value)
         {
-            Registers[index].Upper = value;
+            s_registers[index].Upper = value;
         }
 
         public void SetRegisterLong(int index, long value)
         {
-            *(long*)&Registers[index].Upper = value;
+            *(long*)&s_registers[index].Upper = value;
         }
 
         public void SetRegisterFloat(int index, float value)
         {
-            *(float*)&Registers[index].Upper = value;
+            *(float*)&s_registers[index].Upper = value;
         }
 
         public void SetRegisterDouble(int index, double value)
         {
-            *(double*)&Registers[index].Upper = value;
+            *(double*)&s_registers[index].Upper = value;
         }
 
         public void SetRegisterObject(int index, object value)
         {
-            Registers[index].Upper = index;
+            s_registers[index].Upper = index;
             Objects[index] = value;
         }
 
         public void SetRegisterPointer(int index, void* pointer)
         {
-            *(void**)&Registers[index].Upper = pointer;
+            *(void**)&s_registers[index].Upper = pointer;
         }
 
         public void ResetRegister()
@@ -90,11 +90,11 @@ namespace Regulus.Core
             Value empty = new Value();
             for (int i = 0; i < MAX_REGISTERS; i++)
             {
-                Registers[i] = empty;
+                s_registers[i] = empty;
             }
         }
 
-        public Value Run(byte* ip)
+        public void Run(byte* ip, Value* reg, byte returnReg)
         {
             //ResetRegister();
             
@@ -108,101 +108,101 @@ namespace Regulus.Core
                 {
                     case OpCode.Mov:
                         ABInstruction* movInstruction = (ABInstruction*)ip;
-                        Registers[movInstruction->RegisterB] = Registers[movInstruction->RegisterA];
+                        reg[movInstruction->RegisterB] = reg[movInstruction->RegisterA];
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.AddI_Int:
                         ABPInstruction* addIIntInstruction = (ABPInstruction*)ip;
-                        Registers[addIIntInstruction->RegisterB].Upper =
-                            Registers[addIIntInstruction->RegisterA].Upper + addIIntInstruction->Operand;
+                        reg[addIIntInstruction->RegisterB].Upper =
+                            reg[addIIntInstruction->RegisterA].Upper + addIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.AddI_Long:
                         ABLPInstruction* addILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[addILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[addILongInstruction->RegisterA].Upper + addILongInstruction->Operand;
+                        *(long*)&reg[addILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[addILongInstruction->RegisterA].Upper + addILongInstruction->Operand;
                         ip += ABLPInstruction.Size;
                         break;
                     case OpCode.AddI_Float:
                         ABPInstruction* addIFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[addIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[addIFloatInstruction->RegisterA].Upper + *(float*)&addIFloatInstruction->Operand;
+                        *(float*)&reg[addIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[addIFloatInstruction->RegisterA].Upper + *(float*)&addIFloatInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.AddI_Double:
                         ABLPInstruction* addIDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[addIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[addIDoubleInstruction->RegisterA].Upper + *(double*)&addIDoubleInstruction->Operand;
+                        *(double*)&reg[addIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[addIDoubleInstruction->RegisterA].Upper + *(double*)&addIDoubleInstruction->Operand;
                         ip += ABLPInstruction.Size;
                         break;
 
                     case OpCode.AddI_Ovf_Int:
                     
                         ABPInstruction* addIOvfIntInstruction = (ABPInstruction*)ip;
-                        Registers[addIOvfIntInstruction->RegisterB].Upper =
-                            checked(Registers[addIOvfIntInstruction->RegisterA].Upper + addIOvfIntInstruction->Operand);
+                        reg[addIOvfIntInstruction->RegisterB].Upper =
+                            checked(reg[addIOvfIntInstruction->RegisterA].Upper + addIOvfIntInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.AddI_Ovf_Long:
                         ABLPInstruction* addIOvfLongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[addIOvfLongInstruction->RegisterB].Upper =
-                            checked(*(long*)&Registers[addIOvfLongInstruction->RegisterA].Upper +
+                        *(long*)&reg[addIOvfLongInstruction->RegisterB].Upper =
+                            checked(*(long*)&reg[addIOvfLongInstruction->RegisterA].Upper +
                                     addIOvfLongInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.AddI_Ovf_Float:
                         ABPInstruction* addIOvfFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[addIOvfFloatInstruction->RegisterB].Upper =
-                            checked(*(float*)&Registers[addIOvfFloatInstruction->RegisterA].Upper + *(float*)&addIOvfFloatInstruction->Operand);
+                        *(float*)&reg[addIOvfFloatInstruction->RegisterB].Upper =
+                            checked(*(float*)&reg[addIOvfFloatInstruction->RegisterA].Upper + *(float*)&addIOvfFloatInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.AddI_Ovf_Double:
                         ABLPInstruction* addIOvfDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[addIOvfDoubleInstruction->RegisterB].Upper =
-                            checked(*(double*)&Registers[addIOvfDoubleInstruction->RegisterA].Upper +
+                        *(double*)&reg[addIOvfDoubleInstruction->RegisterB].Upper =
+                            checked(*(double*)&reg[addIOvfDoubleInstruction->RegisterA].Upper +
                                     *(double*)&addIOvfDoubleInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.AddI_Ovf_UInt:
                         ABPInstruction* addIOvfUIntInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[addIOvfUIntInstruction->RegisterB].Upper =
-                            checked(*(uint*)&Registers[addIOvfUIntInstruction->RegisterA].Upper + *(uint*)&addIOvfUIntInstruction->Operand);
+                        *(uint*)&reg[addIOvfUIntInstruction->RegisterB].Upper =
+                            checked(*(uint*)&reg[addIOvfUIntInstruction->RegisterA].Upper + *(uint*)&addIOvfUIntInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.SubI_Int:
                         ABPInstruction* subIIntInstruction = (ABPInstruction*)ip;
-                        Registers[subIIntInstruction->RegisterB].Upper =
-                            Registers[subIIntInstruction->RegisterA].Upper - subIIntInstruction->Operand;
+                        reg[subIIntInstruction->RegisterB].Upper =
+                            reg[subIIntInstruction->RegisterA].Upper - subIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.SubI_Long:
                         ABLPInstruction* subILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[subILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[subILongInstruction->RegisterA].Upper - subILongInstruction->Operand;
+                        *(long*)&reg[subILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[subILongInstruction->RegisterA].Upper - subILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.SubI_Float:
                         ABPInstruction* subIFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[subIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[subIFloatInstruction->RegisterA].Upper - *(float*)&subIFloatInstruction->Operand;
+                        *(float*)&reg[subIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[subIFloatInstruction->RegisterA].Upper - *(float*)&subIFloatInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.SubI_Double:
                         ABLPInstruction* subIDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[subIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[subIDoubleInstruction->RegisterA].Upper - *(double*)&subIDoubleInstruction->Operand;
+                        *(double*)&reg[subIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[subIDoubleInstruction->RegisterA].Upper - *(double*)&subIDoubleInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.SubI_Ovf_UInt:
                         ABPInstruction* subIOvfUIntInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[subIOvfUIntInstruction->RegisterB].Upper =
-                            checked(*(uint*)&Registers[subIOvfUIntInstruction->RegisterA].Upper - *(uint*)&subIOvfUIntInstruction->Operand);
+                        *(uint*)&reg[subIOvfUIntInstruction->RegisterB].Upper =
+                            checked(*(uint*)&reg[subIOvfUIntInstruction->RegisterA].Upper - *(uint*)&subIOvfUIntInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
 
@@ -211,52 +211,52 @@ namespace Regulus.Core
 
                     case OpCode.MulI_Int:
                         ABPInstruction* mulIIntInstruction = (ABPInstruction*)ip;
-                        Registers[mulIIntInstruction->RegisterB].Upper =
-                            Registers[mulIIntInstruction->RegisterA].Upper * mulIIntInstruction->Operand;
+                        reg[mulIIntInstruction->RegisterB].Upper =
+                            reg[mulIIntInstruction->RegisterA].Upper * mulIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.MulI_Long:
                         ABLPInstruction* mulILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[mulILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[mulILongInstruction->RegisterA].Upper * mulILongInstruction->Operand;
+                        *(long*)&reg[mulILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[mulILongInstruction->RegisterA].Upper * mulILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.MulI_Float:
                         ABPInstruction* mulIFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[mulIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[mulIFloatInstruction->RegisterA].Upper * *(float*)&mulIFloatInstruction->Operand;
+                        *(float*)&reg[mulIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[mulIFloatInstruction->RegisterA].Upper * *(float*)&mulIFloatInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.MulI_Double:
                         ABLPInstruction* mulIDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[mulIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[mulIDoubleInstruction->RegisterA].Upper * *(double*)&mulIDoubleInstruction->Operand;
+                        *(double*)&reg[mulIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[mulIDoubleInstruction->RegisterA].Upper * *(double*)&mulIDoubleInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.MulI_Ovf_Long:
                         ABLPInstruction* mulIOvfLongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[mulIOvfLongInstruction->RegisterB].Upper =
-                            checked(*(long*)&Registers[mulIOvfLongInstruction->RegisterA].Upper *
+                        *(long*)&reg[mulIOvfLongInstruction->RegisterB].Upper =
+                            checked(*(long*)&reg[mulIOvfLongInstruction->RegisterA].Upper *
                                     mulIOvfLongInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.MulI_Ovf_Float:
                         ABPInstruction* mulIOvfFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[mulIOvfFloatInstruction->RegisterB].Upper =
-                            checked(*(float*)&Registers[mulIOvfFloatInstruction->RegisterA].Upper *
+                        *(float*)&reg[mulIOvfFloatInstruction->RegisterB].Upper =
+                            checked(*(float*)&reg[mulIOvfFloatInstruction->RegisterA].Upper *
                                     *(float*)&mulIOvfFloatInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.MulI_Ovf_Double:
                         ABLPInstruction* mulIOvfDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[mulIOvfDoubleInstruction->RegisterB].Upper =
-                            checked(*(double*)&Registers[mulIOvfDoubleInstruction->RegisterA].Upper *
+                        *(double*)&reg[mulIOvfDoubleInstruction->RegisterB].Upper =
+                            checked(*(double*)&reg[mulIOvfDoubleInstruction->RegisterA].Upper *
                                     *(double*)&mulIOvfDoubleInstruction->Operand);
                         ip += ABPInstruction.Size;
                         break;
@@ -267,292 +267,292 @@ namespace Regulus.Core
 
                     case OpCode.DivI_Int:
                         ABPInstruction* divIIntInstruction = (ABPInstruction*)ip;
-                        Registers[divIIntInstruction->RegisterB].Upper =
-                            Registers[divIIntInstruction->RegisterA].Upper / divIIntInstruction->Operand;
+                        reg[divIIntInstruction->RegisterB].Upper =
+                            reg[divIIntInstruction->RegisterA].Upper / divIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Long:
                         ABLPInstruction* divILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[divILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[divILongInstruction->RegisterA].Upper / divILongInstruction->Operand;
+                        *(long*)&reg[divILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[divILongInstruction->RegisterA].Upper / divILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Float:
                         ABPInstruction* divIFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[divIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[divIFloatInstruction->RegisterA].Upper / *(float*)&divIFloatInstruction->Operand;
+                        *(float*)&reg[divIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[divIFloatInstruction->RegisterA].Upper / *(float*)&divIFloatInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Double:
                         ABLPInstruction* divIDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[divIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[divIDoubleInstruction->RegisterA].Upper / *(double*)&divIDoubleInstruction->Operand;
+                        *(double*)&reg[divIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[divIDoubleInstruction->RegisterA].Upper / *(double*)&divIDoubleInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.DivI_Int_R:
                         ABPInstruction* divIIntRInstruction = (ABPInstruction*)ip;
-                        Registers[divIIntRInstruction->RegisterB].Upper =
-                            divIIntRInstruction->Operand / Registers[divIIntRInstruction->RegisterA].Upper;
+                        reg[divIIntRInstruction->RegisterB].Upper =
+                            divIIntRInstruction->Operand / reg[divIIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Long_R:
                         ABLPInstruction* divILongRInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[divILongRInstruction->RegisterB].Upper =
-                            divILongRInstruction->Operand / *(long*)&Registers[divILongRInstruction->RegisterA].Upper;
+                        *(long*)&reg[divILongRInstruction->RegisterB].Upper =
+                            divILongRInstruction->Operand / *(long*)&reg[divILongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Float_R:
                         ABPInstruction* divIFloatRInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[divIFloatRInstruction->RegisterB].Upper =
-                            *(float*)&divIFloatRInstruction->Operand / *(float*)&Registers[divIFloatRInstruction->RegisterA].Upper;
+                        *(float*)&reg[divIFloatRInstruction->RegisterB].Upper =
+                            *(float*)&divIFloatRInstruction->Operand / *(float*)&reg[divIFloatRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Double_R:
                         ABLPInstruction* divIDoubleRInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[divIDoubleRInstruction->RegisterB].Upper =
-                            *(double*)&divIDoubleRInstruction->Operand / *(double*)&Registers[divIDoubleRInstruction->RegisterA].Upper;
+                        *(double*)&reg[divIDoubleRInstruction->RegisterB].Upper =
+                            *(double*)&divIDoubleRInstruction->Operand / *(double*)&reg[divIDoubleRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Un_Int_R:
                         ABPInstruction* divIUnIntRInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[divIUnIntRInstruction->RegisterB].Upper =
-                            *(uint*)&divIUnIntRInstruction->Operand / *(uint*)&Registers[divIUnIntRInstruction->RegisterA].Upper;
+                        *(uint*)&reg[divIUnIntRInstruction->RegisterB].Upper =
+                            *(uint*)&divIUnIntRInstruction->Operand / *(uint*)&reg[divIUnIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Un_Long_R:
                         ABLPInstruction* divIUnLongRInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[divIUnLongRInstruction->RegisterB].Upper =
-                            *(ulong*)&divIUnLongRInstruction->Operand / *(ulong*)&Registers[divIUnLongRInstruction->RegisterA].Upper;
+                        *(ulong*)&reg[divIUnLongRInstruction->RegisterB].Upper =
+                            *(ulong*)&divIUnLongRInstruction->Operand / *(ulong*)&reg[divIUnLongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
 
                     case OpCode.DivI_Un_Int:
                         ABPInstruction* divIUnIntInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[divIUnIntInstruction->RegisterB].Upper =
-                            *(uint*)&Registers[divIUnIntInstruction->RegisterA].Upper / *(uint*)&divIUnIntInstruction->Operand;
+                        *(uint*)&reg[divIUnIntInstruction->RegisterB].Upper =
+                            *(uint*)&reg[divIUnIntInstruction->RegisterA].Upper / *(uint*)&divIUnIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.DivI_Un_Long:
                         ABLPInstruction* divIUnLongInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[divIUnLongInstruction->RegisterB].Upper =
-                            *(ulong*)&Registers[divIUnLongInstruction->RegisterA].Upper / *(ulong*)&divIUnLongInstruction->Operand;
+                        *(ulong*)&reg[divIUnLongInstruction->RegisterB].Upper =
+                            *(ulong*)&reg[divIUnLongInstruction->RegisterA].Upper / *(ulong*)&divIUnLongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.RemI_Int:
                         ABPInstruction* remIIntInstruction = (ABPInstruction*)ip;
-                        Registers[remIIntInstruction->RegisterB].Upper =
-                            Registers[remIIntInstruction->RegisterA].Upper % remIIntInstruction->Operand;
+                        reg[remIIntInstruction->RegisterB].Upper =
+                            reg[remIIntInstruction->RegisterA].Upper % remIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Long:
                         ABLPInstruction* remILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[remILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[remILongInstruction->RegisterA].Upper % remILongInstruction->Operand;
+                        *(long*)&reg[remILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[remILongInstruction->RegisterA].Upper % remILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Float:
                         ABPInstruction* remIFloatInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[remIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[remIFloatInstruction->RegisterA].Upper % *(float*)&remIFloatInstruction->Operand;
+                        *(float*)&reg[remIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[remIFloatInstruction->RegisterA].Upper % *(float*)&remIFloatInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Double:
                         ABLPInstruction* remIDoubleInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[remIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[remIDoubleInstruction->RegisterA].Upper % *(double*)&remIDoubleInstruction->Operand;
+                        *(double*)&reg[remIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[remIDoubleInstruction->RegisterA].Upper % *(double*)&remIDoubleInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Un_Int:
                         ABPInstruction* remIUnIntInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[remIUnIntInstruction->RegisterB].Upper =
-                            *(uint*)&Registers[remIUnIntInstruction->RegisterA].Upper % *(uint*)&remIUnIntInstruction->Operand;
+                        *(uint*)&reg[remIUnIntInstruction->RegisterB].Upper =
+                            *(uint*)&reg[remIUnIntInstruction->RegisterA].Upper % *(uint*)&remIUnIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Un_Long:
                         ABLPInstruction* remIUnLongInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[remIUnLongInstruction->RegisterB].Upper =
-                            *(ulong*)&Registers[remIUnLongInstruction->RegisterA].Upper % *(ulong*)&remIUnLongInstruction->Operand;
+                        *(ulong*)&reg[remIUnLongInstruction->RegisterB].Upper =
+                            *(ulong*)&reg[remIUnLongInstruction->RegisterA].Upper % *(ulong*)&remIUnLongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.RemI_Int_R:
                         ABPInstruction* remIIntRInstruction = (ABPInstruction*)ip;
-                        Registers[remIIntRInstruction->RegisterB].Upper =
-                            remIIntRInstruction->Operand % Registers[remIIntRInstruction->RegisterA].Upper;
+                        reg[remIIntRInstruction->RegisterB].Upper =
+                            remIIntRInstruction->Operand % reg[remIIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Long_R:
                         ABLPInstruction* remILongRInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[remILongRInstruction->RegisterB].Upper =
-                            remILongRInstruction->Operand % *(long*)&Registers[remILongRInstruction->RegisterA].Upper;
+                        *(long*)&reg[remILongRInstruction->RegisterB].Upper =
+                            remILongRInstruction->Operand % *(long*)&reg[remILongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Float_R:
                         ABPInstruction* remIFloatRInstruction = (ABPInstruction*)ip;
-                        *(float*)&Registers[remIFloatRInstruction->RegisterB].Upper =
-                            *(float*)&remIFloatRInstruction->Operand % *(float*)&Registers[remIFloatRInstruction->RegisterA].Upper;
+                        *(float*)&reg[remIFloatRInstruction->RegisterB].Upper =
+                            *(float*)&remIFloatRInstruction->Operand % *(float*)&reg[remIFloatRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Double_R:
                         ABLPInstruction* remIDoubleRInstruction = (ABLPInstruction*)ip;
-                        *(double*)&Registers[remIDoubleRInstruction->RegisterB].Upper =
-                            *(double*)&remIDoubleRInstruction->Operand % (double)*(double*)&Registers[remIDoubleRInstruction->RegisterA].Upper;
+                        *(double*)&reg[remIDoubleRInstruction->RegisterB].Upper =
+                            *(double*)&remIDoubleRInstruction->Operand % (double)*(double*)&reg[remIDoubleRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Un_Int_R:
                         ABPInstruction* remIUnIntRInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[remIUnIntRInstruction->RegisterB].Upper =
-                            *(uint*)&remIUnIntRInstruction->Operand % *(uint*)&Registers[remIUnIntRInstruction->RegisterA].Upper;
+                        *(uint*)&reg[remIUnIntRInstruction->RegisterB].Upper =
+                            *(uint*)&remIUnIntRInstruction->Operand % *(uint*)&reg[remIUnIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.RemI_Un_Long_R:
                         ABLPInstruction* remIUnLongRInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[remIUnLongRInstruction->RegisterB].Upper =
-                            *(ulong*)&remIUnLongRInstruction->Operand % *(ulong*)&Registers[remIUnLongRInstruction->RegisterA].Upper;
+                        *(ulong*)&reg[remIUnLongRInstruction->RegisterB].Upper =
+                            *(ulong*)&remIUnLongRInstruction->Operand % *(ulong*)&reg[remIUnLongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
 
                     case OpCode.AndI_Long:
                         ABLPInstruction* andILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[andILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[andILongInstruction->RegisterA].Upper & andILongInstruction->Operand;
+                        *(long*)&reg[andILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[andILongInstruction->RegisterA].Upper & andILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.AndI_Int:
                         ABPInstruction* andIIntInstruction = (ABPInstruction*)ip;
-                        Registers[andIIntInstruction->RegisterB].Upper =
-                            Registers[andIIntInstruction->RegisterA].Upper & andIIntInstruction->Operand;
+                        reg[andIIntInstruction->RegisterB].Upper =
+                            reg[andIIntInstruction->RegisterA].Upper & andIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.OrI_Long:
                         ABLPInstruction* orILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[orILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[orILongInstruction->RegisterA].Upper | orILongInstruction->Operand;
+                        *(long*)&reg[orILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[orILongInstruction->RegisterA].Upper | orILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.OrI_Int:
                         ABPInstruction* orIIntInstruction = (ABPInstruction*)ip;
-                        Registers[orIIntInstruction->RegisterB].Upper =
-                            Registers[orIIntInstruction->RegisterA].Upper | orIIntInstruction->Operand;
+                        reg[orIIntInstruction->RegisterB].Upper =
+                            reg[orIIntInstruction->RegisterA].Upper | orIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.XorI_Long:
                         ABLPInstruction* xorILongInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[xorILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[xorILongInstruction->RegisterA].Upper ^ xorILongInstruction->Operand;
+                        *(long*)&reg[xorILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[xorILongInstruction->RegisterA].Upper ^ xorILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.XorI_Int:
                         ABPInstruction* xorIIntInstruction = (ABPInstruction*)ip;
-                        Registers[xorIIntInstruction->RegisterB].Upper =
-                            Registers[xorIIntInstruction->RegisterA].Upper ^ xorIIntInstruction->Operand;
+                        reg[xorIIntInstruction->RegisterB].Upper =
+                            reg[xorIIntInstruction->RegisterA].Upper ^ xorIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShlI_Long:
                         ABPInstruction* shlILongInstruction = (ABPInstruction*)ip;
-                        *(long*)&Registers[shlILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[shlILongInstruction->RegisterA].Upper << shlILongInstruction->Operand;
+                        *(long*)&reg[shlILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[shlILongInstruction->RegisterA].Upper << shlILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShlI_Int:
                         ABPInstruction* shlIIntInstruction = (ABPInstruction*)ip;
-                        Registers[shlIIntInstruction->RegisterB].Upper =
-                            Registers[shlIIntInstruction->RegisterA].Upper << shlIIntInstruction->Operand;
+                        reg[shlIIntInstruction->RegisterB].Upper =
+                            reg[shlIIntInstruction->RegisterA].Upper << shlIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.ShlI_Long_R:
                         ABLPInstruction* shlILongRInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[shlILongRInstruction->RegisterB].Upper =
-                            shlILongRInstruction->Operand << Registers[shlILongRInstruction->RegisterA].Upper;
+                        *(long*)&reg[shlILongRInstruction->RegisterB].Upper =
+                            shlILongRInstruction->Operand << reg[shlILongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShlI_Int_R:
                         ABPInstruction* shlIIntRInstruction = (ABPInstruction*)ip;
-                        Registers[shlIIntRInstruction->RegisterB].Upper =
-                            shlIIntRInstruction->Operand << Registers[shlIIntRInstruction->RegisterA].Upper;
+                        reg[shlIIntRInstruction->RegisterB].Upper =
+                            shlIIntRInstruction->Operand << reg[shlIIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.ShrI_Long:
                         ABPInstruction* shrILongInstruction = (ABPInstruction*)ip;
-                        *(long*)&Registers[shrILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[shrILongInstruction->RegisterA].Upper >> shrILongInstruction->Operand;
+                        *(long*)&reg[shrILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[shrILongInstruction->RegisterA].Upper >> shrILongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Int:
                         ABPInstruction* shrIIntInstruction = (ABPInstruction*)ip;
-                        Registers[shrIIntInstruction->RegisterB].Upper =
-                            Registers[shrIIntInstruction->RegisterA].Upper >> shrIIntInstruction->Operand;
+                        reg[shrIIntInstruction->RegisterB].Upper =
+                            reg[shrIIntInstruction->RegisterA].Upper >> shrIIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Un_Long:
                         ABPInstruction* shrIUnLongInstruction = (ABPInstruction*)ip;
-                        *(ulong*)&Registers[shrIUnLongInstruction->RegisterB].Upper =
-                            *(ulong*)&Registers[shrIUnLongInstruction->RegisterA].Upper >> shrIUnLongInstruction->Operand;
+                        *(ulong*)&reg[shrIUnLongInstruction->RegisterB].Upper =
+                            *(ulong*)&reg[shrIUnLongInstruction->RegisterA].Upper >> shrIUnLongInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Un_Int:
                         ABPInstruction* shrIUnIntInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[shrIUnIntInstruction->RegisterB].Upper =
-                            *(uint*)&Registers[shrIUnIntInstruction->RegisterA].Upper >> shrIUnIntInstruction->Operand;
+                        *(uint*)&reg[shrIUnIntInstruction->RegisterB].Upper =
+                            *(uint*)&reg[shrIUnIntInstruction->RegisterA].Upper >> shrIUnIntInstruction->Operand;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Long_R:
                         ABLPInstruction* shrILongRInstruction = (ABLPInstruction*)ip;
-                        *(long*)&Registers[shrILongRInstruction->RegisterB].Upper =
-                            shrILongRInstruction->Operand >> Registers[shrILongRInstruction->RegisterA].Upper;
+                        *(long*)&reg[shrILongRInstruction->RegisterB].Upper =
+                            shrILongRInstruction->Operand >> reg[shrILongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Int_R:
                         ABPInstruction* shrIIntRInstruction = (ABPInstruction*)ip;
-                        Registers[shrIIntRInstruction->RegisterB].Upper =
-                            shrIIntRInstruction->Operand >> Registers[shrIIntRInstruction->RegisterA].Upper;
+                        reg[shrIIntRInstruction->RegisterB].Upper =
+                            shrIIntRInstruction->Operand >> reg[shrIIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Un_Long_R:
                         ABLPInstruction* shrIUnLongRInstruction = (ABLPInstruction*)ip;
-                        *(ulong*)&Registers[shrIUnLongRInstruction->RegisterB].Upper =
-                            *(ulong*)&shrIUnLongRInstruction->Operand >> Registers[shrIUnLongRInstruction->RegisterA].Upper;
+                        *(ulong*)&reg[shrIUnLongRInstruction->RegisterB].Upper =
+                            *(ulong*)&shrIUnLongRInstruction->Operand >> reg[shrIUnLongRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.ShrI_Un_Int_R:
                         ABPInstruction* shrIUnIntRInstruction = (ABPInstruction*)ip;
-                        *(uint*)&Registers[shrIUnIntRInstruction->RegisterB].Upper =
-                            *(uint*)&shrIUnIntRInstruction->Operand >> Registers[shrIUnIntRInstruction->RegisterA].Upper;
+                        *(uint*)&reg[shrIUnIntRInstruction->RegisterB].Upper =
+                            *(uint*)&shrIUnIntRInstruction->Operand >> reg[shrIUnIntRInstruction->RegisterA].Upper;
                         ip += ABPInstruction.Size;
                         break;
                     
@@ -561,331 +561,331 @@ namespace Regulus.Core
 
 
                     case OpCode.BrFalse:
-                        APInstruction* brFalseInstruction = (APInstruction*)ip;
-                        if (Registers[brFalseInstruction->RegisterA].Upper == 0)
+                        APPInstruction* brFalseInstruction = (APPInstruction*)ip;
+                        if (reg[brFalseInstruction->RegisterA].Upper == 0)
                         {
-                            ip += brFalseInstruction->Operand;
+                            ip += brFalseInstruction->Operand1;
                         }
                         else
                         {
-                            ip += APInstruction.Size;
+                            ip += brFalseInstruction->Operand2;
                         }
                         break;
                     case OpCode.BrTrue:
-                        APInstruction* brTrueInstruction = (APInstruction*)ip;
-                        if (Registers[brTrueInstruction->RegisterA].Upper != 0)
+                        APPInstruction* brTrueInstruction = (APPInstruction*)ip;
+                        if (reg[brTrueInstruction->RegisterA].Upper != 0)
                         {
-                            ip += brTrueInstruction->Operand;
+                            ip += brTrueInstruction->Operand1;
                         }
                         else
                         {
-                            ip += APInstruction.Size;
+                            ip += brTrueInstruction->Operand2;
                         }
                         break;
                     case OpCode.Clt_Int:
                         ABCInstruction* cltIntInstruction = (ABCInstruction*)ip;
-                        Registers[cltIntInstruction->RegisterC].Upper =
-                            Registers[cltIntInstruction->RegisterA].Upper <
-                            Registers[cltIntInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cltIntInstruction->RegisterC].Upper =
+                            reg[cltIntInstruction->RegisterA].Upper <
+                            reg[cltIntInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Clt_Long:
                         ABCInstruction* cltLongInstruction = (ABCInstruction*)ip;
-                        Registers[cltLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[cltLongInstruction->RegisterA].Upper <
-                            *(long*)&Registers[cltLongInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cltLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[cltLongInstruction->RegisterA].Upper <
+                            *(long*)&reg[cltLongInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Clt_Float:
                         ABCInstruction* cltFloatInstruction = (ABCInstruction*)ip;
-                        Registers[cltFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[cltFloatInstruction->RegisterA].Upper <
-                            *(float*)&Registers[cltFloatInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cltFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[cltFloatInstruction->RegisterA].Upper <
+                            *(float*)&reg[cltFloatInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Clt_Double:
                         ABCInstruction* cltDoubleInstruction = (ABCInstruction*)ip;
-                        Registers[cltDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[cltDoubleInstruction->RegisterA].Upper <
-                            *(double*)&Registers[cltDoubleInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cltDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[cltDoubleInstruction->RegisterA].Upper <
+                            *(double*)&reg[cltDoubleInstruction->RegisterB].Upper ? 1 : 0;
 
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.CltI_Int:
                         ABPInstruction* cltIIntInstruction = (ABPInstruction*)ip;
-                        Registers[cltIIntInstruction->RegisterB].Upper =
-                            Registers[cltIIntInstruction->RegisterA].Upper <
+                        reg[cltIIntInstruction->RegisterB].Upper =
+                            reg[cltIIntInstruction->RegisterA].Upper <
                             cltIIntInstruction->Operand ? 1 : 0;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.CltI_Long:
                         ABLPInstruction* cltILongInstruction = (ABLPInstruction*)ip;
-                        Registers[cltILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[cltILongInstruction->RegisterA].Upper <
+                        reg[cltILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[cltILongInstruction->RegisterA].Upper <
                             cltILongInstruction->Operand ? 1 : 0;
                         ip += ABLPInstruction.Size;
                         break;
                     case OpCode.CltI_Float:
                         ABPInstruction* cltIFloatInstruction = (ABPInstruction*)ip;
-                        Registers[cltIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[cltIFloatInstruction->RegisterA].Upper <
+                        reg[cltIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[cltIFloatInstruction->RegisterA].Upper <
                             *(float*)&cltIFloatInstruction->Operand ? 1 : 0;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.CltI_Double:
                         ABLPInstruction* cltIDoubleInstruction = (ABLPInstruction*)ip;
-                        Registers[cltIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[cltIDoubleInstruction->RegisterA].Upper <
+                        reg[cltIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[cltIDoubleInstruction->RegisterA].Upper <
                             *(double*)&cltIDoubleInstruction->Operand ? 1 : 0;
                         ip += ABLPInstruction.Size;
                         break;
                     case OpCode.Clt_Un_Int:
                         ABCInstruction* cltUnIntInstruction = (ABCInstruction*)ip;
-                        Registers[cltUnIntInstruction->RegisterC].Upper =
-                            *(uint*)&Registers[cltUnIntInstruction->RegisterA].Upper <
-                            *(uint*)&Registers[cltUnIntInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cltUnIntInstruction->RegisterC].Upper =
+                            *(uint*)&reg[cltUnIntInstruction->RegisterA].Upper <
+                            *(uint*)&reg[cltUnIntInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Clt_Un_Long:
                         ABCInstruction* cltUnLongInstruction = (ABCInstruction*)ip;
-                        Registers[cltUnLongInstruction->RegisterC].Upper =
-                            *(ulong*)&Registers[cltUnLongInstruction->RegisterA].Upper <
-                            *(ulong*)&Registers[cltUnLongInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cltUnLongInstruction->RegisterC].Upper =
+                            *(ulong*)&reg[cltUnLongInstruction->RegisterA].Upper <
+                            *(ulong*)&reg[cltUnLongInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Clt_Un_Float:
                         ABCInstruction* cltUnFloatInstruction = (ABCInstruction*)ip;
-                        Registers[cltUnFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[cltUnFloatInstruction->RegisterA].Upper >=
-                            *(float*)&Registers[cltUnFloatInstruction->RegisterB].Upper ? 0 : 1;
+                        reg[cltUnFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[cltUnFloatInstruction->RegisterA].Upper >=
+                            *(float*)&reg[cltUnFloatInstruction->RegisterB].Upper ? 0 : 1;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Clt_Un_Double:
                         ABCInstruction* cltUnDoubleInstruction = (ABCInstruction*)ip;
-                        Registers[cltUnDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[cltUnDoubleInstruction->RegisterA].Upper >=
-                            *(double*)&Registers[cltUnDoubleInstruction->RegisterB].Upper ? 0 : 1;
+                        reg[cltUnDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[cltUnDoubleInstruction->RegisterA].Upper >=
+                            *(double*)&reg[cltUnDoubleInstruction->RegisterB].Upper ? 0 : 1;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Cgt_Int:
                         ABCInstruction* cgtIntInstruction = (ABCInstruction*)ip;
-                        Registers[cgtIntInstruction->RegisterC].Upper =
-                            Registers[cgtIntInstruction->RegisterA].Upper >
-                            Registers[cgtIntInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cgtIntInstruction->RegisterC].Upper =
+                            reg[cgtIntInstruction->RegisterA].Upper >
+                            reg[cgtIntInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Long:
                         ABCInstruction* cgtLongInstruction = (ABCInstruction*)ip;
-                        Registers[cgtLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[cgtLongInstruction->RegisterA].Upper >
-                            *(long*)&Registers[cgtLongInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cgtLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[cgtLongInstruction->RegisterA].Upper >
+                            *(long*)&reg[cgtLongInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Float:
                         ABCInstruction* cgtFloatInstruction = (ABCInstruction*)ip;
-                        Registers[cgtFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[cgtFloatInstruction->RegisterA].Upper >
-                            *(float*)&Registers[cgtFloatInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cgtFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[cgtFloatInstruction->RegisterA].Upper >
+                            *(float*)&reg[cgtFloatInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Double:
                         ABCInstruction* cgtDoubleInstruction = (ABCInstruction*)ip;
-                        Registers[cgtDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[cgtDoubleInstruction->RegisterA].Upper >
-                            *(double*)&Registers[cgtDoubleInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cgtDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[cgtDoubleInstruction->RegisterA].Upper >
+                            *(double*)&reg[cgtDoubleInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.CgtI_Int:
                         ABPInstruction* cgtIIntInstruction = (ABPInstruction*)ip;
-                        Registers[cgtIIntInstruction->RegisterB].Upper =
-                            Registers[cgtIIntInstruction->RegisterA].Upper >
+                        reg[cgtIIntInstruction->RegisterB].Upper =
+                            reg[cgtIIntInstruction->RegisterA].Upper >
                             cgtIIntInstruction->Operand ? 1 : 0;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.CgtI_Long:
                         ABLPInstruction* cgtILongInstruction = (ABLPInstruction*)ip;
-                        Registers[cgtILongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[cgtILongInstruction->RegisterA].Upper >
+                        reg[cgtILongInstruction->RegisterB].Upper =
+                            *(long*)&reg[cgtILongInstruction->RegisterA].Upper >
                             cgtILongInstruction->Operand ? 1 : 0;
                         ip += ABLPInstruction.Size;
                         break;
 
                     case OpCode.CgtI_Float:
                         ABPInstruction* cgtIFloatInstruction = (ABPInstruction*)ip;
-                        Registers[cgtIFloatInstruction->RegisterB].Upper =
-                            *(float*)&Registers[cgtIFloatInstruction->RegisterA].Upper >
+                        reg[cgtIFloatInstruction->RegisterB].Upper =
+                            *(float*)&reg[cgtIFloatInstruction->RegisterA].Upper >
                             *(float*)&cgtIFloatInstruction->Operand ? 1 : 0;
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.CgtI_Double:
                         ABLPInstruction* cgtIDoubleInstruction = (ABLPInstruction*)ip;
-                        Registers[cgtIDoubleInstruction->RegisterB].Upper =
-                            *(double*)&Registers[cgtIDoubleInstruction->RegisterA].Upper >
+                        reg[cgtIDoubleInstruction->RegisterB].Upper =
+                            *(double*)&reg[cgtIDoubleInstruction->RegisterA].Upper >
                             *(double*)&cgtIDoubleInstruction->Operand ? 1 : 0;
                         ip += ABLPInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Un_Int:
                         ABCInstruction* cgtUnIntInstruction = (ABCInstruction*)ip;
-                        Registers[cgtUnIntInstruction->RegisterC].Upper =
-                            *(uint*)&Registers[cgtUnIntInstruction->RegisterA].Upper >
-                            *(uint*)&Registers[cgtUnIntInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cgtUnIntInstruction->RegisterC].Upper =
+                            *(uint*)&reg[cgtUnIntInstruction->RegisterA].Upper >
+                            *(uint*)&reg[cgtUnIntInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Un_Long:
                         ABCInstruction* cgtUnLongInstruction = (ABCInstruction*)ip;
-                        Registers[cgtUnLongInstruction->RegisterC].Upper =
-                            *(ulong*)&Registers[cgtUnLongInstruction->RegisterA].Upper >
-                            *(ulong*)&Registers[cgtUnLongInstruction->RegisterB].Upper ? 1 : 0;
+                        reg[cgtUnLongInstruction->RegisterC].Upper =
+                            *(ulong*)&reg[cgtUnLongInstruction->RegisterA].Upper >
+                            *(ulong*)&reg[cgtUnLongInstruction->RegisterB].Upper ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Un_Float:
                         ABCInstruction* cgtUnFloatInstruction = (ABCInstruction*)ip;
-                        Registers[cgtUnFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[cgtUnFloatInstruction->RegisterA].Upper <=
-                            *(float*)&Registers[cgtUnFloatInstruction->RegisterB].Upper ? 0 : 1;
+                        reg[cgtUnFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[cgtUnFloatInstruction->RegisterA].Upper <=
+                            *(float*)&reg[cgtUnFloatInstruction->RegisterB].Upper ? 0 : 1;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Cgt_Un_Double:
                         ABCInstruction* cgtUnDoubleInstruction = (ABCInstruction*)ip;
-                        Registers[cgtUnDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[cgtUnDoubleInstruction->RegisterA].Upper <=
-                            *(double*)&Registers[cgtUnDoubleInstruction->RegisterB].Upper ? 0 : 1;
+                        reg[cgtUnDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[cgtUnDoubleInstruction->RegisterA].Upper <=
+                            *(double*)&reg[cgtUnDoubleInstruction->RegisterB].Upper ? 0 : 1;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Ceq:
                         ABCInstruction* ceqInstruction = (ABCInstruction*)ip;
-                        Registers[ceqInstruction->RegisterC].Upper =
-                            (Registers[ceqInstruction->RegisterA].Upper ==
-                            Registers[ceqInstruction->RegisterB].Upper &&
-                            Registers[ceqInstruction->RegisterA].Lower ==
-                            Registers[ceqInstruction->RegisterB].Lower) ? 1 : 0;
+                        reg[ceqInstruction->RegisterC].Upper =
+                            (reg[ceqInstruction->RegisterA].Upper ==
+                            reg[ceqInstruction->RegisterB].Upper &&
+                            reg[ceqInstruction->RegisterA].Lower ==
+                            reg[ceqInstruction->RegisterB].Lower) ? 1 : 0;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.CeqI:
                         ABPInstruction* ceqIInstruction = (ABPInstruction*)ip;
-                        Registers[ceqIInstruction->RegisterB].Upper =
-                            Registers[ceqIInstruction->RegisterA].Upper ==
+                        reg[ceqIInstruction->RegisterB].Upper =
+                            reg[ceqIInstruction->RegisterA].Upper ==
                             ceqIInstruction->Operand ? 1 : 0;
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.Add_Int:
                         ABCInstruction* addIntInstruction = (ABCInstruction*)ip;
-                        Registers[addIntInstruction->RegisterC].Upper =
-                            Registers[addIntInstruction->RegisterA].Upper +
-                            Registers[addIntInstruction->RegisterB].Upper;
+                        reg[addIntInstruction->RegisterC].Upper =
+                            reg[addIntInstruction->RegisterA].Upper +
+                            reg[addIntInstruction->RegisterB].Upper;
 
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Add_Long:
                         ABCInstruction* addLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[addLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[addLongInstruction->RegisterA].Upper +
-                            *(long*)&Registers[addLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[addLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[addLongInstruction->RegisterA].Upper +
+                            *(long*)&reg[addLongInstruction->RegisterB].Upper;
 
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Add_Float:
                         ABCInstruction* addFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[addFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[addFloatInstruction->RegisterA].Upper +
-                            *(float*)&Registers[addFloatInstruction->RegisterB].Upper;
+                        *(float*)&reg[addFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[addFloatInstruction->RegisterA].Upper +
+                            *(float*)&reg[addFloatInstruction->RegisterB].Upper;
 
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Add_Double:
                         ABCInstruction* addDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[addDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[addDoubleInstruction->RegisterA].Upper +
-                            *(double*)&Registers[addDoubleInstruction->RegisterB].Upper;
+                        *(double*)&reg[addDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[addDoubleInstruction->RegisterA].Upper +
+                            *(double*)&reg[addDoubleInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Add_Ovf_Int:
                         ABCInstruction* addOvfIntInstruction = (ABCInstruction*)ip;
-                        Registers[addOvfIntInstruction->RegisterC].Upper =
-                            checked(Registers[addOvfIntInstruction->RegisterA].Upper +
-                            Registers[addOvfIntInstruction->RegisterB].Upper);
+                        reg[addOvfIntInstruction->RegisterC].Upper =
+                            checked(reg[addOvfIntInstruction->RegisterA].Upper +
+                            reg[addOvfIntInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Add_Ovf_Long:
                         ABCInstruction* addOvfLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[addOvfLongInstruction->RegisterC].Upper =
-                            checked(*(long*)&Registers[addOvfLongInstruction->RegisterA].Upper +
-                            *(long*)&Registers[addOvfLongInstruction->RegisterB].Upper);
+                        *(long*)&reg[addOvfLongInstruction->RegisterC].Upper =
+                            checked(*(long*)&reg[addOvfLongInstruction->RegisterA].Upper +
+                            *(long*)&reg[addOvfLongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Add_Ovf_Float:
                         ABCInstruction* addOvfFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[addOvfFloatInstruction->RegisterC].Upper =
-                            checked(*(float*)&Registers[addOvfFloatInstruction->RegisterA].Upper +
-                            *(float*)&Registers[addOvfFloatInstruction->RegisterB].Upper);
+                        *(float*)&reg[addOvfFloatInstruction->RegisterC].Upper =
+                            checked(*(float*)&reg[addOvfFloatInstruction->RegisterA].Upper +
+                            *(float*)&reg[addOvfFloatInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Add_Ovf_Double:
                         ABCInstruction* addOvfDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[addOvfDoubleInstruction->RegisterC].Upper =
-                            checked(*(double*)&Registers[addOvfDoubleInstruction->RegisterA].Upper +
-                            *(double*)&Registers[addOvfDoubleInstruction->RegisterB].Upper);
+                        *(double*)&reg[addOvfDoubleInstruction->RegisterC].Upper =
+                            checked(*(double*)&reg[addOvfDoubleInstruction->RegisterA].Upper +
+                            *(double*)&reg[addOvfDoubleInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Add_Ovf_UInt:
                         ABCInstruction* addOvfUIntInstruction = (ABCInstruction*)ip;
-                        *(uint*)&Registers[addOvfUIntInstruction->RegisterC].Upper =
-                            checked(*(uint*)&Registers[addOvfUIntInstruction->RegisterA].Upper +
-                            *(uint*)&Registers[addOvfUIntInstruction->RegisterB].Upper);
+                        *(uint*)&reg[addOvfUIntInstruction->RegisterC].Upper =
+                            checked(*(uint*)&reg[addOvfUIntInstruction->RegisterA].Upper +
+                            *(uint*)&reg[addOvfUIntInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Add_Ovf_ULong:
                         ABCInstruction* addOvfULongInstruction = (ABCInstruction*)ip;
-                        *(ulong*)&Registers[addOvfULongInstruction->RegisterC].Upper =
-                            checked(*(ulong*)&Registers[addOvfULongInstruction->RegisterA].Upper +
-                            *(ulong*)&Registers[addOvfULongInstruction->RegisterB].Upper);
+                        *(ulong*)&reg[addOvfULongInstruction->RegisterC].Upper =
+                            checked(*(ulong*)&reg[addOvfULongInstruction->RegisterA].Upper +
+                            *(ulong*)&reg[addOvfULongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Sub_Int:
                         ABCInstruction* subIntInstruction = (ABCInstruction*)ip;
-                        Registers[subIntInstruction->RegisterC].Upper =
-                            Registers[subIntInstruction->RegisterA].Upper -
-                            Registers[subIntInstruction->RegisterB].Upper;
+                        reg[subIntInstruction->RegisterC].Upper =
+                            reg[subIntInstruction->RegisterA].Upper -
+                            reg[subIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Sub_Long:
                         ABCInstruction* subLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[subLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[subLongInstruction->RegisterA].Upper -
-                            *(long*)&Registers[subLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[subLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[subLongInstruction->RegisterA].Upper -
+                            *(long*)&reg[subLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Sub_Float:
                         ABCInstruction* subFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[subFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[subFloatInstruction->RegisterA].Upper -
-                            *(float*)&Registers[subFloatInstruction->RegisterB].Upper;
+                        *(float*)&reg[subFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[subFloatInstruction->RegisterA].Upper -
+                            *(float*)&reg[subFloatInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Sub_Double:
                         ABCInstruction* subDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[subDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[subDoubleInstruction->RegisterA].Upper -
-                            *(double*)&Registers[subDoubleInstruction->RegisterB].Upper;
+                        *(double*)&reg[subDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[subDoubleInstruction->RegisterA].Upper -
+                            *(double*)&reg[subDoubleInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
@@ -893,276 +893,276 @@ namespace Regulus.Core
 
                     case OpCode.Sub_Ovf_UInt:
                         ABCInstruction* subOvfUIntInstruction = (ABCInstruction*)ip;
-                        *(uint*)&Registers[subOvfUIntInstruction->RegisterC].Upper =
-                            checked(*(uint*)&Registers[subOvfUIntInstruction->RegisterA].Upper -
-                            *(uint*)&Registers[subOvfUIntInstruction->RegisterB].Upper);
+                        *(uint*)&reg[subOvfUIntInstruction->RegisterC].Upper =
+                            checked(*(uint*)&reg[subOvfUIntInstruction->RegisterA].Upper -
+                            *(uint*)&reg[subOvfUIntInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Int:
                         ABCInstruction* mulIntInstruction = (ABCInstruction*)ip;
-                        Registers[mulIntInstruction->RegisterC].Upper =
-                            Registers[mulIntInstruction->RegisterA].Upper *
-                            Registers[mulIntInstruction->RegisterB].Upper;
+                        reg[mulIntInstruction->RegisterC].Upper =
+                            reg[mulIntInstruction->RegisterA].Upper *
+                            reg[mulIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Long:
                         ABCInstruction* mulLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[mulLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[mulLongInstruction->RegisterA].Upper *
-                            *(long*)&Registers[mulLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[mulLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[mulLongInstruction->RegisterA].Upper *
+                            *(long*)&reg[mulLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Float:
                         ABCInstruction* mulFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[mulFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[mulFloatInstruction->RegisterA].Upper *
-                            *(float*)&Registers[mulFloatInstruction->RegisterB].Upper;
+                        *(float*)&reg[mulFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[mulFloatInstruction->RegisterA].Upper *
+                            *(float*)&reg[mulFloatInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Double:
                         ABCInstruction* mulDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[mulDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[mulDoubleInstruction->RegisterA].Upper *
-                            *(double*)&Registers[mulDoubleInstruction->RegisterB].Upper;
+                        *(double*)&reg[mulDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[mulDoubleInstruction->RegisterA].Upper *
+                            *(double*)&reg[mulDoubleInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Ovf_Long:
                         ABCInstruction* mulOvfLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[mulOvfLongInstruction->RegisterC].Upper =
-                            checked(*(long*)&Registers[mulOvfLongInstruction->RegisterA].Upper *
-                            *(long*)&Registers[mulOvfLongInstruction->RegisterB].Upper);
+                        *(long*)&reg[mulOvfLongInstruction->RegisterC].Upper =
+                            checked(*(long*)&reg[mulOvfLongInstruction->RegisterA].Upper *
+                            *(long*)&reg[mulOvfLongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Ovf_Float:
                         ABCInstruction* mulOvfFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[mulOvfFloatInstruction->RegisterC].Upper =
-                            checked(*(float*)&Registers[mulOvfFloatInstruction->RegisterA].Upper *
-                            *(float*)&Registers[mulOvfFloatInstruction->RegisterB].Upper);
+                        *(float*)&reg[mulOvfFloatInstruction->RegisterC].Upper =
+                            checked(*(float*)&reg[mulOvfFloatInstruction->RegisterA].Upper *
+                            *(float*)&reg[mulOvfFloatInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Ovf_Double:
                         ABCInstruction* mulOvfDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[mulOvfDoubleInstruction->RegisterC].Upper =
-                            checked(*(double*)&Registers[mulOvfDoubleInstruction->RegisterA].Upper *
-                            *(double*)&Registers[mulOvfDoubleInstruction->RegisterB].Upper);
+                        *(double*)&reg[mulOvfDoubleInstruction->RegisterC].Upper =
+                            checked(*(double*)&reg[mulOvfDoubleInstruction->RegisterA].Upper *
+                            *(double*)&reg[mulOvfDoubleInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Ovf_UInt:
                         ABCInstruction* mulOvfUIntInstruction = (ABCInstruction*)ip;
-                        *(uint*)&Registers[mulOvfUIntInstruction->RegisterC].Upper =
-                            checked(*(uint*)&Registers[mulOvfUIntInstruction->RegisterA].Upper *
-                            *(uint*)&Registers[mulOvfUIntInstruction->RegisterB].Upper);
+                        *(uint*)&reg[mulOvfUIntInstruction->RegisterC].Upper =
+                            checked(*(uint*)&reg[mulOvfUIntInstruction->RegisterA].Upper *
+                            *(uint*)&reg[mulOvfUIntInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Mul_Ovf_ULong:
                         ABCInstruction* mulOvfULongInstruction = (ABCInstruction*)ip;
-                        *(ulong*)&Registers[mulOvfULongInstruction->RegisterC].Upper =
-                            checked(*(ulong*)&Registers[mulOvfULongInstruction->RegisterA].Upper *
-                            *(ulong*)&Registers[mulOvfULongInstruction->RegisterB].Upper);
+                        *(ulong*)&reg[mulOvfULongInstruction->RegisterC].Upper =
+                            checked(*(ulong*)&reg[mulOvfULongInstruction->RegisterA].Upper *
+                            *(ulong*)&reg[mulOvfULongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Int:
                         ABCInstruction* divIntInstruction = (ABCInstruction*)ip;
-                        Registers[divIntInstruction->RegisterC].Upper =
-                            Registers[divIntInstruction->RegisterA].Upper /
-                            Registers[divIntInstruction->RegisterB].Upper;
+                        reg[divIntInstruction->RegisterC].Upper =
+                            reg[divIntInstruction->RegisterA].Upper /
+                            reg[divIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Long:
                         ABCInstruction* divLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[divLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[divLongInstruction->RegisterA].Upper /
-                            *(long*)&Registers[divLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[divLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[divLongInstruction->RegisterA].Upper /
+                            *(long*)&reg[divLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Float:
                         ABCInstruction* divFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[divFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[divFloatInstruction->RegisterA].Upper /
-                            *(float*)&Registers[divFloatInstruction->RegisterB].Upper;
+                        *(float*)&reg[divFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[divFloatInstruction->RegisterA].Upper /
+                            *(float*)&reg[divFloatInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Double:
                         ABCInstruction* divDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[divDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[divDoubleInstruction->RegisterA].Upper /
-                            *(double*)&Registers[divDoubleInstruction->RegisterB].Upper;
+                        *(double*)&reg[divDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[divDoubleInstruction->RegisterA].Upper /
+                            *(double*)&reg[divDoubleInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Div_Ovf_Long:
                         ABCInstruction* divOvfLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[divOvfLongInstruction->RegisterC].Upper =
-                            checked(*(long*)&Registers[divOvfLongInstruction->RegisterA].Upper /
-                            *(long*)&Registers[divOvfLongInstruction->RegisterB].Upper);
+                        *(long*)&reg[divOvfLongInstruction->RegisterC].Upper =
+                            checked(*(long*)&reg[divOvfLongInstruction->RegisterA].Upper /
+                            *(long*)&reg[divOvfLongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Ovf_Float:
                         ABCInstruction* divOvfFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[divOvfFloatInstruction->RegisterC].Upper =
-                            checked(*(float*)&Registers[divOvfFloatInstruction->RegisterA].Upper /
-                            *(float*)&Registers[divOvfFloatInstruction->RegisterB].Upper);
+                        *(float*)&reg[divOvfFloatInstruction->RegisterC].Upper =
+                            checked(*(float*)&reg[divOvfFloatInstruction->RegisterA].Upper /
+                            *(float*)&reg[divOvfFloatInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Ovf_Double:
                         ABCInstruction* divOvfDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[divOvfDoubleInstruction->RegisterC].Upper =
-                            checked(*(double*)&Registers[divOvfDoubleInstruction->RegisterA].Upper /
-                            *(double*)&Registers[divOvfDoubleInstruction->RegisterB].Upper);
+                        *(double*)&reg[divOvfDoubleInstruction->RegisterC].Upper =
+                            checked(*(double*)&reg[divOvfDoubleInstruction->RegisterA].Upper /
+                            *(double*)&reg[divOvfDoubleInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Ovf_UInt:
                         ABCInstruction* divOvfUIntInstruction = (ABCInstruction*)ip;
-                        *(uint*)&Registers[divOvfUIntInstruction->RegisterC].Upper =
-                            checked(*(uint*)&Registers[divOvfUIntInstruction->RegisterA].Upper /
-                            *(uint*)&Registers[divOvfUIntInstruction->RegisterB].Upper);
+                        *(uint*)&reg[divOvfUIntInstruction->RegisterC].Upper =
+                            checked(*(uint*)&reg[divOvfUIntInstruction->RegisterA].Upper /
+                            *(uint*)&reg[divOvfUIntInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Div_Ovf_ULong:
                         ABCInstruction* divOvfULongInstruction = (ABCInstruction*)ip;
-                        *(ulong*)&Registers[divOvfULongInstruction->RegisterC].Upper =
-                            checked(*(ulong*)&Registers[divOvfULongInstruction->RegisterA].Upper /
-                            *(ulong*)&Registers[divOvfULongInstruction->RegisterB].Upper);
+                        *(ulong*)&reg[divOvfULongInstruction->RegisterC].Upper =
+                            checked(*(ulong*)&reg[divOvfULongInstruction->RegisterA].Upper /
+                            *(ulong*)&reg[divOvfULongInstruction->RegisterB].Upper);
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.And_Long:
                         ABCInstruction* andLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[andLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[andLongInstruction->RegisterA].Upper &
-                            *(long*)&Registers[andLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[andLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[andLongInstruction->RegisterA].Upper &
+                            *(long*)&reg[andLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.And_Int:
                         ABCInstruction* andIntInstruction = (ABCInstruction*)ip;
-                        Registers[andIntInstruction->RegisterC].Upper =
-                            Registers[andIntInstruction->RegisterA].Upper &
-                            Registers[andIntInstruction->RegisterB].Upper;
+                        reg[andIntInstruction->RegisterC].Upper =
+                            reg[andIntInstruction->RegisterA].Upper &
+                            reg[andIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Or_Long:
                         ABCInstruction* orLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[orLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[orLongInstruction->RegisterA].Upper |
-                            *(long*)&Registers[orLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[orLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[orLongInstruction->RegisterA].Upper |
+                            *(long*)&reg[orLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Or_Int:
                         ABCInstruction* orIntInstruction = (ABCInstruction*)ip;
-                        Registers[orIntInstruction->RegisterC].Upper =
-                            Registers[orIntInstruction->RegisterA].Upper |
-                            Registers[orIntInstruction->RegisterB].Upper;
+                        reg[orIntInstruction->RegisterC].Upper =
+                            reg[orIntInstruction->RegisterA].Upper |
+                            reg[orIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Xor_Long:
                         ABCInstruction* xorLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[xorLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[xorLongInstruction->RegisterA].Upper ^
-                            *(long*)&Registers[xorLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[xorLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[xorLongInstruction->RegisterA].Upper ^
+                            *(long*)&reg[xorLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Xor_Int:
                         ABCInstruction* xorIntInstruction = (ABCInstruction*)ip;
-                        Registers[xorIntInstruction->RegisterC].Upper =
-                            Registers[xorIntInstruction->RegisterA].Upper ^
-                            Registers[xorIntInstruction->RegisterB].Upper;
+                        reg[xorIntInstruction->RegisterC].Upper =
+                            reg[xorIntInstruction->RegisterA].Upper ^
+                            reg[xorIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Shl_Long:
                         ABCInstruction* shlLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[shlLongInstruction->RegisterB].Upper =
-                            *(long*)&Registers[shlLongInstruction->RegisterA].Upper <<
-                            Registers[shlLongInstruction->RegisterB].Upper;  // Shift count in RegisterB
+                        *(long*)&reg[shlLongInstruction->RegisterB].Upper =
+                            *(long*)&reg[shlLongInstruction->RegisterA].Upper <<
+                            reg[shlLongInstruction->RegisterB].Upper;  // Shift count in RegisterB
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Shl_Int:
                         ABCInstruction* shlIntInstruction = (ABCInstruction*)ip;
-                        Registers[shlIntInstruction->RegisterC].Upper =
-                            Registers[shlIntInstruction->RegisterA].Upper <<
-                            Registers[shlIntInstruction->RegisterB].Upper;  // Shift count in RegisterB
+                        reg[shlIntInstruction->RegisterC].Upper =
+                            reg[shlIntInstruction->RegisterA].Upper <<
+                            reg[shlIntInstruction->RegisterB].Upper;  // Shift count in RegisterB
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Shr_Long:
                         ABCInstruction* shrLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[shrLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[shrLongInstruction->RegisterA].Upper >>
-                            Registers[shrLongInstruction->RegisterB].Upper;  // Shift count in RegisterB
+                        *(long*)&reg[shrLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[shrLongInstruction->RegisterA].Upper >>
+                            reg[shrLongInstruction->RegisterB].Upper;  // Shift count in RegisterB
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Shr_Int:
                         ABCInstruction* shrIntInstruction = (ABCInstruction*)ip;
-                        Registers[shrIntInstruction->RegisterC].Upper =
-                            Registers[shrIntInstruction->RegisterA].Upper >>
-                            Registers[shrIntInstruction->RegisterB].Upper;  // Shift count in RegisterB
+                        reg[shrIntInstruction->RegisterC].Upper =
+                            reg[shrIntInstruction->RegisterA].Upper >>
+                            reg[shrIntInstruction->RegisterB].Upper;  // Shift count in RegisterB
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Shr_Un_Long:
                         ABCInstruction* shrUnLongInstruction = (ABCInstruction*)ip;
-                        *(ulong*)&Registers[shrUnLongInstruction->RegisterC].Upper =
-                            *(ulong*)&Registers[shrUnLongInstruction->RegisterA].Upper >>
-                            Registers[shrUnLongInstruction->RegisterB].Upper;  // Shift count in RegisterB
+                        *(ulong*)&reg[shrUnLongInstruction->RegisterC].Upper =
+                            *(ulong*)&reg[shrUnLongInstruction->RegisterA].Upper >>
+                            reg[shrUnLongInstruction->RegisterB].Upper;  // Shift count in RegisterB
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Rem_Int:
                         ABCInstruction* remIntInstruction = (ABCInstruction*)ip;
-                        Registers[remIntInstruction->RegisterC].Upper =
-                            Registers[remIntInstruction->RegisterA].Upper %
-                            Registers[remIntInstruction->RegisterB].Upper;
+                        reg[remIntInstruction->RegisterC].Upper =
+                            reg[remIntInstruction->RegisterA].Upper %
+                            reg[remIntInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Rem_Long:
                         ABCInstruction* remLongInstruction = (ABCInstruction*)ip;
-                        *(long*)&Registers[remLongInstruction->RegisterC].Upper =
-                            *(long*)&Registers[remLongInstruction->RegisterA].Upper %
-                            *(long*)&Registers[remLongInstruction->RegisterB].Upper;
+                        *(long*)&reg[remLongInstruction->RegisterC].Upper =
+                            *(long*)&reg[remLongInstruction->RegisterA].Upper %
+                            *(long*)&reg[remLongInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Rem_Float:
                         ABCInstruction* remFloatInstruction = (ABCInstruction*)ip;
-                        *(float*)&Registers[remFloatInstruction->RegisterC].Upper =
-                            *(float*)&Registers[remFloatInstruction->RegisterA].Upper %
-                            *(float*)&Registers[remFloatInstruction->RegisterB].Upper;
+                        *(float*)&reg[remFloatInstruction->RegisterC].Upper =
+                            *(float*)&reg[remFloatInstruction->RegisterA].Upper %
+                            *(float*)&reg[remFloatInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Rem_Double:
                         ABCInstruction* remDoubleInstruction = (ABCInstruction*)ip;
-                        *(double*)&Registers[remDoubleInstruction->RegisterC].Upper =
-                            *(double*)&Registers[remDoubleInstruction->RegisterA].Upper %
-                            *(double*)&Registers[remDoubleInstruction->RegisterB].Upper;
+                        *(double*)&reg[remDoubleInstruction->RegisterC].Upper =
+                            *(double*)&reg[remDoubleInstruction->RegisterA].Upper %
+                            *(double*)&reg[remDoubleInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Rem_UInt:
                         ABCInstruction* remIntUnInstruction = (ABCInstruction*)ip;
-                        *(uint*)&Registers[remIntUnInstruction->RegisterC].Upper =
-                            *(uint*)&Registers[remIntUnInstruction->RegisterA].Upper %
-                            *(uint*)&Registers[remIntUnInstruction->RegisterB].Upper;
+                        *(uint*)&reg[remIntUnInstruction->RegisterC].Upper =
+                            *(uint*)&reg[remIntUnInstruction->RegisterA].Upper %
+                            *(uint*)&reg[remIntUnInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Rem_ULong:
                         ABCInstruction* remLongUnInstruction = (ABCInstruction*)ip;
-                        *(ulong*)&Registers[remLongUnInstruction->RegisterC].Upper =
-                            *(ulong*)&Registers[remLongUnInstruction->RegisterA].Upper %
-                            *(ulong*)&Registers[remLongUnInstruction->RegisterB].Upper;
+                        *(ulong*)&reg[remLongUnInstruction->RegisterC].Upper =
+                            *(ulong*)&reg[remLongUnInstruction->RegisterA].Upper %
+                            *(ulong*)&reg[remLongUnInstruction->RegisterB].Upper;
                         ip += ABCInstruction.Size;
                         break;
                     case OpCode.Br:
@@ -1171,8 +1171,8 @@ namespace Regulus.Core
                         break;
                     case OpCode.Beq:
                         ABPInstruction* beqInstruction = (ABPInstruction*)ip;
-                        if (Registers[beqInstruction->RegisterA]
-                            .Equals(Registers[beqInstruction->RegisterB]))
+                        if (reg[beqInstruction->RegisterA]
+                            .Equals(reg[beqInstruction->RegisterB]))
                         {
                             ip += beqInstruction->Operand;
                         }
@@ -1184,8 +1184,8 @@ namespace Regulus.Core
                     case OpCode.Bne:
                         // how to implement this?
                         ABPInstruction* bneInstruction = (ABPInstruction*)ip;
-                        if (!Registers[bneInstruction->RegisterA]
-                            .Equals(Registers[bneInstruction->RegisterB]))
+                        if (!reg[bneInstruction->RegisterA]
+                            .Equals(reg[bneInstruction->RegisterB]))
                         {
                             ip += bneInstruction->Operand;
                         }
@@ -1197,8 +1197,8 @@ namespace Regulus.Core
 
                     case OpCode.Bge_Int:
                         ABPInstruction* bgeIntInstruction = (ABPInstruction*)ip;
-                        if (Registers[bgeIntInstruction->RegisterA].Upper >=
-                            Registers[bgeIntInstruction->RegisterB].Upper)
+                        if (reg[bgeIntInstruction->RegisterA].Upper >=
+                            reg[bgeIntInstruction->RegisterB].Upper)
                         {
                             ip += bgeIntInstruction->Operand;
                         }
@@ -1210,8 +1210,8 @@ namespace Regulus.Core
 
                     case OpCode.Bge_Long:
                         ABPInstruction* bgeLongInstruction = (ABPInstruction*)ip;
-                        if (*(long*)&Registers[bgeLongInstruction->RegisterA].Upper >=
-                            *(long*)&Registers[bgeLongInstruction->RegisterB].Upper)
+                        if (*(long*)&reg[bgeLongInstruction->RegisterA].Upper >=
+                            *(long*)&reg[bgeLongInstruction->RegisterB].Upper)
                         {
                             ip += bgeLongInstruction->Operand;
                         }
@@ -1223,8 +1223,8 @@ namespace Regulus.Core
 
                     case OpCode.Bge_Float:
                         ABPInstruction* bgeFloatInstruction = (ABPInstruction*)ip;
-                        if (*(float*)&Registers[bgeFloatInstruction->RegisterA].Upper >=
-                            *(float*)&Registers[bgeFloatInstruction->RegisterB].Upper)
+                        if (*(float*)&reg[bgeFloatInstruction->RegisterA].Upper >=
+                            *(float*)&reg[bgeFloatInstruction->RegisterB].Upper)
                         {
                             ip += bgeFloatInstruction->Operand;
                         }
@@ -1236,8 +1236,8 @@ namespace Regulus.Core
 
                     case OpCode.Bge_Double:
                         ABPInstruction* bgeDoubleInstruction = (ABPInstruction*)ip;
-                        if (*(double*)&Registers[bgeDoubleInstruction->RegisterA].Upper >=
-                            *(double*)&Registers[bgeDoubleInstruction->RegisterB].Upper)
+                        if (*(double*)&reg[bgeDoubleInstruction->RegisterA].Upper >=
+                            *(double*)&reg[bgeDoubleInstruction->RegisterB].Upper)
                         {
                             ip += bgeDoubleInstruction->Operand;
                         }
@@ -1249,8 +1249,8 @@ namespace Regulus.Core
 
                     case OpCode.Bgt_Int:
                         ABPInstruction* bgtIntInstruction = (ABPInstruction*)ip;
-                        if (Registers[bgtIntInstruction->RegisterA].Upper >
-                            Registers[bgtIntInstruction->RegisterB].Upper)
+                        if (reg[bgtIntInstruction->RegisterA].Upper >
+                            reg[bgtIntInstruction->RegisterB].Upper)
                         {
                             ip += bgtIntInstruction->Operand;
                         }
@@ -1262,8 +1262,8 @@ namespace Regulus.Core
 
                     case OpCode.Bgt_Long:
                         ABPInstruction* bgtLongInstruction = (ABPInstruction*)ip;
-                        if (*(long*)&Registers[bgtLongInstruction->RegisterA].Upper >
-                            *(long*)&Registers[bgtLongInstruction->RegisterB].Upper)
+                        if (*(long*)&reg[bgtLongInstruction->RegisterA].Upper >
+                            *(long*)&reg[bgtLongInstruction->RegisterB].Upper)
                         {
                             ip += bgtLongInstruction->Operand;
                         }
@@ -1275,8 +1275,8 @@ namespace Regulus.Core
 
                     case OpCode.Bgt_Float:
                         ABPInstruction* bgtFloatInstruction = (ABPInstruction*)ip;
-                        if (*(float*)&Registers[bgtFloatInstruction->RegisterA].Upper >
-                            *(float*)&Registers[bgtFloatInstruction->RegisterB].Upper)
+                        if (*(float*)&reg[bgtFloatInstruction->RegisterA].Upper >
+                            *(float*)&reg[bgtFloatInstruction->RegisterB].Upper)
                         {
                             ip += bgtFloatInstruction->Operand;
                         }
@@ -1288,8 +1288,8 @@ namespace Regulus.Core
 
                     case OpCode.Bgt_Double:
                         ABPInstruction* bgtDoubleInstruction = (ABPInstruction*)ip;
-                        if (*(double*)&Registers[bgtDoubleInstruction->RegisterA].Upper >
-                            *(double*)&Registers[bgtDoubleInstruction->RegisterB].Upper)
+                        if (*(double*)&reg[bgtDoubleInstruction->RegisterA].Upper >
+                            *(double*)&reg[bgtDoubleInstruction->RegisterB].Upper)
                         {
                             ip += bgtDoubleInstruction->Operand;
                         }
@@ -1300,7 +1300,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BgtI_Int:
                         APPInstruction* BgtIIntInstruction = (APPInstruction*)ip;
-                        if (Registers[BgtIIntInstruction->RegisterA].Upper >
+                        if (reg[BgtIIntInstruction->RegisterA].Upper >
                             BgtIIntInstruction->Operand1)
                         {
                             ip += BgtIIntInstruction->Operand2;
@@ -1312,7 +1312,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BgtI_Long:
                         ALPPInstruction* BgtILongInstruction = (ALPPInstruction*)ip;
-                        if (*(long*)&Registers[BgtILongInstruction->RegisterA].Upper >
+                        if (*(long*)&reg[BgtILongInstruction->RegisterA].Upper >
                             BgtILongInstruction->Operand1)
                         {
                             ip += BgtILongInstruction->Operand2;
@@ -1324,7 +1324,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BgtI_Float:
                         APPInstruction* BgtIFloatInstruction = (APPInstruction*)ip;
-                        if (Registers[BgtIFloatInstruction->RegisterA].Upper >
+                        if (reg[BgtIFloatInstruction->RegisterA].Upper >
                             BgtIFloatInstruction->Operand1)
                         {
                             ip += BgtIFloatInstruction->Operand2;
@@ -1336,7 +1336,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BgtI_Double:
                         ALPPInstruction* BgtIDoubleInstruction = (ALPPInstruction*)ip;
-                        if (Registers[BgtIDoubleInstruction->RegisterA].Upper >
+                        if (reg[BgtIDoubleInstruction->RegisterA].Upper >
                             BgtIDoubleInstruction->Operand1)
                         {
                             ip += BgtIDoubleInstruction->Operand2;
@@ -1348,7 +1348,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BltI_Int:
                         APPInstruction* BltIIntInstruction = (APPInstruction*)ip;
-                        if (Registers[BltIIntInstruction->RegisterA].Upper <
+                        if (reg[BltIIntInstruction->RegisterA].Upper <
                             BltIIntInstruction->Operand1)
                         {
                             ip += BltIIntInstruction->Operand2;
@@ -1360,7 +1360,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BltI_Long:
                         ALPPInstruction* BltILongInstruction = (ALPPInstruction*)ip;
-                        if (*(long*)&Registers[BltILongInstruction->RegisterA].Upper <
+                        if (*(long*)&reg[BltILongInstruction->RegisterA].Upper <
                             BltILongInstruction->Operand1)
                         {
                             ip += BltILongInstruction->Operand2;
@@ -1372,7 +1372,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BltI_Float:
                         APPInstruction* BltIFloatInstruction = (APPInstruction*)ip;
-                        if (Registers[BltIFloatInstruction->RegisterA].Upper <
+                        if (reg[BltIFloatInstruction->RegisterA].Upper <
                             BltIFloatInstruction->Operand1)
                         {
                             ip += BltIFloatInstruction->Operand2;
@@ -1384,7 +1384,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.BltI_Double:
                         ALPPInstruction* BltIDoubleInstruction = (ALPPInstruction*)ip;
-                        if (Registers[BltIDoubleInstruction->RegisterA].Upper <
+                        if (reg[BltIDoubleInstruction->RegisterA].Upper <
                             BltIDoubleInstruction->Operand1)
                         {
                             ip += BltIDoubleInstruction->Operand2;
@@ -1396,8 +1396,8 @@ namespace Regulus.Core
                         break;
                     case OpCode.Ble_Int:
                         ABPInstruction* bleIntInstruction = (ABPInstruction*)ip;
-                        if (Registers[bleIntInstruction->RegisterA].Upper <=
-                            Registers[bleIntInstruction->RegisterB].Upper)
+                        if (reg[bleIntInstruction->RegisterA].Upper <=
+                            reg[bleIntInstruction->RegisterB].Upper)
                         {
                             ip += bleIntInstruction->Operand;
                         }
@@ -1409,8 +1409,8 @@ namespace Regulus.Core
 
                     case OpCode.Ble_Long:
                         ABPInstruction* bleLongInstruction = (ABPInstruction*)ip;
-                        if (*(long*)&Registers[bleLongInstruction->RegisterA].Upper <=
-                            *(long*)&Registers[bleLongInstruction->RegisterB].Upper)
+                        if (*(long*)&reg[bleLongInstruction->RegisterA].Upper <=
+                            *(long*)&reg[bleLongInstruction->RegisterB].Upper)
                         {
                             ip += bleLongInstruction->Operand;
                         }
@@ -1422,8 +1422,8 @@ namespace Regulus.Core
 
                     case OpCode.Ble_Float:
                         ABPInstruction* bleFloatInstruction = (ABPInstruction*)ip;
-                        if (*(float*)&Registers[bleFloatInstruction->RegisterA].Upper <=
-                            *(float*)&Registers[bleFloatInstruction->RegisterB].Upper)
+                        if (*(float*)&reg[bleFloatInstruction->RegisterA].Upper <=
+                            *(float*)&reg[bleFloatInstruction->RegisterB].Upper)
                         {
                             ip += bleFloatInstruction->Operand;
                         }
@@ -1435,8 +1435,8 @@ namespace Regulus.Core
 
                     case OpCode.Ble_Double:
                         ABPInstruction* bleDoubleInstruction = (ABPInstruction*)ip;
-                        if (*(double*)&Registers[bleDoubleInstruction->RegisterA].Upper <=
-                            *(double*)&Registers[bleDoubleInstruction->RegisterB].Upper)
+                        if (*(double*)&reg[bleDoubleInstruction->RegisterA].Upper <=
+                            *(double*)&reg[bleDoubleInstruction->RegisterB].Upper)
                         {
                             ip += bleDoubleInstruction->Operand;
                         }
@@ -1448,8 +1448,8 @@ namespace Regulus.Core
 
                     case OpCode.Blt_Int:
                         ABPInstruction* bltIntInstruction = (ABPInstruction*)ip;
-                        if (Registers[bltIntInstruction->RegisterA].Upper <
-                            Registers[bltIntInstruction->RegisterB].Upper)
+                        if (reg[bltIntInstruction->RegisterA].Upper <
+                            reg[bltIntInstruction->RegisterB].Upper)
                         {
                             ip += bltIntInstruction->Operand;
                         }
@@ -1461,8 +1461,8 @@ namespace Regulus.Core
 
                     case OpCode.Blt_Long:
                         ABPInstruction* bltLongInstruction = (ABPInstruction*)ip;
-                        if (*(long*)&Registers[bltLongInstruction->RegisterA].Upper <
-                            *(long*)&Registers[bltLongInstruction->RegisterB].Upper)
+                        if (*(long*)&reg[bltLongInstruction->RegisterA].Upper <
+                            *(long*)&reg[bltLongInstruction->RegisterB].Upper)
                         {
                             ip += bltLongInstruction->Operand;
                         }
@@ -1474,8 +1474,8 @@ namespace Regulus.Core
 
                     case OpCode.Blt_Float:
                         ABPInstruction* bltFloatInstruction = (ABPInstruction*)ip;
-                        if (*(float*)&Registers[bltFloatInstruction->RegisterA].Upper <
-                            *(float*)&Registers[bltFloatInstruction->RegisterB].Upper)
+                        if (*(float*)&reg[bltFloatInstruction->RegisterA].Upper <
+                            *(float*)&reg[bltFloatInstruction->RegisterB].Upper)
                         {
                             ip += bltFloatInstruction->Operand;
                         }
@@ -1487,8 +1487,8 @@ namespace Regulus.Core
 
                     case OpCode.Blt_Double:
                         ABPInstruction* bltDoubleInstruction = (ABPInstruction*)ip;
-                        if (*(double*)&Registers[bltDoubleInstruction->RegisterA].Upper <
-                            *(double*)&Registers[bltDoubleInstruction->RegisterB].Upper)
+                        if (*(double*)&reg[bltDoubleInstruction->RegisterA].Upper <
+                            *(double*)&reg[bltDoubleInstruction->RegisterB].Upper)
                         {
                             ip += bltDoubleInstruction->Operand;
                         }
@@ -1499,8 +1499,8 @@ namespace Regulus.Core
                         break;
                     case OpCode.Bgt_Un_Int:
                         ABPInstruction* bgtUnIntInstruction = (ABPInstruction*)ip;
-                        if (*(uint*)&Registers[bgtUnIntInstruction->RegisterA].Upper >
-                            *(uint*)&Registers[bgtUnIntInstruction->RegisterB].Upper)
+                        if (*(uint*)&reg[bgtUnIntInstruction->RegisterA].Upper >
+                            *(uint*)&reg[bgtUnIntInstruction->RegisterB].Upper)
                         {
                             ip += bgtUnIntInstruction->Operand;
                         }
@@ -1512,8 +1512,8 @@ namespace Regulus.Core
 
                     case OpCode.Bgt_Un_Long:
                         ABPInstruction* bgtUnLongInstruction = (ABPInstruction*)ip;
-                        if (*(ulong*)&Registers[bgtUnLongInstruction->RegisterA].Upper >
-                            *(ulong*)&Registers[bgtUnLongInstruction->RegisterB].Upper)
+                        if (*(ulong*)&reg[bgtUnLongInstruction->RegisterA].Upper >
+                            *(ulong*)&reg[bgtUnLongInstruction->RegisterB].Upper)
                         {
                             ip += bgtUnLongInstruction->Operand;
                         }
@@ -1525,8 +1525,8 @@ namespace Regulus.Core
 
                     case OpCode.Ble_Un_Int:
                         ABPInstruction* bleUnIntInstruction = (ABPInstruction*)ip;
-                        if (*(uint*)&Registers[bleUnIntInstruction->RegisterA].Upper <=
-                            *(uint*)&Registers[bleUnIntInstruction->RegisterB].Upper)
+                        if (*(uint*)&reg[bleUnIntInstruction->RegisterA].Upper <=
+                            *(uint*)&reg[bleUnIntInstruction->RegisterB].Upper)
                         {
                             ip += bleUnIntInstruction->Operand;
                         }
@@ -1538,8 +1538,8 @@ namespace Regulus.Core
 
                     case OpCode.Ble_Un_Long:
                         ABPInstruction* bleUnLongInstruction = (ABPInstruction*)ip;
-                        if (*(ulong*)&Registers[bleUnLongInstruction->RegisterA].Upper <=
-                            *(ulong*)&Registers[bleUnLongInstruction->RegisterB].Upper)
+                        if (*(ulong*)&reg[bleUnLongInstruction->RegisterA].Upper <=
+                            *(ulong*)&reg[bleUnLongInstruction->RegisterB].Upper)
                         {
                             ip += bleUnLongInstruction->Operand;
                         }
@@ -1551,8 +1551,8 @@ namespace Regulus.Core
 
                     case OpCode.Blt_Un_Int:
                         ABPInstruction* bltUnIntInstruction = (ABPInstruction*)ip;
-                        if (*(uint*)&Registers[bltUnIntInstruction->RegisterA].Upper <
-                            *(uint*)&Registers[bltUnIntInstruction->RegisterB].Upper)
+                        if (*(uint*)&reg[bltUnIntInstruction->RegisterA].Upper <
+                            *(uint*)&reg[bltUnIntInstruction->RegisterB].Upper)
                         {
                             ip += bltUnIntInstruction->Operand;
                         }
@@ -1564,8 +1564,8 @@ namespace Regulus.Core
 
                     case OpCode.Blt_Un_Long:
                         ABPInstruction* bltUnLongInstruction = (ABPInstruction*)ip;
-                        if (*(ulong*)&Registers[bltUnLongInstruction->RegisterA].Upper <
-                            *(ulong*)&Registers[bltUnLongInstruction->RegisterB].Upper)
+                        if (*(ulong*)&reg[bltUnLongInstruction->RegisterA].Upper <
+                            *(ulong*)&reg[bltUnLongInstruction->RegisterB].Upper)
                         {
                             ip += bltUnLongInstruction->Operand;
                         }
@@ -1576,235 +1576,235 @@ namespace Regulus.Core
                         break;
                     case OpCode.Conv_I1_Int:
                         ABInstruction* convI1IntInstruction = (ABInstruction*)ip;
-                        Registers[convI1IntInstruction->RegisterB].Upper = (sbyte)Registers[convI1IntInstruction->RegisterA].Upper;
+                        reg[convI1IntInstruction->RegisterB].Upper = (sbyte)reg[convI1IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Conv_I1_Long:
                         ABInstruction* convI1LongInstruction = (ABInstruction*)ip;
-                        Registers[convI1LongInstruction->RegisterB].Upper = (sbyte)*(long*)&Registers[convI1LongInstruction->RegisterA].Upper;
+                        reg[convI1LongInstruction->RegisterB].Upper = (sbyte)*(long*)&reg[convI1LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Conv_I1_Float:
                         ABInstruction* convI1FloatInstruction = (ABInstruction*)ip;
-                        Registers[convI1FloatInstruction->RegisterB].Upper = (sbyte)*(float*)&Registers[convI1FloatInstruction->RegisterA].Upper;
+                        reg[convI1FloatInstruction->RegisterB].Upper = (sbyte)*(float*)&reg[convI1FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Conv_I1_Double:
                         ABInstruction* convI1DoubleInstruction = (ABInstruction*)ip;
-                        Registers[convI1DoubleInstruction->RegisterB].Upper = (sbyte)*(double*)&Registers[convI1DoubleInstruction->RegisterA].Upper;
+                        reg[convI1DoubleInstruction->RegisterB].Upper = (sbyte)*(double*)&reg[convI1DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Conv_I2_Int:
                         ABInstruction* convI2IntInstruction = (ABInstruction*)ip;
-                        Registers[convI2IntInstruction->RegisterB].Upper = (short)Registers[convI2IntInstruction->RegisterA].Upper;
+                        reg[convI2IntInstruction->RegisterB].Upper = (short)reg[convI2IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I2_Long:
                         ABInstruction* convI2LongInstruction = (ABInstruction*)ip;
-                        Registers[convI2LongInstruction->RegisterB].Upper = (short)Registers[convI2LongInstruction->RegisterA].Upper;
+                        reg[convI2LongInstruction->RegisterB].Upper = (short)reg[convI2LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I2_Float:
                         ABInstruction* convI2FloatInstruction = (ABInstruction*)ip;
-                        Registers[convI2FloatInstruction->RegisterB].Upper = (short)*(float*)&Registers[convI2FloatInstruction->RegisterA].Upper;
+                        reg[convI2FloatInstruction->RegisterB].Upper = (short)*(float*)&reg[convI2FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I2_Double:
                         ABInstruction* convI2DoubleInstruction = (ABInstruction*)ip;
-                        Registers[convI2DoubleInstruction->RegisterB].Upper = (short)*(double*)&Registers[convI2DoubleInstruction->RegisterA].Upper;
+                        reg[convI2DoubleInstruction->RegisterB].Upper = (short)*(double*)&reg[convI2DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Conv_I4_Int:
                         ABInstruction* convI4IntInstruction = (ABInstruction*)ip;
-                        Registers[convI4IntInstruction->RegisterB].Upper = Registers[convI4IntInstruction->RegisterA].Upper;
+                        reg[convI4IntInstruction->RegisterB].Upper = reg[convI4IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I4_Long:
                         ABInstruction* convI4LongInstruction = (ABInstruction*)ip;
-                        Registers[convI4LongInstruction->RegisterB].Upper = (int)*(long*)&Registers[convI4LongInstruction->RegisterA].Upper;
+                        reg[convI4LongInstruction->RegisterB].Upper = (int)*(long*)&reg[convI4LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I4_Float:
                         ABInstruction* convI4FloatInstruction = (ABInstruction*)ip;
-                        Registers[convI4FloatInstruction->RegisterB].Upper = (int)*(float*)&Registers[convI4FloatInstruction->RegisterA].Upper;
+                        reg[convI4FloatInstruction->RegisterB].Upper = (int)*(float*)&reg[convI4FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I4_Double:
                         ABInstruction* convI4DoubleInstruction = (ABInstruction*)ip;
-                        Registers[convI4DoubleInstruction->RegisterB].Upper = (int)*(double*)&Registers[convI4DoubleInstruction->RegisterA].Upper;
+                        reg[convI4DoubleInstruction->RegisterB].Upper = (int)*(double*)&reg[convI4DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I8_Int:
                         ABInstruction* convI8IntInstruction = (ABInstruction*)ip;
-                        *(long*)&Registers[convI8IntInstruction->RegisterB].Upper = Registers[convI8IntInstruction->RegisterA].Upper;
+                        *(long*)&reg[convI8IntInstruction->RegisterB].Upper = reg[convI8IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I8_Long:
                         ABInstruction* convI8LongInstruction = (ABInstruction*)ip;
-                        *(long*)&Registers[convI8LongInstruction->RegisterB].Upper = *(long*)&Registers[convI8LongInstruction->RegisterA].Upper;
+                        *(long*)&reg[convI8LongInstruction->RegisterB].Upper = *(long*)&reg[convI8LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I8_Float:
                         ABInstruction* convI8FloatInstruction = (ABInstruction*)ip;
-                        *(long*)&Registers[convI8FloatInstruction->RegisterB].Upper = (long)*(float*)&Registers[convI8FloatInstruction->RegisterA].Upper;
+                        *(long*)&reg[convI8FloatInstruction->RegisterB].Upper = (long)*(float*)&reg[convI8FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_I8_Double:
                         ABInstruction* convI8DoubleInstruction = (ABInstruction*)ip;
-                        *(long*)&Registers[convI8DoubleInstruction->RegisterB].Upper = (long)*(double*)&Registers[convI8DoubleInstruction->RegisterA].Upper;
+                        *(long*)&reg[convI8DoubleInstruction->RegisterB].Upper = (long)*(double*)&reg[convI8DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Conv_U1_Int:
                         ABInstruction* convU1IntInstruction = (ABInstruction*)ip;
-                        Registers[convU1IntInstruction->RegisterB].Upper = (byte)Registers[convU1IntInstruction->RegisterA].Upper;
+                        reg[convU1IntInstruction->RegisterB].Upper = (byte)reg[convU1IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U1_Long:
                         ABInstruction* convU1LongInstruction = (ABInstruction*)ip;
-                        Registers[convU1LongInstruction->RegisterB].Upper = (byte)*(long*)&Registers[convU1LongInstruction->RegisterA].Upper;
+                        reg[convU1LongInstruction->RegisterB].Upper = (byte)*(long*)&reg[convU1LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U1_Float:
                         ABInstruction* convU1FloatInstruction = (ABInstruction*)ip;
-                        Registers[convU1FloatInstruction->RegisterB].Upper = (byte)*(float*)&Registers[convU1FloatInstruction->RegisterA].Upper;
+                        reg[convU1FloatInstruction->RegisterB].Upper = (byte)*(float*)&reg[convU1FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U1_Double:
                         ABInstruction* convU1DoubleInstruction = (ABInstruction*)ip;
-                        Registers[convU1DoubleInstruction->RegisterB].Upper = (byte)*(double*)&Registers[convU1DoubleInstruction->RegisterA].Upper;
+                        reg[convU1DoubleInstruction->RegisterB].Upper = (byte)*(double*)&reg[convU1DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U2_Int:
                         ABInstruction* convU2IntInstruction = (ABInstruction*)ip;
-                        Registers[convU2IntInstruction->RegisterB].Upper = (ushort)Registers[convU2IntInstruction->RegisterA].Upper;
+                        reg[convU2IntInstruction->RegisterB].Upper = (ushort)reg[convU2IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U2_Long:
                         ABInstruction* convU2LongInstruction = (ABInstruction*)ip;
-                        Registers[convU2LongInstruction->RegisterB].Upper = (ushort)*(long*)&Registers[convU2LongInstruction->RegisterA].Upper;
+                        reg[convU2LongInstruction->RegisterB].Upper = (ushort)*(long*)&reg[convU2LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U2_Float:
                         ABInstruction* convU2FloatInstruction = (ABInstruction*)ip;
-                        Registers[convU2FloatInstruction->RegisterB].Upper = (ushort)*(float*)&Registers[convU2FloatInstruction->RegisterA].Upper;
+                        reg[convU2FloatInstruction->RegisterB].Upper = (ushort)*(float*)&reg[convU2FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U2_Double:
                         ABInstruction* convU2DoubleInstruction = (ABInstruction*)ip;
-                        Registers[convU2DoubleInstruction->RegisterB].Upper = (ushort)*(double*)&Registers[convU2DoubleInstruction->RegisterA].Upper;
+                        reg[convU2DoubleInstruction->RegisterB].Upper = (ushort)*(double*)&reg[convU2DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U4_Int:
                         ABInstruction* convU4IntInstruction = (ABInstruction*)ip;
-                        Registers[convU4IntInstruction->RegisterB].Upper = (int)(uint)Registers[convU4IntInstruction->RegisterA].Upper;
+                        reg[convU4IntInstruction->RegisterB].Upper = (int)(uint)reg[convU4IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U4_Long:
                         ABInstruction* convU4LongInstruction = (ABInstruction*)ip;
-                        Registers[convU4LongInstruction->RegisterB].Upper = (int)(uint)*(long*)&Registers[convU4LongInstruction->RegisterA].Upper;
+                        reg[convU4LongInstruction->RegisterB].Upper = (int)(uint)*(long*)&reg[convU4LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U4_Float:
                         ABInstruction* convU4FloatInstruction = (ABInstruction*)ip;
-                        Registers[convU4FloatInstruction->RegisterB].Upper = (int)(uint)*(float*)&Registers[convU4FloatInstruction->RegisterA].Upper;
+                        reg[convU4FloatInstruction->RegisterB].Upper = (int)(uint)*(float*)&reg[convU4FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U4_Double:
                         ABInstruction* convU4DoubleInstruction = (ABInstruction*)ip;
-                        Registers[convU4DoubleInstruction->RegisterB].Upper = (int)(uint)*(double*)&Registers[convU4DoubleInstruction->RegisterA].Upper;
+                        reg[convU4DoubleInstruction->RegisterB].Upper = (int)(uint)*(double*)&reg[convU4DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U8_Int:
                         ABInstruction* convU8IntInstruction = (ABInstruction*)ip;
-                        *(ulong*)&Registers[convU8IntInstruction->RegisterB].Upper = *(uint*)&Registers[convU8IntInstruction->RegisterA].Upper;
+                        *(ulong*)&reg[convU8IntInstruction->RegisterB].Upper = *(uint*)&reg[convU8IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U8_Long:
                         ABInstruction* convU8LongInstruction = (ABInstruction*)ip;
-                        Registers[convU8LongInstruction->RegisterB].Upper = Registers[convU8LongInstruction->RegisterA].Upper;
+                        reg[convU8LongInstruction->RegisterB].Upper = reg[convU8LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U8_Float:
                         ABInstruction* convU8FloatInstruction = (ABInstruction*)ip;
-                        *(ulong*)&Registers[convU8FloatInstruction->RegisterB].Upper = (ulong)*(float*)&Registers[convU8FloatInstruction->RegisterA].Upper;
+                        *(ulong*)&reg[convU8FloatInstruction->RegisterB].Upper = (ulong)*(float*)&reg[convU8FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_U8_Double:
                         ABInstruction* convU8DoubleInstruction = (ABInstruction*)ip;
-                        *(ulong*)&Registers[convU8DoubleInstruction->RegisterB].Upper = (ulong)*(double*)&Registers[convU8DoubleInstruction->RegisterA].Upper;
+                        *(ulong*)&reg[convU8DoubleInstruction->RegisterB].Upper = (ulong)*(double*)&reg[convU8DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R4_Int:
                         ABInstruction* convR4IntInstruction = (ABInstruction*)ip;
-                        *(float*)&Registers[convR4IntInstruction->RegisterB].Upper = (float)Registers[convR4IntInstruction->RegisterA].Upper;
+                        *(float*)&reg[convR4IntInstruction->RegisterB].Upper = (float)reg[convR4IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R4_Long:
                         ABInstruction* convR4LongInstruction = (ABInstruction*)ip;
-                        *(float*)&Registers[convR4LongInstruction->RegisterB].Upper = (float)*(long*)&Registers[convR4LongInstruction->RegisterA].Upper;
+                        *(float*)&reg[convR4LongInstruction->RegisterB].Upper = (float)*(long*)&reg[convR4LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R4_Float:
                         ABInstruction* convR4FloatInstruction = (ABInstruction*)ip;
-                        *(float*)&Registers[convR4FloatInstruction->RegisterB].Upper = *(float*)&Registers[convR4FloatInstruction->RegisterA].Upper;
+                        *(float*)&reg[convR4FloatInstruction->RegisterB].Upper = *(float*)&reg[convR4FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R4_Double:
                         ABInstruction* convR4DoubleInstruction = (ABInstruction*)ip;
-                        *(float*)&Registers[convR4DoubleInstruction->RegisterB].Upper = (float)*(double*)&Registers[convR4DoubleInstruction->RegisterA].Upper;
+                        *(float*)&reg[convR4DoubleInstruction->RegisterB].Upper = (float)*(double*)&reg[convR4DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R8_Int:
                         ABInstruction* convR8IntInstruction = (ABInstruction*)ip;
-                        *(double*)&Registers[convR8IntInstruction->RegisterB].Upper = (double)Registers[convR8IntInstruction->RegisterA].Upper;
+                        *(double*)&reg[convR8IntInstruction->RegisterB].Upper = (double)reg[convR8IntInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R8_Long:
                         ABInstruction* convR8LongInstruction = (ABInstruction*)ip;
-                        *(double*)&Registers[convR8LongInstruction->RegisterB].Upper = (double)*(long*)&Registers[convR8LongInstruction->RegisterA].Upper;
+                        *(double*)&reg[convR8LongInstruction->RegisterB].Upper = (double)*(long*)&reg[convR8LongInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R8_Float:
                         ABInstruction* convR8FloatInstruction = (ABInstruction*)ip;
-                        *(double*)&Registers[convR8FloatInstruction->RegisterB].Upper = (double)*(float*)&Registers[convR8FloatInstruction->RegisterA].Upper;
+                        *(double*)&reg[convR8FloatInstruction->RegisterB].Upper = (double)*(float*)&reg[convR8FloatInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Conv_R8_Double:
                         ABInstruction* convR8DoubleInstruction = (ABInstruction*)ip;
-                        *(double*)&Registers[convR8DoubleInstruction->RegisterB].Upper = *(double*)&Registers[convR8DoubleInstruction->RegisterA].Upper;
+                        *(double*)&reg[convR8DoubleInstruction->RegisterB].Upper = *(double*)&reg[convR8DoubleInstruction->RegisterA].Upper;
                         ip += ABInstruction.Size;
                         break;
 
@@ -1815,40 +1815,40 @@ namespace Regulus.Core
                         switch (*ip)
                         {
                             case Constants.Byte:
-                                Objects[boxInstruction->RegisterB] = (byte)Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = (byte)reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.Sbyte:
-                                Objects[boxInstruction->RegisterB] = (sbyte)Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = (sbyte)reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.UShort:
-                                Objects[boxInstruction->RegisterB] = (ushort)Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = (ushort)reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.Short:
-                                Objects[boxInstruction->RegisterB] = (short)Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = (short)reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.Int:
-                                Objects[boxInstruction->RegisterB] = Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.Long:
-                                Objects[boxInstruction->RegisterB] = *(long*)&Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = *(long*)&reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.ULong:
-                                Objects[boxInstruction->RegisterB] = *(ulong*)&Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = *(ulong*)&reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.Float:
-                                Objects[boxInstruction->RegisterB] = *(float*)&Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = *(float*)&reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             case Constants.Double:
-                                Objects[boxInstruction->RegisterB] = *(float*)&Registers[boxInstruction->RegisterA].Upper;
-                                Registers[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
+                                Objects[boxInstruction->RegisterB] = *(float*)&reg[boxInstruction->RegisterA].Upper;
+                                reg[boxInstruction->RegisterB].Upper = boxInstruction->RegisterB;
                                 break;
                             default:
                                 throw new NotImplementedException();
@@ -1862,31 +1862,31 @@ namespace Regulus.Core
                         switch (*ip)
                         {
                             case Constants.Byte:
-                                Registers[unboxInstruction->RegisterB].Upper = (byte)Objects[unboxInstruction->RegisterA];
+                                reg[unboxInstruction->RegisterB].Upper = (byte)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.Sbyte:
-                                Registers[unboxInstruction->RegisterB].Upper = (sbyte)Objects[unboxInstruction->RegisterA];
+                                reg[unboxInstruction->RegisterB].Upper = (sbyte)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.UShort:
-                                Registers[unboxInstruction->RegisterB].Upper = (ushort)Objects[unboxInstruction->RegisterA];
+                                reg[unboxInstruction->RegisterB].Upper = (ushort)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.Short:
-                                Registers[unboxInstruction->RegisterB].Upper = (short)Objects[unboxInstruction->RegisterA];
+                                reg[unboxInstruction->RegisterB].Upper = (short)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.Int:
-                                Registers[unboxInstruction->RegisterB].Upper = (int)Objects[unboxInstruction->RegisterA];
+                                reg[unboxInstruction->RegisterB].Upper = (int)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.Long:
-                                *(long*)&Registers[unboxInstruction->RegisterB].Upper = (long)Objects[unboxInstruction->RegisterA];
+                                *(long*)&reg[unboxInstruction->RegisterB].Upper = (long)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.ULong:
-                                *(ulong*)&Registers[unboxInstruction->RegisterB].Upper = (ulong)Objects[unboxInstruction->RegisterA];
+                                *(ulong*)&reg[unboxInstruction->RegisterB].Upper = (ulong)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.Float:
-                                *(float*)&Registers[unboxInstruction->RegisterB].Upper = (float)Objects[unboxInstruction->RegisterA];
+                                *(float*)&reg[unboxInstruction->RegisterB].Upper = (float)Objects[unboxInstruction->RegisterA];
                                 break;
                             case Constants.Double:
-                                *(double*)&Registers[unboxInstruction->RegisterB].Upper = (double)Objects[unboxInstruction->RegisterA]; 
+                                *(double*)&reg[unboxInstruction->RegisterB].Upper = (double)Objects[unboxInstruction->RegisterA]; 
                                 break;
                             default:
                                 throw new NotImplementedException();
@@ -1903,34 +1903,34 @@ namespace Regulus.Core
                         switch (*ip)
                         {
                             case Constants.Byte:
-                                Registers[ldfldInstruction->RegisterB].Upper = (byte)fieldValue;
+                                reg[ldfldInstruction->RegisterB].Upper = (byte)fieldValue;
                                 break;
                             case Constants.Sbyte:
-                                Registers[ldfldInstruction->RegisterB].Upper = (sbyte)fieldValue;
+                                reg[ldfldInstruction->RegisterB].Upper = (sbyte)fieldValue;
                                 break;
                             case Constants.UShort:
-                                Registers[ldfldInstruction->RegisterB].Upper = (ushort)fieldValue;
+                                reg[ldfldInstruction->RegisterB].Upper = (ushort)fieldValue;
                                 break;
                             case Constants.Short:
-                                Registers[ldfldInstruction->RegisterB].Upper = (short)fieldValue;
+                                reg[ldfldInstruction->RegisterB].Upper = (short)fieldValue;
                                 break;
                             case Constants.Int:
-                                Registers[ldfldInstruction->RegisterB].Upper = (int)fieldValue;
+                                reg[ldfldInstruction->RegisterB].Upper = (int)fieldValue;
                                 break;
                             case Constants.Long:
-                                *(long*)&Registers[ldfldInstruction->RegisterB].Upper = (long)fieldValue;
+                                *(long*)&reg[ldfldInstruction->RegisterB].Upper = (long)fieldValue;
                                 break;
                             case Constants.ULong:
-                                *(ulong*)&Registers[ldfldInstruction->RegisterB].Upper = (ulong)fieldValue;
+                                *(ulong*)&reg[ldfldInstruction->RegisterB].Upper = (ulong)fieldValue;
                                 break;
                             case Constants.Float:
-                                *(float*)&Registers[ldfldInstruction->RegisterB].Upper = (float)fieldValue;
+                                *(float*)&reg[ldfldInstruction->RegisterB].Upper = (float)fieldValue;
                                 break;
                             case Constants.Double:
-                                *(double*)&Registers[ldfldInstruction->RegisterB].Upper = (double)fieldValue;
+                                *(double*)&reg[ldfldInstruction->RegisterB].Upper = (double)fieldValue;
                                 break;
                             case Constants.Object:
-                                Registers[ldfldInstruction->RegisterB].Upper = ldfldInstruction->RegisterB;
+                                reg[ldfldInstruction->RegisterB].Upper = ldfldInstruction->RegisterB;
                                 Objects[ldfldInstruction->RegisterB] = fieldValue;
                                 break;
                             default:
@@ -1947,34 +1947,34 @@ namespace Regulus.Core
                         switch (*ip)
                         {
                             case Constants.Byte:
-                                Registers[ldsfldInstruction->RegisterA].Upper = (byte)sfieldValue;
+                                reg[ldsfldInstruction->RegisterA].Upper = (byte)sfieldValue;
                                 break;
                             case Constants.Sbyte:
-                                Registers[ldsfldInstruction->RegisterA].Upper = (sbyte)sfieldValue;
+                                reg[ldsfldInstruction->RegisterA].Upper = (sbyte)sfieldValue;
                                 break;
                             case Constants.UShort:
-                                Registers[ldsfldInstruction->RegisterA].Upper = (ushort)sfieldValue;
+                                reg[ldsfldInstruction->RegisterA].Upper = (ushort)sfieldValue;
                                 break;
                             case Constants.Short:
-                                Registers[ldsfldInstruction->RegisterA].Upper = (short)sfieldValue;
+                                reg[ldsfldInstruction->RegisterA].Upper = (short)sfieldValue;
                                 break;
                             case Constants.Int:
-                                Registers[ldsfldInstruction->RegisterA].Upper = (int)sfieldValue;
+                                reg[ldsfldInstruction->RegisterA].Upper = (int)sfieldValue;
                                 break;
                             case Constants.Long:
-                                *(long*)&Registers[ldsfldInstruction->RegisterA].Upper = (long)sfieldValue;
+                                *(long*)&reg[ldsfldInstruction->RegisterA].Upper = (long)sfieldValue;
                                 break;
                             case Constants.ULong:
-                                *(ulong*)&Registers[ldsfldInstruction->RegisterA].Upper = (ulong)sfieldValue;
+                                *(ulong*)&reg[ldsfldInstruction->RegisterA].Upper = (ulong)sfieldValue;
                                 break;
                             case Constants.Float:
-                                *(float*)&Registers[ldsfldInstruction->RegisterA].Upper = (float)sfieldValue;
+                                *(float*)&reg[ldsfldInstruction->RegisterA].Upper = (float)sfieldValue;
                                 break;
                             case Constants.Double:
-                                *(double*)&Registers[ldsfldInstruction->RegisterA].Upper = (double)sfieldValue;
+                                *(double*)&reg[ldsfldInstruction->RegisterA].Upper = (double)sfieldValue;
                                 break;
                             case Constants.Object:
-                                Registers[ldsfldInstruction->RegisterA].Upper = ldsfldInstruction->RegisterA;
+                                reg[ldsfldInstruction->RegisterA].Upper = ldsfldInstruction->RegisterA;
                                 Objects[ldsfldInstruction->RegisterA] = sfieldValue;
                                 break;
                             default:
@@ -1990,7 +1990,7 @@ namespace Regulus.Core
                             throw new InvalidCastException(classType + " is not assignable from " + Objects[castclassInstruction->RegisterA].GetType());
                         }
                         Objects[castclassInstruction->RegisterB] = Objects[castclassInstruction->RegisterA];
-                        Registers[castclassInstruction->RegisterB].Upper = castclassInstruction->RegisterB;
+                        reg[castclassInstruction->RegisterB].Upper = castclassInstruction->RegisterB;
 
                         break;
                     case OpCode.Callvirt:
@@ -2005,7 +2005,7 @@ namespace Regulus.Core
 
                         //Value* dest = *(Value**)&Registers[initobjInstruction->RegisterA].Upper;
                         //Registers[addr].Upper = addr;
-                        Objects[Registers[initobjInstruction->RegisterA].Upper] = obj;
+                        Objects[reg[initobjInstruction->RegisterA].Upper] = obj;
                         ip += APInstruction.Size;
                         break;
                     case OpCode.Stfld_LocalPointer:
@@ -2018,48 +2018,48 @@ namespace Regulus.Core
                         switch (*ip)
                         {
                             case Constants.Byte:
-                                Objects[stfldInstruction->RegisterA] = (byte)Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = (byte)reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
                                 break;
 
                             case Constants.Sbyte:
-                                Objects[stfldInstruction->RegisterA] = (sbyte)Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = (sbyte)reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.UShort:
-                                Objects[stfldInstruction->RegisterA] = (ushort)Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = (ushort)reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Short:
-                                Objects[stfldInstruction->RegisterA] = (short)Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = (short)reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Int:
-                                Objects[stfldInstruction->RegisterA] = Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Long:
-                                Objects[stfldInstruction->RegisterA] = *(long*)&Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = *(long*)&reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.ULong:
-                                Objects[stfldInstruction->RegisterA] = *(ulong*)&Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = *(ulong*)&reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Float:
-                                Objects[stfldInstruction->RegisterA] = *(float*)&Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = *(float*)&reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Double:
-                                Objects[stfldInstruction->RegisterA] = *(double*)&Registers[stfldInstruction->RegisterA].Upper;
-                                Registers[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
+                                Objects[stfldInstruction->RegisterA] = *(double*)&reg[stfldInstruction->RegisterA].Upper;
+                                reg[stfldInstruction->RegisterA].Upper = stfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Object:
@@ -2075,7 +2075,7 @@ namespace Regulus.Core
                                 stfield.SetValue(Objects[stfldInstruction->RegisterB], Objects[stfldInstruction->RegisterA]);
                                 break;
                             case OpCode.Stfld_LocalPointer:
-                                stfield.SetValue(Objects[Registers[stfldInstruction->RegisterB].Upper], Objects[stfldInstruction->RegisterA]);
+                                stfield.SetValue(Objects[reg[stfldInstruction->RegisterB].Upper], Objects[stfldInstruction->RegisterA]);
                                 break;
 
                         }
@@ -2088,48 +2088,48 @@ namespace Regulus.Core
                         switch (*ip)
                         {
                             case Constants.Byte:
-                                Objects[stsfldInstruction->RegisterA] = (byte)Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = (byte)reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
                                 break;
 
                             case Constants.Sbyte:
-                                Objects[stsfldInstruction->RegisterA] = (sbyte)Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = (sbyte)reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
                                 break;
 
                             case Constants.UShort:
-                                Objects[stsfldInstruction->RegisterA] = (ushort)Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = (ushort)reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
                                 break;
 
                             case Constants.Short:
-                                Objects[stsfldInstruction->RegisterA] = (short)Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = (short)reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Int:
-                                Objects[stsfldInstruction->RegisterA] = Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Long:
-                                Objects[stsfldInstruction->RegisterA] = *(long*)&Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = *(long*)&reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
 
                                 break;
                             case Constants.ULong:
-                                Objects[stsfldInstruction->RegisterA] = *(ulong*)&Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = *(ulong*)&reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Float:
-                                Objects[stsfldInstruction->RegisterA] = *(float*)&Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = *(float*)&reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Double:
-                                Objects[stsfldInstruction->RegisterA] = *(double*)&Registers[stsfldInstruction->RegisterA].Upper;
-                                Registers[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
+                                Objects[stsfldInstruction->RegisterA] = *(double*)&reg[stsfldInstruction->RegisterA].Upper;
+                                reg[stsfldInstruction->RegisterA].Upper = stsfldInstruction->RegisterA;
 
                                 break;
                             case Constants.Object:
@@ -2149,25 +2149,30 @@ namespace Regulus.Core
                         // operand2 is argCount
                         // then argCount bytes for parameter type
                         ip += ABPPInstruction.Size;
-                        Invokers[callInstruction->Operand1].Invoke(Objects, Registers + callInstruction->RegisterA, ip, callInstruction->Operand2, Registers + callInstruction->RegisterB, callInstruction->RegisterB);
+                        Invokers[callInstruction->Operand1].Invoke(Objects, reg + callInstruction->RegisterA, ip, callInstruction->Operand2, reg + callInstruction->RegisterB, callInstruction->RegisterB);
                         ip += sizeof(byte) * (2 * callInstruction->Operand2 + 1); 
+                        break;
+                    case OpCode.Calln:
+                        ABPInstruction* callnInstruction = (ABPInstruction*)ip;
+                        Run(s_bytecode[callnInstruction->Operand], reg + callnInstruction->RegisterA, callnInstruction->RegisterB);
+                        ip += ABPInstruction.Size;
                         break;
                     case OpCode.Ldelem_I1:
                         ABCInstruction* ldelemI1Instruction = (ABCInstruction*)ip;
 
-                        int I1index = Registers[ldelemI1Instruction->RegisterA].Upper;
+                        int I1index = reg[ldelemI1Instruction->RegisterA].Upper;
                         object I1array = Objects[ldelemI1Instruction->RegisterB];
                         
                         if (I1array is bool[] boolArray)
                         {
-                            Registers[ldelemI1Instruction->RegisterC].Upper = boolArray[I1index] ? 1 : 0;
+                            reg[ldelemI1Instruction->RegisterC].Upper = boolArray[I1index] ? 1 : 0;
                             ip += ABCInstruction.Size;
                             break;
                         }
 
                         if (I1array is sbyte[] sbyteArray)
                         {
-                            Registers[ldelemI1Instruction->RegisterC].Upper = sbyteArray[I1index];
+                            reg[ldelemI1Instruction->RegisterC].Upper = sbyteArray[I1index];
                             ip += ABCInstruction.Size;
                             break;
                         }
@@ -2176,19 +2181,19 @@ namespace Regulus.Core
                     case OpCode.Ldelem_I2:
                         ABCInstruction* ldelemI2Instruction = (ABCInstruction*)ip;
 
-                        int I2index = Registers[ldelemI2Instruction->RegisterA].Upper;
+                        int I2index = reg[ldelemI2Instruction->RegisterA].Upper;
                         object I2array = Objects[ldelemI2Instruction->RegisterB];
 
                         if (I2array is short[] shortArray)
                         {
-                            Registers[ldelemI2Instruction->RegisterC].Upper = shortArray[I2index];
+                            reg[ldelemI2Instruction->RegisterC].Upper = shortArray[I2index];
                             ip += ABCInstruction.Size;
                             break;
                         }
 
                         if (I2array is char[] charArray)
                         {
-                            Registers[ldelemI2Instruction->RegisterC].Upper = charArray[I2index];
+                            reg[ldelemI2Instruction->RegisterC].Upper = charArray[I2index];
                             ip += ABCInstruction.Size;
                             break;
                         }
@@ -2197,55 +2202,55 @@ namespace Regulus.Core
                     case OpCode.Ldelem_I4:
                         ABCInstruction* ldelemI4Instruction = (ABCInstruction*)ip;
 
-                        int I4index = Registers[ldelemI4Instruction->RegisterA].Upper;
+                        int I4index = reg[ldelemI4Instruction->RegisterA].Upper;
                         object I4array = Objects[ldelemI4Instruction->RegisterB];
 
                         int[] intArray = I4array as int[];
-                        Registers[ldelemI4Instruction->RegisterC].Upper = intArray[I4index];
+                        reg[ldelemI4Instruction->RegisterC].Upper = intArray[I4index];
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Ldelem_I8:
                         ABCInstruction* ldelemI8Instruction = (ABCInstruction*)ip;
-                        int I8index = Registers[ldelemI8Instruction->RegisterA].Upper;
+                        int I8index = reg[ldelemI8Instruction->RegisterA].Upper;
                         object I8array = Objects[ldelemI8Instruction->RegisterB];
                         long[] longArray = I8array as long[];
-                        *(long*)&Registers[ldelemI8Instruction->RegisterC].Upper = longArray[I8index];
+                        *(long*)&reg[ldelemI8Instruction->RegisterC].Upper = longArray[I8index];
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Ldelem_R4:
                         ABCInstruction* ldelemR4Instruction = (ABCInstruction*)ip;
-                        int R4index = Registers[ldelemR4Instruction->RegisterA].Upper;
+                        int R4index = reg[ldelemR4Instruction->RegisterA].Upper;
                         object R4array = Objects[ldelemR4Instruction->RegisterB];
                         float[] floatArray = R4array as float[];
-                        *(float*)&Registers[ldelemR4Instruction->RegisterC].Upper = floatArray[R4index];
+                        *(float*)&reg[ldelemR4Instruction->RegisterC].Upper = floatArray[R4index];
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Ldelem_R8:
                         ABCInstruction* ldelemR8Instruction = (ABCInstruction*)ip;
-                        int R8index = Registers[ldelemR8Instruction->RegisterA].Upper;
+                        int R8index = reg[ldelemR8Instruction->RegisterA].Upper;
                         object R8array = Objects[ldelemR8Instruction->RegisterB];
                         double[] doubleArray = R8array as double[];
-                        *(double*)&Registers[ldelemR8Instruction->RegisterC].Upper = doubleArray[R8index];
+                        *(double*)&reg[ldelemR8Instruction->RegisterC].Upper = doubleArray[R8index];
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Ldelem_U1:
                         ABCInstruction* ldelemU1Instruction = (ABCInstruction*)ip;
-                        int U1index = Registers[ldelemU1Instruction->RegisterA].Upper;
+                        int U1index = reg[ldelemU1Instruction->RegisterA].Upper;
                         object U1array = Objects[ldelemU1Instruction->RegisterB];
                         if (U1array is bool[] u1boolArray)
                         {
-                            Registers[ldelemU1Instruction->RegisterC].Upper = u1boolArray[U1index] ? 1 : 0;
+                            reg[ldelemU1Instruction->RegisterC].Upper = u1boolArray[U1index] ? 1 : 0;
                             ip += ABCInstruction.Size;
                             break;
                         }
 
                         if (U1array is byte[] byteArray)
                         {
-                            Registers[ldelemU1Instruction->RegisterC].Upper = byteArray[U1index];
+                            reg[ldelemU1Instruction->RegisterC].Upper = byteArray[U1index];
                             ip += ABCInstruction.Size;
                             break;
                         }
@@ -2254,18 +2259,18 @@ namespace Regulus.Core
 
                     case OpCode.Ldelem_U2:
                         ABCInstruction* ldelemU2Instruction = (ABCInstruction*)ip;
-                        int U2index = Registers[ldelemU2Instruction->RegisterA].Upper;
+                        int U2index = reg[ldelemU2Instruction->RegisterA].Upper;
                         object U2array = Objects[ldelemU2Instruction->RegisterB];
                         if (U2array is short[] ushortArray)
                         {
-                            Registers[ldelemU2Instruction->RegisterC].Upper = ushortArray[U2index];
+                            reg[ldelemU2Instruction->RegisterC].Upper = ushortArray[U2index];
                             ip += ABCInstruction.Size;
                             break;
                         }
 
                         if (U2array is char[] u2charArray)
                         {
-                            Registers[ldelemU2Instruction->RegisterC].Upper = u2charArray[U2index];
+                            reg[ldelemU2Instruction->RegisterC].Upper = u2charArray[U2index];
                             ip += ABCInstruction.Size;
                             break;
                         }
@@ -2273,33 +2278,33 @@ namespace Regulus.Core
                         break;
                     case OpCode.Ldelem_U4:
                         ABCInstruction* ldelemU4Instruction = (ABCInstruction*)ip;
-                        int U4index = Registers[ldelemU4Instruction->RegisterA].Upper;
+                        int U4index = reg[ldelemU4Instruction->RegisterA].Upper;
                         object U4array = Objects[ldelemU4Instruction->RegisterB];
                         uint[] uintArray = U4array as uint[];
-                        Registers[ldelemU4Instruction->RegisterC].Upper = (int)uintArray[U4index];
+                        reg[ldelemU4Instruction->RegisterC].Upper = (int)uintArray[U4index];
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Ldelem_U8:
                         ABCInstruction* ldelemU8Instruction = (ABCInstruction*)ip;
-                        int U8index = Registers[ldelemU8Instruction->RegisterA].Upper;
+                        int U8index = reg[ldelemU8Instruction->RegisterA].Upper;
                         object U8array = Objects[ldelemU8Instruction->RegisterB];
                         ulong[] ulongArray = U8array as ulong[];
-                        *(ulong*)&Registers[ldelemU8Instruction->RegisterC].Upper = ulongArray[U8index];
+                        *(ulong*)&reg[ldelemU8Instruction->RegisterC].Upper = ulongArray[U8index];
                         ip += ABCInstruction.Size;
                         break;
 
                     case OpCode.Ldlen:
                         ABInstruction* ldlenInstruction = (ABInstruction*)ip;
                         Array array = Objects[ldlenInstruction->RegisterA] as Array;
-                        Registers[ldlenInstruction->RegisterB].Upper = array.Length;
+                        reg[ldlenInstruction->RegisterB].Upper = array.Length;
                         ip += ABInstruction.Size;
                         break;
 
                     case OpCode.Stelem_I1:
                         ABCInstruction* stelemI1Instruction = (ABCInstruction*)ip;
-                        int I1Value = Registers[stelemI1Instruction->RegisterA].Upper;
-                        int I1Index = Registers[stelemI1Instruction->RegisterB].Upper;
+                        int I1Value = reg[stelemI1Instruction->RegisterA].Upper;
+                        int I1Index = reg[stelemI1Instruction->RegisterB].Upper;
                         object I1Array = Objects[stelemI1Instruction->RegisterC];
 
                         if (I1Array is byte[] I1ByteArray)
@@ -2326,8 +2331,8 @@ namespace Regulus.Core
 
                     case OpCode.Stelem_I2:
                         ABCInstruction* stelemI2Instruction = (ABCInstruction*)ip;
-                        int I2Value = Registers[stelemI2Instruction->RegisterA].Upper;
-                        int I2Index = Registers[stelemI2Instruction->RegisterB].Upper;
+                        int I2Value = reg[stelemI2Instruction->RegisterA].Upper;
+                        int I2Index = reg[stelemI2Instruction->RegisterB].Upper;
                         object I2Array = Objects[stelemI2Instruction->RegisterC];
 
                         if (I2Array is short[] I2ShortArray)
@@ -2353,8 +2358,8 @@ namespace Regulus.Core
                         break;
                     case OpCode.Stelem_I4:
                         ABCInstruction* stelemI4Instruction = (ABCInstruction*)ip;
-                        int I4Value = Registers[stelemI4Instruction->RegisterA].Upper;
-                        int I4Index = Registers[stelemI4Instruction->RegisterB].Upper;
+                        int I4Value = reg[stelemI4Instruction->RegisterA].Upper;
+                        int I4Index = reg[stelemI4Instruction->RegisterB].Upper;
                         object I4Array = Objects[stelemI4Instruction->RegisterC];
 
                         if (I4Array is int[] I4IntArray)
@@ -2396,8 +2401,8 @@ namespace Regulus.Core
                         break;
                     case OpCode.Stelem_I8:
                         ABCInstruction* stelemI8Instruction = (ABCInstruction*)ip;
-                        long I8Value = *(long*)&Registers[stelemI8Instruction->RegisterA].Upper;
-                        int I8Index = Registers[stelemI8Instruction->RegisterB].Upper;
+                        long I8Value = *(long*)&reg[stelemI8Instruction->RegisterA].Upper;
+                        int I8Index = reg[stelemI8Instruction->RegisterB].Upper;
                         object I8Array = Objects[stelemI8Instruction->RegisterC];
 
                         if (I8Array is long[] I8longArray)
@@ -2417,8 +2422,8 @@ namespace Regulus.Core
 
                     case OpCode.Stelem_R4:
                         ABCInstruction* stelemR4Instruction = (ABCInstruction*)ip;
-                        float R4Value = *(float*)&Registers[stelemR4Instruction->RegisterA].Upper;
-                        int R4Index = Registers[stelemR4Instruction->RegisterB].Upper;
+                        float R4Value = *(float*)&reg[stelemR4Instruction->RegisterA].Upper;
+                        int R4Index = reg[stelemR4Instruction->RegisterB].Upper;
                         float[] R4Array = Objects[stelemR4Instruction->RegisterC] as float[];
 
                         R4Array[R4Index] = R4Value;
@@ -2427,8 +2432,8 @@ namespace Regulus.Core
 
                     case OpCode.Stelem_R8:
                         ABCInstruction* stelemR8Instruction = (ABCInstruction*)ip;
-                        double R8Value = *(double*)&Registers[stelemR8Instruction->RegisterA].Upper;
-                        int R8Index = Registers[stelemR8Instruction->RegisterB].Upper;
+                        double R8Value = *(double*)&reg[stelemR8Instruction->RegisterA].Upper;
+                        int R8Index = reg[stelemR8Instruction->RegisterB].Upper;
                         double[] R8Array = Objects[stelemR8Instruction->RegisterC] as double[];
 
                         R8Array[R8Index] = R8Value;
@@ -2441,9 +2446,9 @@ namespace Regulus.Core
                         ABPInstruction* newarrInstruction = (ABPInstruction*)ip;
                         Type arrType = Types[newarrInstruction->Operand];
 
-                        Array arr = Array.CreateInstance(arrType, Registers[newarrInstruction->RegisterA].Upper);
+                        Array arr = Array.CreateInstance(arrType, reg[newarrInstruction->RegisterA].Upper);
                         Objects[newarrInstruction->RegisterB] = arr;
-                        Registers[newarrInstruction->RegisterB].Upper = newarrInstruction->RegisterB;
+                        reg[newarrInstruction->RegisterB].Upper = newarrInstruction->RegisterB;
                         ip += ABPInstruction.Size;
                         break;
 
@@ -2453,7 +2458,7 @@ namespace Regulus.Core
 
                         Array arrI = Array.CreateInstance(arrIType, newarrIInstruction->Operand2);
                         Objects[newarrIInstruction->RegisterA] = arrI;
-                        Registers[newarrIInstruction->RegisterA].Upper = newarrIInstruction->RegisterA;
+                        reg[newarrIInstruction->RegisterA].Upper = newarrIInstruction->RegisterA;
                         ip += APPInstruction.Size;
                         break;
 
@@ -2487,18 +2492,18 @@ namespace Regulus.Core
                         //    _gchandleStackTop--;
                         //}
                         //ip++;
-                        int[] ldindI4Array = Objects[Registers[ldindI4Instruction->RegisterA].Upper] as int[];
-                        Registers[ldindI4Instruction->RegisterB].Upper = ldindI4Array[Registers[ldindI4Instruction->RegisterA].Lower];
+                        int[] ldindI4Array = Objects[reg[ldindI4Instruction->RegisterA].Upper] as int[];
+                        reg[ldindI4Instruction->RegisterB].Upper = ldindI4Array[reg[ldindI4Instruction->RegisterA].Lower];
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Stind_I1_InstanceFieldPointer:
                         ABInstruction* stindI1FieldPointerInstruction = (ABInstruction*)ip;
-                        int stindI1InstanceIndex = Registers[stindI1FieldPointerInstruction->RegisterA].Upper;
-                        int stindI1FieldIndex = Registers[stindI1FieldPointerInstruction->RegisterA].Lower;
+                        int stindI1InstanceIndex = reg[stindI1FieldPointerInstruction->RegisterA].Upper;
+                        int stindI1FieldIndex = reg[stindI1FieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI1Field = Fields[stindI1FieldIndex];
                         Type stindI1FieldType = stindI1Field.FieldType;
                         object stindI1Instance = Objects[stindI1InstanceIndex];
-                        int stindI1Value = Registers[stindI1FieldPointerInstruction->RegisterB].Upper;
+                        int stindI1Value = reg[stindI1FieldPointerInstruction->RegisterB].Upper;
                         if (stindI1FieldType == typeof(bool))
                         {
                             stindI1Field.SetValue(stindI1Instance, stindI1Value == 1);
@@ -2524,12 +2529,12 @@ namespace Regulus.Core
 
                     case OpCode.Stind_I2_InstanceFieldPointer:
                         ABInstruction* stindI2FieldPointerInstruction = (ABInstruction*)ip;
-                        int stindI2InstanceIndex = Registers[stindI2FieldPointerInstruction->RegisterA].Upper;
-                        int stindI2FieldIndex = Registers[stindI2FieldPointerInstruction->RegisterA].Lower;
+                        int stindI2InstanceIndex = reg[stindI2FieldPointerInstruction->RegisterA].Upper;
+                        int stindI2FieldIndex = reg[stindI2FieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI2Field = Fields[stindI2FieldIndex];
                         Type stindI2FieldType = stindI2Field.FieldType;
                         object stindI2Instance = Objects[stindI2InstanceIndex];
-                        int stindI2Value = Registers[stindI2FieldPointerInstruction->RegisterB].Upper;
+                        int stindI2Value = reg[stindI2FieldPointerInstruction->RegisterB].Upper;
                         if (stindI2FieldType == typeof(ushort))
                         {
                             stindI2Field.SetValue(stindI2Instance, stindI2Value == 1);
@@ -2554,12 +2559,12 @@ namespace Regulus.Core
                         break;
                     case OpCode.Stind_I4_InstanceFieldPointer:
                         ABInstruction* stindI4FieldPointerInstruction = (ABInstruction*)ip;
-                        int stindI4InstanceIndex = Registers[stindI4FieldPointerInstruction->RegisterA].Upper;
-                        int stindI4FieldIndex = Registers[stindI4FieldPointerInstruction->RegisterA].Lower;
+                        int stindI4InstanceIndex = reg[stindI4FieldPointerInstruction->RegisterA].Upper;
+                        int stindI4FieldIndex = reg[stindI4FieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI4Field = Fields[stindI4FieldIndex];
                         Type stindI4FieldType = stindI4Field.FieldType;
                         object stindI4Instance = Objects[stindI4InstanceIndex];
-                        int stindI4Value = Registers[stindI4FieldPointerInstruction->RegisterB].Upper;
+                        int stindI4Value = reg[stindI4FieldPointerInstruction->RegisterB].Upper;
                         if (stindI4FieldType == typeof(int))
                         {
                             stindI4Field.SetValue(stindI4Instance, stindI4Value);
@@ -2577,12 +2582,12 @@ namespace Regulus.Core
                         break;
                     case OpCode.Stind_I8_InstanceFieldPointer:
                         ABInstruction* stindI8FieldPointerInstruction = (ABInstruction*)ip;
-                        int stindI8InstanceIndex = Registers[stindI8FieldPointerInstruction->RegisterA].Upper;
-                        int stindI8FieldIndex = Registers[stindI8FieldPointerInstruction->RegisterA].Lower;
+                        int stindI8InstanceIndex = reg[stindI8FieldPointerInstruction->RegisterA].Upper;
+                        int stindI8FieldIndex = reg[stindI8FieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI8Field = Fields[stindI8FieldIndex];
                         Type stindI8FieldType = stindI8Field.FieldType;
                         object stindI8Instance = Objects[stindI8InstanceIndex];
-                        long stindI8Value = *(long*)&Registers[stindI8FieldPointerInstruction->RegisterB].Upper;
+                        long stindI8Value = *(long*)&reg[stindI8FieldPointerInstruction->RegisterB].Upper;
                         if (stindI8FieldType == typeof(long))
                         {
                             stindI8Field.SetValue(stindI8Instance, stindI8Value);
@@ -2600,23 +2605,23 @@ namespace Regulus.Core
                         break;
                     case OpCode.Stind_R4_InstanceFieldPointer:
                         ABInstruction* stindR4FieldPointerInstruction = (ABInstruction*)ip;
-                        int stindR4InstanceIndex = Registers[stindR4FieldPointerInstruction->RegisterA].Upper;
-                        int stindR4FieldIndex = Registers[stindR4FieldPointerInstruction->RegisterA].Lower;
+                        int stindR4InstanceIndex = reg[stindR4FieldPointerInstruction->RegisterA].Upper;
+                        int stindR4FieldIndex = reg[stindR4FieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindR4Field = Fields[stindR4FieldIndex];
                         
                         object stindR4Instance = Objects[stindR4InstanceIndex];
-                        float stindR4Value = *(float*)&Registers[stindR4FieldPointerInstruction->RegisterB].Upper;
+                        float stindR4Value = *(float*)&reg[stindR4FieldPointerInstruction->RegisterB].Upper;
                         stindR4Field.SetValue(stindR4Instance, stindR4Value);
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Stind_R8_InstanceFieldPointer:
                         ABInstruction* stindR8FieldPointerInstruction = (ABInstruction*)ip;
-                        int stindR8InstanceIndex = Registers[stindR8FieldPointerInstruction->RegisterA].Upper;
-                        int stindR8FieldIndex = Registers[stindR8FieldPointerInstruction->RegisterA].Lower;
+                        int stindR8InstanceIndex = reg[stindR8FieldPointerInstruction->RegisterA].Upper;
+                        int stindR8FieldIndex = reg[stindR8FieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindR8Field = Fields[stindR8FieldIndex];
 
                         object stindR8Instance = Objects[stindR8InstanceIndex];
-                        double stindR8Value = *(double*)&Registers[stindR8FieldPointerInstruction->RegisterB].Upper;
+                        double stindR8Value = *(double*)&reg[stindR8FieldPointerInstruction->RegisterB].Upper;
                         stindR8Field.SetValue(stindR8Instance, stindR8Value);
                         ip += ABInstruction.Size;
                         break;
@@ -2628,7 +2633,7 @@ namespace Regulus.Core
                     case OpCode.Stind_R8_LocalPointer:
                         ABInstruction* stindI4LocalPointerInstruction = (ABInstruction*)ip;
                         //Value* stindI4LocalPtr = *(Value**)&Registers[stindI4LocalPointerInstruction->RegisterB].Upper;
-                        **(Value**)&Registers[stindI4LocalPointerInstruction->RegisterB].Upper = Registers[stindI4LocalPointerInstruction->RegisterA];
+                        **(Value**)&reg[stindI4LocalPointerInstruction->RegisterB].Upper = reg[stindI4LocalPointerInstruction->RegisterA];
                         ip += ABInstruction.Size;
                         //ABInstruction* stindI4Instruction = (ABInstruction*)ip;
                         //GCHandle stI4addr = GCHandles[Registers[stindI4Instruction->RegisterB].Upper];
@@ -2648,12 +2653,12 @@ namespace Regulus.Core
                     case OpCode.Stind_I1_StaticFieldPointer:
                         ABInstruction* stindI1StaticFieldPointerInstruction = (ABInstruction*)ip;
                         //int stindI1StaticInstanceIndex = Registers[stindI1StaticFieldPointerInstruction->RegisterA].Upper;
-                        int stindI1StaticFieldIndex = Registers[stindI1StaticFieldPointerInstruction->RegisterA].Lower;
+                        int stindI1StaticFieldIndex = reg[stindI1StaticFieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI1StaticField = Fields[stindI1StaticFieldIndex];
                         Type stindI1StaticFieldType = stindI1StaticField.FieldType;
 
                         //object stindI1StaticInstance = Objects[stindI1StaticInstanceIndex];
-                        int stindI1StaticValue = Registers[stindI1StaticFieldPointerInstruction->RegisterB].Upper;
+                        int stindI1StaticValue = reg[stindI1StaticFieldPointerInstruction->RegisterB].Upper;
                         //stindI1StaticField.SetValue(null, stindI1StaticValue);
                         if (stindI1StaticFieldType == typeof(bool))
                         {
@@ -2680,12 +2685,12 @@ namespace Regulus.Core
                     case OpCode.Stind_I2_StaticFieldPointer:
                         ABInstruction* stindI2StaticFieldPointerInstruction = (ABInstruction*)ip;
                         //int stindI2StaticInstanceIndex = Registers[stindI2StaticFieldPointerInstruction->RegisterA].Upper;
-                        int stindI2StaticFieldIndex = Registers[stindI2StaticFieldPointerInstruction->RegisterA].Lower;
+                        int stindI2StaticFieldIndex = reg[stindI2StaticFieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI2StaticField = Fields[stindI2StaticFieldIndex];
                         Type stindI2StaticFieldType = stindI2StaticField.FieldType;
 
                         //object stindI2StaticInstance = Objects[stindI2StaticInstanceIndex];
-                        int stindI2StaticValue = Registers[stindI2StaticFieldPointerInstruction->RegisterB].Upper;
+                        int stindI2StaticValue = reg[stindI2StaticFieldPointerInstruction->RegisterB].Upper;
                         //stindI2StaticField.SetValue(null, stindI2StaticValue);
                         if (stindI2StaticFieldType == typeof(ushort))
                         {
@@ -2712,12 +2717,12 @@ namespace Regulus.Core
                     case OpCode.Stind_I4_StaticFieldPointer:
                         ABInstruction* stindI4StaticFieldPointerInstruction = (ABInstruction*)ip;
                         //int stindI4StaticInstanceIndex = Registers[stindI4StaticFieldPointerInstruction->RegisterA].Upper;
-                        int stindI4StaticFieldIndex = Registers[stindI4StaticFieldPointerInstruction->RegisterA].Lower;
+                        int stindI4StaticFieldIndex = reg[stindI4StaticFieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI4StaticField = Fields[stindI4StaticFieldIndex];
                         Type stindI4StaticFieldType = stindI4StaticField.FieldType;
 
                         //object stindI4StaticInstance = Objects[stindI4StaticInstanceIndex];
-                        int stindI4StaticValue = Registers[stindI4StaticFieldPointerInstruction->RegisterB].Upper;
+                        int stindI4StaticValue = reg[stindI4StaticFieldPointerInstruction->RegisterB].Upper;
                         //stindI4StaticField.SetValue(null, stindI4StaticValue);
                         if (stindI4StaticFieldType == typeof(uint))
                         {
@@ -2738,12 +2743,12 @@ namespace Regulus.Core
                     case OpCode.Stind_I8_StaticFieldPointer:
                         ABInstruction* stindI8StaticFieldPointerInstruction = (ABInstruction*)ip;
                         //int stindI8StaticInstanceIndex = Registers[stindI8StaticFieldPointerInstruction->RegisterA].Upper;
-                        int stindI8StaticFieldIndex = Registers[stindI8StaticFieldPointerInstruction->RegisterA].Lower;
+                        int stindI8StaticFieldIndex = reg[stindI8StaticFieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindI8StaticField = Fields[stindI8StaticFieldIndex];
                         Type stindI8StaticFieldType = stindI8StaticField.FieldType;
 
                         //object stindI8StaticInstance = Objects[stindI8StaticInstanceIndex];
-                        long stindI8StaticValue = *(long*)&Registers[stindI8StaticFieldPointerInstruction->RegisterB].Upper;
+                        long stindI8StaticValue = *(long*)&reg[stindI8StaticFieldPointerInstruction->RegisterB].Upper;
                         //stindI8StaticField.SetValue(null, stindI8StaticValue);
                         if (stindI8StaticFieldType == typeof(long))
                         {
@@ -2770,12 +2775,12 @@ namespace Regulus.Core
                     case OpCode.Stind_R4_StaticFieldPointer:
                         ABInstruction* stindR4StaticFieldPointerInstruction = (ABInstruction*)ip;
                         //int stindR4StaticInstanceIndex = Registers[stindR4StaticFieldPointerInstruction->RegisterA].Upper;
-                        int stindR4StaticFieldIndex = Registers[stindR4StaticFieldPointerInstruction->RegisterA].Lower;
+                        int stindR4StaticFieldIndex = reg[stindR4StaticFieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindR4StaticField = Fields[stindR4StaticFieldIndex];
                         Type stindR4StaticFieldType = stindR4StaticField.FieldType;
 
                         //object stindR4StaticInstance = Objects[stindR4StaticInstanceIndex];
-                        float stindR4StaticValue = *(float*)&Registers[stindR4StaticFieldPointerInstruction->RegisterB].Upper;
+                        float stindR4StaticValue = *(float*)&reg[stindR4StaticFieldPointerInstruction->RegisterB].Upper;
                         //stindR4StaticField.SetValue(null, stindR4StaticValue);
                         stindR4StaticField.SetValue(null, stindR4StaticValue);
                         ip += ABInstruction.Size;
@@ -2783,55 +2788,55 @@ namespace Regulus.Core
                     case OpCode.Stind_R8_StaticFieldPointer:
                         ABInstruction* stindR8StaticFieldPointerInstruction = (ABInstruction*)ip;
                         //int stindR8StaticInstanceIndex = Registers[stindR8StaticFieldPointerInstruction->RegisterA].Upper;
-                        int stindR8StaticFieldIndex = Registers[stindR8StaticFieldPointerInstruction->RegisterA].Lower;
+                        int stindR8StaticFieldIndex = reg[stindR8StaticFieldPointerInstruction->RegisterA].Lower;
                         FieldInfo stindR8StaticField = Fields[stindR8StaticFieldIndex];
                         Type stindR8StaticFieldType = stindR8StaticField.FieldType;
 
                         //object stindR8StaticInstance = Objects[stindR8StaticInstanceIndex];
-                        double stindR8StaticValue = *(double*)&Registers[stindR8StaticFieldPointerInstruction->RegisterB].Upper;
+                        double stindR8StaticValue = *(double*)&reg[stindR8StaticFieldPointerInstruction->RegisterB].Upper;
                         //stindR8StaticField.SetValue(null, stindR8StaticValue);
                         stindR8StaticField.SetValue(null, stindR8StaticValue);
                         ip += ABInstruction.Size;
                         break;
                     case OpCode.Stind_I1_ArrayPointer:
                         ABInstruction* stindI1ArrayPointerInstruction = (ABInstruction*)ip;
-                        Value* stindI1Addr = &Registers[stindI1ArrayPointerInstruction->RegisterA];
+                        Value* stindI1Addr = &reg[stindI1ArrayPointerInstruction->RegisterA];
                         object stindI1Array = Objects[stindI1Addr->Upper];
                         ip += ABInstruction.Size;
                         if (stindI1Array is bool[] stindI1BoolArray)
                         {
-                            stindI1BoolArray[stindI1Addr->Lower] = Registers[stindI1ArrayPointerInstruction->RegisterB].Upper == 1;
+                            stindI1BoolArray[stindI1Addr->Lower] = reg[stindI1ArrayPointerInstruction->RegisterB].Upper == 1;
                             
                             break;
                         }
 
                         if (stindI1Array is byte[] stindI1ByteArray)
                         {
-                            stindI1ByteArray[stindI1Addr->Lower] = (byte)Registers[stindI1ArrayPointerInstruction->RegisterB].Upper;
+                            stindI1ByteArray[stindI1Addr->Lower] = (byte)reg[stindI1ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
                         if (stindI1Array is sbyte[] stindI1SByteArray)
                         {
-                            stindI1SByteArray[stindI1Addr->Lower] = (sbyte)Registers[stindI1ArrayPointerInstruction->RegisterB].Upper;
+                            stindI1SByteArray[stindI1Addr->Lower] = (sbyte)reg[stindI1ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
                         break;
 
                     case OpCode.Stind_I2_ArrayPointer:
                         ABInstruction* stindI2ArrayPointerInstruction = (ABInstruction*)ip;
-                        Value* stindI2Addr = &Registers[stindI2ArrayPointerInstruction->RegisterA];
+                        Value* stindI2Addr = &reg[stindI2ArrayPointerInstruction->RegisterA];
                         object stindI2Array = Objects[stindI2Addr->Upper];
                         ip += ABInstruction.Size;
                         if (stindI2Array is short[] stindI2ShortArray)
                         {
-                            stindI2ShortArray[stindI2Addr->Lower] = (short)Registers[stindI2ArrayPointerInstruction->RegisterB].Upper;
+                            stindI2ShortArray[stindI2Addr->Lower] = (short)reg[stindI2ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
                         if (stindI2Array is ushort[] stindI2UShortArray)
                         {
-                            stindI2UShortArray[stindI2Addr->Lower] = (ushort)Registers[stindI2ArrayPointerInstruction->RegisterB].Upper;
+                            stindI2UShortArray[stindI2Addr->Lower] = (ushort)reg[stindI2ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
@@ -2839,18 +2844,18 @@ namespace Regulus.Core
 
                     case OpCode.Stind_I4_ArrayPointer:
                         ABInstruction* stindI4ArrayPointerInstruction = (ABInstruction*)ip;
-                        Value* stindI4Addr = &Registers[stindI4ArrayPointerInstruction->RegisterA];
+                        Value* stindI4Addr = &reg[stindI4ArrayPointerInstruction->RegisterA];
                         object stindI4Array = Objects[stindI4Addr->Upper];
                         ip += ABInstruction.Size;
                         if (stindI4Array is int[] stindI4IntArray)
                         {
-                            stindI4IntArray[stindI4Addr->Lower] = Registers[stindI4ArrayPointerInstruction->RegisterB].Upper;
+                            stindI4IntArray[stindI4Addr->Lower] = reg[stindI4ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
                         if (stindI4Array is uint[] stindI4UIntArray)
                         {
-                            stindI4UIntArray[stindI4Addr->Lower] = (uint)Registers[stindI4ArrayPointerInstruction->RegisterB].Upper;
+                            stindI4UIntArray[stindI4Addr->Lower] = (uint)reg[stindI4ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
@@ -2858,18 +2863,18 @@ namespace Regulus.Core
 
                     case OpCode.Stind_I8_ArrayPointer:
                         ABInstruction* stindI8ArrayPointerInstruction = (ABInstruction*)ip;
-                        Value* stindI8Addr = &Registers[stindI8ArrayPointerInstruction->RegisterA];
+                        Value* stindI8Addr = &reg[stindI8ArrayPointerInstruction->RegisterA];
                         object stindI8Array = Objects[stindI8Addr->Upper];
                         ip += ABInstruction.Size;
                         if (stindI8Array is long[] stindI8LongArray)
                         {
-                            stindI8LongArray[stindI8Addr->Lower] = *(long*)&Registers[stindI8ArrayPointerInstruction->RegisterB].Upper;
+                            stindI8LongArray[stindI8Addr->Lower] = *(long*)&reg[stindI8ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
                         if (stindI8Array is ulong[] stindI8ULongArray)
                         {
-                            stindI8ULongArray[stindI8Addr->Lower] = *(ulong*)&Registers[stindI8ArrayPointerInstruction->RegisterB].Upper;
+                            stindI8ULongArray[stindI8Addr->Lower] = *(ulong*)&reg[stindI8ArrayPointerInstruction->RegisterB].Upper;
                             break;
                         }
 
@@ -2879,68 +2884,71 @@ namespace Regulus.Core
                         ABPInstruction* ldelemI4IInstruction = (ABPInstruction*)ip;                        
                         object I4Iarray = Objects[ldelemI4IInstruction->RegisterA];
                         int[] I4IintArray = I4Iarray as int[];
-                        Registers[ldelemI4IInstruction->RegisterB].Upper = I4IintArray[ldelemI4IInstruction->Operand];
+                        reg[ldelemI4IInstruction->RegisterB].Upper = I4IintArray[ldelemI4IInstruction->Operand];
                         ip += ABPInstruction.Size;
                         break;
 
                     case OpCode.Ldflda:
                     case OpCode.Ldsflda:
                         APInstruction* ldsfldaInstruction = (APInstruction*)ip;
-                        Registers[ldsfldaInstruction->RegisterA].Upper = ldsfldaInstruction->Operand;
+                        reg[ldsfldaInstruction->RegisterA].Upper = ldsfldaInstruction->Operand;
                         break;
                     case OpCode.Ldloca:
                         APInstruction* ldlocaInstruction = (APInstruction*)ip;
-                        *(Value**)&Registers[ldlocaInstruction->RegisterA].Upper = Registers + ldlocaInstruction->Operand;
+                        *(Value**)&reg[ldlocaInstruction->RegisterA].Upper = reg + ldlocaInstruction->Operand;
                         ip += APInstruction.Size;
                         break;
                     case OpCode.Ldarga:
                         APInstruction* ldargaInstruction = (APInstruction*)ip;
-                        *(Value**)&Registers[ldargaInstruction->RegisterA].Upper = Registers + ldargaInstruction->Operand;
+                        *(Value**)&reg[ldargaInstruction->RegisterA].Upper = reg + ldargaInstruction->Operand;
                         ip += APInstruction.Size;
 
                         break;
                     case OpCode.Ldelema:
                         ABCPInstruction* ldelemaInstruction = (ABCPInstruction*)ip;
-                        //Array ldelemArray = Objects[ldelemaInstruction->RegisterB] as Array;
-                        
-                        //Type elemType = Types[ldelemaInstruction->Operand];
-                        //GCHandles[_gchandleStackTop] = GCHandle.Alloc(ldelemArray, GCHandleType.Pinned);
-                        Registers[ldelemaInstruction->RegisterC].Upper = ldelemaInstruction->RegisterB;
-                        Registers[ldelemaInstruction->RegisterC].Lower = Registers[ldelemaInstruction->RegisterA].Upper;
+                        reg[ldelemaInstruction->RegisterC].Upper = ldelemaInstruction->RegisterB;
+                        reg[ldelemaInstruction->RegisterC].Lower = reg[ldelemaInstruction->RegisterA].Upper;
                         ip += ABCPInstruction.Size;
                         
                         break;
 
                     case OpCode.Ldc_Int:
                         APInstruction* ldcIntInstruction = (APInstruction*)ip;
-                        Registers[ldcIntInstruction->RegisterA].Upper = ldcIntInstruction->Operand;
+                        reg[ldcIntInstruction->RegisterA].Upper = ldcIntInstruction->Operand;
                         ip += APInstruction.Size;
                         break;
                     case OpCode.Ldc_Long:
                         ALPInstruction* ldcLongInstruction = (ALPInstruction*)ip;
-                        *(long*)&Registers[ldcLongInstruction->RegisterA].Upper = ldcLongInstruction->Operand;
+                        *(long*)&reg[ldcLongInstruction->RegisterA].Upper = ldcLongInstruction->Operand;
                         ip += ALPInstruction.Size;
                         break;
                     case OpCode.Ldc_Float:
                         APInstruction* ldcFloatInstruction = (APInstruction*)ip;
-                        *(float*)&Registers[ldcFloatInstruction->RegisterA].Upper = *(float*)&ldcFloatInstruction->Operand;
+                        *(float*)&reg[ldcFloatInstruction->RegisterA].Upper = *(float*)&ldcFloatInstruction->Operand;
                         ip += APInstruction.Size;
                         break;
                     case OpCode.Ldc_Double:
                         ALPInstruction* ldcDoubleInstruction = (ALPInstruction*)ip;
-                        *(double*)&Registers[ldcDoubleInstruction->RegisterA].Upper = *(double*)&ldcDoubleInstruction->Operand;
+                        *(double*)&reg[ldcDoubleInstruction->RegisterA].Upper = *(double*)&ldcDoubleInstruction->Operand;
                         ip += ALPInstruction.Size;
                         break;
                     case OpCode.LdStr:
                         APInstruction* ldStrInstruction = (APInstruction*)ip;
                         Objects[ldStrInstruction->RegisterA] = internedStrings[ldStrInstruction->Operand];
-                        Registers[ldStrInstruction->RegisterA].Upper = ldStrInstruction->RegisterA;
+                        reg[ldStrInstruction->RegisterA].Upper = ldStrInstruction->RegisterA;
                         ip += APInstruction.Size;
                         break;
                     case OpCode.Ret:
                         AInstruction* retInstruction = (AInstruction*)ip;
-                        return Registers[retInstruction->RegisterA];
-                        //return Registers[0];
+                        reg[returnReg] = reg[retInstruction->RegisterA];
+                        ip += AInstruction.Size;
+                        return;
+                    //return Registers[0];
+                    case OpCode.Retc:
+                        LPInstruction* retcInstruction = (LPInstruction*)ip;
+                        reg[returnReg] = *(Value*)&retcInstruction->Operand;
+                        ip += LPInstruction.Size;
+                        return;
                     case OpCode.Nop:
                         break;
                     default:

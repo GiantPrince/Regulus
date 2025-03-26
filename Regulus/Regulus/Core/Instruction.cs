@@ -368,9 +368,11 @@ namespace Regulus.Core
         // Call
         Call,
         Callvirt,
+        Calln,
 
         // Return
         Ret,
+        Retc,
 
         // immediate instruction
         AndI_Long,
@@ -646,6 +648,17 @@ namespace Regulus.Core
 
         [FieldOffset(sizeof(OpCode) + sizeof(byte) + sizeof(byte))]
         public byte RegisterC;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct LPInstruction
+    {
+        public const int Size = sizeof(OpCode) + sizeof(long);
+        [FieldOffset(0)]
+        public OpCode Op;
+
+        [FieldOffset(sizeof(OpCode))]
+        public long Operand;
     }
 
     [StructLayout(LayoutKind.Explicit)]

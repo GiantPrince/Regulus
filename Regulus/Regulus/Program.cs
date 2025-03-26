@@ -38,8 +38,7 @@ namespace Regulus
             string bakPath = GetBackupFile(path);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
             List<MethodDefinition> methods = TagFilter.ScanPatchMethod(assembly);
-            Injector.Inject(assembly, methods.First(), 1);
-            //assembly.MainModule.AssemblyReferences.Add()
+            Injector.Inject(assembly, methods.First(), 1);            
             assembly.Write(bakPath);                        
         }
 
@@ -84,34 +83,58 @@ namespace Regulus
 
             fixed (byte* ip = compiler.GetByteCode())
             {
-                Loader.LoadMeta(compiler.GetMeta(), out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
-                VirtualMachine virtualMachine = new VirtualMachine();
-                virtualMachine.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
-                virtualMachine.internedStrings = ValueOperand.GetInternedStrings();
-                virtualMachine.Fields = fields.ToArray();
-                virtualMachine.Types = types.ToArray();
-                //virtualMachine.GCHandles = new System.Runtime.InteropServices.GCHandle[]
-                Stopwatch sw = Stopwatch.StartNew();
-                virtualMachine.SetRegisterInt(0, 3);
-                virtualMachine.SetRegisterInt(1, 2);
-                virtualMachine.Run(ip);
-                sw.Stop();
-                Console.WriteLine("a" + sw.ElapsedMilliseconds);
-                sw.Restart();
-
-                sw.Stop();
-                Console.WriteLine("b" + sw.ElapsedMilliseconds);
+                //Loader.LoadMeta(compiler.GetMeta(), out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields);
+                //VirtualMachine virtualMachine = new VirtualMachine();
+                //virtualMachine.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
+                //virtualMachine.internedStrings = ValueOperand.GetInternedStrings();
+                //virtualMachine.Fields = fields.ToArray();
+                //virtualMachine.Types = types.ToArray();
+                ////virtualMachine.GCHandles = new System.Runtime.InteropServices.GCHandle[]                
+                //virtualMachine.SetRegisterInt(0, 3);
+                //virtualMachine.SetRegisterInt(1, 2);
+                //virtualMachine.Run(ip);
+                
             }
         }
         public unsafe static void Main(string[] args)
         {
-            string path = "D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Debug\\net8.0\\TestLibrary.dll";
+            string path = "D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Release\\net8.0\\TestLibrary.dll";
 
-            Inject(path);
+            //Inject(path);
             //Write(path);
+            PatchGenerator.GeneratePatch(path, GetBackupFile(path));
+            using (FileStream file = File.OpenRead(GetBackupFile(path)))
+            {
+                VirtualMachine vm = new VirtualMachine();
+                Loader.LoadMeta(file, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields);
+                vm.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
+                vm.internedStrings = internedStrings.ToArray();
+                vm.Fields = fields.ToArray();
+                vm.Types = types.ToArray();
+                Stopwatch sw = Stopwatch.StartNew();
+                vm.SetRegisterInt(0, 35);                
+                vm.Run(VirtualMachine.s_bytecode[0], VirtualMachine.s_registers, 0);
+                Value ret = vm.GetRegister(0);
+                sw.Stop();
+                Console.WriteLine(ret.Upper);
+                Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
+                sw.Restart();
+                long h = Fib(35);
+                sw.Stop();
+                Console.WriteLine(h);
+                Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
+            }
+        }
+        public static int Fib(int n)
+        {
+            if (n == 0)
+                return 0;
+            if (n == 1)
+                return 1;
+            return Fib(n - 2) + Fib(n - 1);
         }
 
-        
+
 
     }
 }

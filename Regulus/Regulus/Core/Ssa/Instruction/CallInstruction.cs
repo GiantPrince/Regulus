@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Mono.Cecil;
 using System.Reflection;
 using Regulus.Util;
+using Regulus.Inject;
 
 namespace Regulus.Core.Ssa.Instruction
 {
@@ -32,6 +33,7 @@ namespace Regulus.Core.Ssa.Instruction
         private bool _isNewMethod;
         private Type _returnType;
         private Func<int, int> _indexCompute;
+        private MethodDefinition _methodDefinition;
         public List<Type> ParametersType;
         //public Type ReturnType;
 
@@ -54,11 +56,13 @@ namespace Regulus.Core.Ssa.Instruction
                 return ParametersType;
             } 
         }
+        public bool IsNewMethod { get { return _isNewMethod; } } 
+        public MethodDefinition MethodDef { get { return _methodDefinition; } }
 
         public CallInstruction(AbstractOpCode code, MethodReference method) : base(code, InstructionKind.Call)
         {
-            //_returnTypeName = method.ReturnType.Name;
-            
+            _isNewMethod = TagFilter.IsTagged(method.Resolve());
+            _methodDefinition = method.Resolve();
             _isGenericMethod = method.IsGenericInstance;
             _indexCompute = (int i) => i;
             _declaringTypeName = SerializationHelper.GetQualifiedName(method.DeclaringType);

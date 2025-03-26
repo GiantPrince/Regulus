@@ -24,6 +24,11 @@ namespace Regulus.Core.Ssa
             ResolvePhiFunctions();
             ClearEmptyInstructions();
             EliminateEmptyBlocks();
+
+            foreach (var bb in ssaBuilder.GetBlocks())
+            {
+                Console.WriteLine(bb);
+            }
         }
 
         public Optimizer(MethodDefinition method)
@@ -201,8 +206,8 @@ namespace Regulus.Core.Ssa
                 int predCount = block.Predecessors.Count;
                 for (int p = 0; p < predCount; p++)
                 {
-                    int pred = block.Predecessors[p];
-                    BasicBlock predBlock = blocks[pred];
+                    //int pred = block.Predecessors[p];
+                    BasicBlock predBlock = block.Predecessors[p];
                     if (predBlock.Successors.Count < 2)
                     {
                         continue;
@@ -219,10 +224,10 @@ namespace Regulus.Core.Ssa
                             BasicBlock newBlock = new BasicBlock(blocks.Count);
                             blocks.Add(newBlock);
                             branchInstruction.SetBranchTarget(j, blocks.Last());
-                            predBlock.Successors[predBlock.Successors.IndexOf(block.Index)] = blocks.Count - 1;
-                            block.Predecessors[block.Predecessors.IndexOf(predBlock.Index)] = blocks.Count - 1;
-                            newBlock.Predecessors.Add(predBlock.Index);
-                            newBlock.Successors.Add(block.Index);
+                            predBlock.Successors[predBlock.Successors.IndexOf(block)] = blocks.Last();
+                            block.Predecessors[block.Predecessors.IndexOf(predBlock)] = blocks.Last();
+                            newBlock.Predecessors.Add(predBlock);
+                            newBlock.Successors.Add(block);
                             newBlock.Instructions.Add(new UnCondBranchInstruction(AbstractOpCode.Br, block));
                             break;
                         }
@@ -329,10 +334,10 @@ namespace Regulus.Core.Ssa
                     BasicBlock newBlock = new BasicBlock(blocks.Count);
                     blocks.Add(newBlock);
                     branchInstruction.SetBranchTarget(j, blocks.Last());
-                    predBlock.Successors[predBlock.Successors.IndexOf(block.Index)] = blocks.Count - 1;
-                    block.Predecessors[block.Predecessors.IndexOf(predBlock.Index)] = blocks.Count - 1;
-                    newBlock.Predecessors.Add(predBlock.Index);
-                    newBlock.Successors.Add(block.Index);
+                    predBlock.Successors[predBlock.Successors.IndexOf(block)] = blocks.Last();
+                    block.Predecessors[block.Predecessors.IndexOf(predBlock)] = blocks.Last();
+                    newBlock.Predecessors.Add(predBlock);
+                    newBlock.Successors.Add(block);
                     newBlock.Instructions.Add(new UnCondBranchInstruction(AbstractOpCode.Br, block));
                     break;
                 }
@@ -784,23 +789,23 @@ namespace Regulus.Core.Ssa
 
         private void AdjustSuccessorTarget(BasicBlock succBlock, BasicBlock oldTarget, BasicBlock newTarget)
         {
-            int pred = succBlock.Predecessors.IndexOf(oldTarget.Index);
+            int pred = succBlock.Predecessors.IndexOf(oldTarget);
             if (pred == -1)
             {
                 throw new ArgumentException("Can not find predeccessor");
             }
-            succBlock.Predecessors[pred] = newTarget.Index;
+            succBlock.Predecessors[pred] = newTarget;
         }
 
         private void AdjustPredecessorTarget(BasicBlock predBlock, BasicBlock oldTarget, BasicBlock newTarget)
         {
-            int succ = predBlock.Successors.IndexOf(oldTarget.Index);
+            int succ = predBlock.Successors.IndexOf(oldTarget);
             if (succ == -1)
             {
                 throw new ArgumentException("can not find successor");
             }
 
-            predBlock.Successors[succ] = newTarget.Index;
+            predBlock.Successors[succ] = newTarget;
 
             AbstractInstruction lastBranchInstruction = predBlock.Instructions.Last();
             int brCount = lastBranchInstruction.BranchTargetCount();
@@ -818,19 +823,23 @@ namespace Regulus.Core.Ssa
 
         private void EliminateEmptyBlocks()
         {
+            foreach (BasicBlock bb in _ssaBuilder.GetBlocks())
+            {
+                Console.WriteLine(bb.ToString());
+            }
             List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
             foreach (BasicBlock block in blocks)
             {
                 if (IsEmptyBlock(block))
                 {
-                    foreach (int pred in block.Predecessors)
+                    foreach (BasicBlock pred in block.Predecessors)
                     {
-                        AdjustPredecessorTarget(blocks[pred], block, blocks[block.Successors.First()]);
+                        AdjustPredecessorTarget(pred, block, block.Successors.First());
                     }
 
-                    foreach (int succ in block.Successors)
+                    foreach (BasicBlock succ in block.Successors)
                     {
-                        AdjustSuccessorTarget(blocks[succ], block, blocks[block.Predecessors.First()]);
+                        AdjustSuccessorTarget(succ, block, block.Predecessors.First());
                     }
                 }
             }

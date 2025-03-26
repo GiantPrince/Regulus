@@ -41,9 +41,9 @@ namespace Regulus.Core.Ssa
                 Visited[info.Index] = true;
                 int nextDepth = UnstackBasicBlock(cfg.Method, cfg.Blocks[info.Index], info.StackDepth);
                 cfg.Blocks[info.Index].LiveInStackSize = info.StackDepth;
-                foreach (int successorIndex in cfg.Blocks[info.Index].Successors)
+                foreach (BasicBlock successor in cfg.Blocks[info.Index].Successors)
                 {
-                    stackInfo.Push(new BasicBlockStackInfo() { Index = successorIndex, StackDepth = nextDepth });
+                    stackInfo.Push(new BasicBlockStackInfo() { Index = successor.Index, StackDepth = nextDepth });
                     
                 }
 
@@ -358,6 +358,15 @@ namespace Regulus.Core.Ssa
                         Operand.StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_0:
+                    // may be callvirt
+                    if (!method.IsStatic)
+                    {
+                        return new MoveInstruction(AbstractOpCode.Mov,
+                        new ValueOperand(OperandKind.Arg, 0,
+                        Operand.StringToValueType(method.DeclaringType.Name)),
+                        new Operand(OperandKind.Stack, stackDepth++));
+                    }
+                    else
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Arg, 0,
                         Operand.StringToValueType(method.Parameters[0].ParameterType.Name)),
@@ -491,23 +500,23 @@ namespace Regulus.Core.Ssa
                     return new CmpBranchInstruction(ToAbstractOpCode(instruction.OpCode.Code),
                         new Operand(OperandKind.Stack, --stackDepth),
                         new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
+                        basicBlock.Successors.First(),
                         Blocks[basicBlock.Index + 1]);
                 case Code.Br:
                 case Code.Br_S:
                     return new UnCondBranchInstruction(AbstractOpCode.Br,
-                        Blocks[basicBlock.Successors.First()]);
+                        basicBlock.Successors.First());
                 case Code.Brfalse:
                 case Code.Brfalse_S:
                     return new CondBranchInstruction(AbstractOpCode.BrFalse,
                         new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
+                        basicBlock.Successors.First(),
                         Blocks[basicBlock.Index + 1]);
                 case Code.Brtrue:
                 case Code.Brtrue_S:
                     return new CondBranchInstruction(AbstractOpCode.BrTrue,
                         new Operand(OperandKind.Stack, --stackDepth),
-                        Blocks[basicBlock.Successors.First()],
+                        basicBlock.Successors.First(),
                         Blocks[basicBlock.Index + 1]);
 
                 case Code.Ldftn:
@@ -580,7 +589,7 @@ namespace Regulus.Core.Ssa
                     return CreateCallInstruction(instruction.OpCode.Code, (MethodReference)instruction.Operand, ref stackDepth);
                 case Code.Switch:
                     return new SwitchInstruction(AbstractOpCode.Switch,
-                        Blocks.Where(bb => basicBlock.Successors.Contains(bb.Index)).ToList());
+                        Blocks.Where(bb => basicBlock.Successors.Contains(bb)).ToList());
                 case Code.Box:
                 case Code.Castclass:
                 case Code.Isinst:

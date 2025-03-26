@@ -103,9 +103,9 @@ namespace Regulus.Core.Ssa.Tree
             // find all semidom
             for (int i = nodes.Count - 1; i >= 0; i--)
             {
-                foreach (int pred in nodes[i].Block.Predecessors)
+                foreach (BasicBlock pred in nodes[i].Block.Predecessors)
                 {
-                    int q = Eval(fnodes[block2fnode[pred]]);
+                    int q = Eval(fnodes[block2fnode[pred.Index]]);
                     if (semi[q] < semi[nodes[i].Block.Index])
                     {
                         semi[nodes[i].Block.Index] = semi[q];

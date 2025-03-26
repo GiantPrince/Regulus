@@ -58,50 +58,55 @@ namespace Test
                 .AddLeftOperand(c)
                 .AddRightOperand(x));
             defs.Add(new MoveInstruction(AbstractOpCode.Mov, p, z));
-            BasicBlock bb1 = new BasicBlock(0);
-            bb1.Instructions
+            BasicBlock bb0 = new BasicBlock(0);
+            BasicBlock bb1 = new BasicBlock(1);
+            BasicBlock bb2 = new BasicBlock(2);
+            BasicBlock bb3 = new BasicBlock(3);
+            BasicBlock bb4 = new BasicBlock(4);
+
+            bb0.Instructions
                 .Add(defs[0]);
-            bb1.Instructions
+            bb0.Instructions
                 .Add(defs[1]);
-            bb1.Successors.Add(1);
+            bb0.Successors.Add(bb1);
 
-            BasicBlock bb2 = new BasicBlock(1);
-            bb2.Instructions
+            
+            bb1.Instructions
                 .Add(defs[2]);
-            bb2.Instructions
+            bb1.Instructions
                 .Add(defs[3]);
-            bb2.Predecessors.Add(0);
-            bb2.Predecessors.Add(2);
-            bb2.Successors.Add(2);
-            bb2.Successors.Add(3);
+            bb1.Predecessors.Add(bb0);
+            bb1.Predecessors.Add(bb2);
+            bb1.Successors.Add(bb2);
+            bb1.Successors.Add(bb3);
 
-            BasicBlock bb3 = new BasicBlock(2);
-            bb3.Instructions
+            
+            bb2.Instructions
                .Add(defs[4]);
-            bb3.Instructions
+            bb2.Instructions
                .Add(defs[5]);
-            bb3.Predecessors.Add(1);
-            bb3.Successors.Add(1);
-            bb3.Successors.Add(4);
+            bb2.Predecessors.Add(bb1);
+            bb2.Successors.Add(bb1);
+            bb2.Successors.Add(bb4);
             
 
-            BasicBlock bb4 = new BasicBlock(3);
-            bb4.Instructions
+            
+            bb3.Instructions
                .Add(defs[6]);
-            bb4.Predecessors.Add(1);
-            bb4.Successors.Add(4);
+            bb3.Predecessors.Add(bb1);
+            bb3.Successors.Add(bb4);
 
-            BasicBlock bb5 = new BasicBlock(4);
-            bb5.Instructions
+            
+            bb4.Instructions
                 .Add(defs[7]);
-            bb5.Predecessors.Add(2);
-            bb5.Predecessors.Add(3);
+            bb4.Predecessors.Add(bb2);
+            bb4.Predecessors.Add(bb3);
 
+            blocks.Add(bb0);
             blocks.Add(bb1);
             blocks.Add(bb2);
             blocks.Add(bb3);
             blocks.Add(bb4);
-            blocks.Add(bb5);
         }
 
         public static bool BitArrayEqual(BitArray bits, string res)

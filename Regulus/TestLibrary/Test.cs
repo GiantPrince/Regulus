@@ -19,10 +19,32 @@ namespace TestLibrary
             Activator.CreateInstance(Type.GetType("Regulus.PatchRepository"), [ vm, hasPatch ]);
         }
 
-        [Tag(TagType.Patch)]
+        //[Tag(TagType.Patch)]
         public void Bark()
         {
             barkCount++;
         }
+
+    }
+
+    public class Test
+    {
+        public int Integer;
+        public long Long;
+        public float Single;
+        public double Double;
+        public string String;
+        
+
+        [Tag(TagType.Patch)]
+        public static int Fib(int n)
+        {
+            if (n == 0)
+                return 0;
+            if (n == 1)
+                return 1;
+            return Fib(n - 2) + Fib(n - 1);
+        }
+        
     }
 }

@@ -31,9 +31,9 @@ namespace Regulus.Core.Ssa.Tree
             {
                 if (block.Predecessors.Count >= 2)
                 {
-                    foreach (int pred in block.Predecessors)
+                    foreach (BasicBlock pred in block.Predecessors)
                     {
-                        int runner = pred;
+                        int runner = pred.Index;
                         while (runner != domTree.GetNode(block.Index).Parent.Block.Index)
                         {
                             frontiers[runner].Add(block);

@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using Mono.Cecil.Cil;
 using NUnit.Framework;
 using Regulus.Core.Ssa.Instruction;
+using Regulus.Inject;
+using static System.Reflection.Metadata.BlobBuilder;
 
 
 namespace Regulus.Core.Ssa
@@ -79,9 +81,8 @@ namespace Regulus.Core.Ssa
         {
             _emitter.Init(index);
             _ssaBuilder = ssaBuilder;
-            _backPatchIndex = new List<PatchInfo>();
-            //CollectInstructions(blocks);
-            List<int> basicBlockStartOffset = new List<int>();
+            _backPatchIndex = new List<PatchInfo>();            
+            Dictionary<int, int> basicBlockStartOffset = new Dictionary<int, int>();
             List<AbstractInstruction> instructions = new List<AbstractInstruction>();
             
             Dictionary<Operand, List<BitArray>> liveRanges = BuildLiveRanges(blocks, argCount);
@@ -91,10 +92,9 @@ namespace Regulus.Core.Ssa
             }
             Dictionary<Operand, BitArray> splitLiveRanges = ReAllocOperands(liveRanges, instructions);
             Dictionary<Operand, List<Operand>> edges = BuildInterferenceGraph(instructions, liveRanges);
-            List<Operand> localArguments = CollectLocalArguments(blocks);
+            List<Operand> localArguments = CollectLocalArguments(blocks.First(), argCount);
             List<ArgumentGroup> argumentGroups = CollectFunctionArguments(blocks);
-            //AllocateRegisterForLocalArguments(localArguments);
-            AllocateRegister(edges, argumentGroups, localArguments.Count);
+            AllocateRegister(edges, argumentGroups, localArguments);
 
             foreach (BasicBlock bb in blocks)
             {
@@ -103,7 +103,7 @@ namespace Regulus.Core.Ssa
 
             foreach (BasicBlock block in blocks)
             {
-                basicBlockStartOffset.Add(_emitter.GetByteCount());
+                basicBlockStartOffset.Add(block.Index, _emitter.GetByteCount());
                 foreach (AbstractInstruction instruction in block.Instructions)
                 {
                     switch (instruction.Kind)
@@ -154,7 +154,21 @@ namespace Regulus.Core.Ssa
         {
             if (returnInstruction.HasLeftHandSideOperand())
             {
-                _emitter.EmitAInstruction(OpCode.Ret, ComputeRegisterLocation(returnInstruction.GetLeftHandSideOperand(0)));
+                Operand op = returnInstruction.GetLeftHandSideOperand(0);
+                if (op.Kind == OperandKind.Const)
+                {
+                    ValueOperand valueOperand = (ValueOperand)op;
+                    _emitter.EmitOpCode(OpCode.Retc);
+                    byte[] value = valueOperand.GetValue();
+                    
+                    _emitter.EmitBytes(value);
+                    if (value.Length < sizeof(long))
+                    {
+                        _emitter.EmitInt(0);
+                    }
+                }
+                else 
+                    _emitter.EmitAInstruction(OpCode.Ret, ComputeRegisterLocation(returnInstruction.GetLeftHandSideOperand(0)));
             }
             else
             {
@@ -165,19 +179,22 @@ namespace Regulus.Core.Ssa
         private void CompilerCondBranchInstruction(CondBranchInstruction condBranchInstruction)
         {
             _backPatchIndex.Add(new PatchInfo() { Start = _emitter.GetByteCount(), Offset = sizeof(OpCode) + sizeof(byte) });
+            _backPatchIndex.Add(new PatchInfo() { Start = _emitter.GetByteCount(), Offset = sizeof(OpCode) + sizeof(byte) + sizeof(int)});
             if (condBranchInstruction.Code == AbstractOpCode.BrFalse)
             {
-                _emitter.EmitAPInstruction(                
+                _emitter.EmitAPPInstruction(                
                 OpCode.BrFalse,
                 ComputeRegisterLocation(condBranchInstruction.GetLeftHandSideOperand(0)),
-                condBranchInstruction.GetBranchTarget(0).Index);
+                condBranchInstruction.GetBranchTarget(0).Index,
+                condBranchInstruction.GetBranchTarget(1).Index);
             }
             else
             {
-                _emitter.EmitAPInstruction(
+                _emitter.EmitAPPInstruction(
                 OpCode.BrTrue,
                 ComputeRegisterLocation(condBranchInstruction.GetLeftHandSideOperand(0)),
-                condBranchInstruction.GetBranchTarget(0).Index);
+                condBranchInstruction.GetBranchTarget(0).Index,
+                condBranchInstruction.GetBranchTarget(1).Index);
             }
 
         }
@@ -253,7 +270,7 @@ namespace Regulus.Core.Ssa
 
         
 
-        private void BackPatch(List<int> basicBlockStartIndex)
+        private void BackPatch(Dictionary<int, int> basicBlockStartIndex)
         {
             List<byte> bytecode = _emitter.GetBytes();
             foreach (PatchInfo i in _backPatchIndex)
@@ -335,6 +352,24 @@ namespace Regulus.Core.Ssa
             List<string> parameterTypes = callInstruction.ParameterTypesWithoutImplicitParameter.Select(t => t.AssemblyQualifiedName).ToList();
             List<bool> isRefTypes = callInstruction.ParametersType.Select(t => t.IsByRef).ToList();
             //int argCount = callInstruction.ArgCount - (callInstruction.IsStructConstructor ? 1 : 0);
+            if (callInstruction.IsNewMethod)
+            {
+                // [startReg:byte][returnReg:byte][methodIndex:int]
+                int newMethodIndex = TagFilter.GetMethodId(callInstruction.MethodDef);
+                byte startReg = callInstruction.HasLeftHandSideOperand() ?
+                    ComputeRegisterLocation(callInstruction.GetLeftHandSideOperand(0)) :
+                    ComputeRegisterLocation(callInstruction.GetRightHandSideOperand(0));
+                byte returnReg = callInstruction.HasRightHandSideOperand() ?
+                    ComputeRegisterLocation(callInstruction.GetRightHandSideOperand(0)) :
+                    (byte)(startReg + callInstruction.ArgCount);
+                _emitter.EmitABPInstruction(
+                    OpCode.Calln,
+                    startReg,
+                    (byte)(returnReg - startReg),
+                    newMethodIndex
+                    );
+                return;
+            }
             int methodIndex = _emitter.AddMethod(
                 callInstruction.DeclaringType,
                 callInstruction.Method,
@@ -2306,16 +2341,16 @@ namespace Regulus.Core.Ssa
 
                 instructions.AddRange(b.Instructions);
                 List<AbstractInstruction> predOfFirst = new List<AbstractInstruction>();
-                foreach (int pred in b.Predecessors)
+                foreach (BasicBlock pred in b.Predecessors)
                 {
-                    predOfFirst.Add(blocks[pred].Instructions.Last());
+                    predOfFirst.Add(pred.Instructions.Last());
                 }
                 Pred.Add(b.Instructions.First(), predOfFirst);
 
                 List<AbstractInstruction> succOfLast = new List<AbstractInstruction>();
-                foreach (int succ in b.Successors)
+                foreach (BasicBlock succ in b.Successors)
                 {
-                    succOfLast.Add(blocks[succ].Instructions.First());
+                    succOfLast.Add(succ.Instructions.First());
                 }
 
                 Succ.Add(b.Instructions.Last(), succOfLast);
@@ -2635,16 +2670,44 @@ namespace Regulus.Core.Ssa
             liveRanges.Add(newLiveRange);
         }
 
-        private void InsertArgumentDefinitions(BasicBlock firstBlock, int argumentCount)
+        private void InsertArgumentDefinitions(List<BasicBlock> blocks, int argumentCount)
         {
             List<AbstractInstruction> instructions = new List<AbstractInstruction>();
+            HashSet<Operand> localArguments = new HashSet<Operand>();
+
+            foreach (BasicBlock block in blocks)
+            {
+                foreach (AbstractInstruction instruction in block.Instructions)
+                {
+                    int leftOpCount = instruction.LeftHandSideOperandCount();
+                    for (int i = 0; i < leftOpCount; i++)
+                    {
+                        Operand op = instruction.GetLeftHandSideOperand(i);
+                        if (op.Kind == OperandKind.Arg)
+                        {
+                            localArguments.Add(op);
+                        }
+
+                    }
+                    int rightOpCount = instruction.RightHandSideOperandCount();
+                    for (int i = 0; i < rightOpCount; i++)
+                    {
+                        Operand op = instruction.GetRightHandSideOperand(i);
+                        if (op.Kind == OperandKind.Arg)
+                        {
+                            localArguments.Add(op);
+                        }
+
+                    }
+                }
+            }
+            List<Operand> localArgumentList = localArguments.ToList();
             for (int i = 0; i < argumentCount; i++) 
             {
-                AbstractInstruction instruction = new TransformInstruction(AbstractOpCode.Nop).AddRightOperand(new Operand(OperandKind.Arg, i));
-                instructions.Add(instruction);
-                
+                AbstractInstruction instruction = new TransformInstruction(AbstractOpCode.Nop).AddRightOperand(localArgumentList[i]);
+                instructions.Add(instruction);                
             }
-            firstBlock.Instructions.InsertRange(0, instructions);
+            blocks.First().Instructions.InsertRange(0, instructions);
         }
 
         private void RemoveArgumentDefinitions(BasicBlock firstBlock, int argumentCount)
@@ -2655,7 +2718,7 @@ namespace Regulus.Core.Ssa
 
         public Dictionary<Operand, List<BitArray>> BuildLiveRanges(List<BasicBlock> blocks, int argCount)
         {
-            InsertArgumentDefinitions(blocks.First(), argCount);
+            InsertArgumentDefinitions(blocks, argCount);
             DoReachingDefinitionAnalysis(
                 blocks,
                 out Dictionary<AbstractInstruction, BitArray> Out,
@@ -2847,59 +2910,31 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        private List<Operand> CollectLocalArguments(List<BasicBlock> blocks)
+        private List<Operand> CollectLocalArguments(BasicBlock firstBlock, int argCount)
         {
             //List<Operand> localArguments = new List<Operand>();
-            HashSet<Operand> localArguments = new HashSet<Operand>();
-            
-            foreach (BasicBlock block in blocks)
+            List<Operand> localArguments = new List<Operand>();
+            for (int i = 0; i < argCount; i++)
             {
-                foreach (AbstractInstruction instruction in block.Instructions)
-                {
-                    int leftOpCount = instruction.LeftHandSideOperandCount();
-                    for (int i = 0; i < leftOpCount; i++)
-                    {
-                        Operand op = instruction.GetLeftHandSideOperand(i);
-                        if (op.Kind == OperandKind.Arg)
-                        {
-                            localArguments.Add(op);
-                        }
-                        
-                    }
-                    int rightOpCount = instruction.RightHandSideOperandCount();
-                    for (int i = 0; i < rightOpCount; i++)
-                    {
-                        Operand op = instruction.GetRightHandSideOperand(i);
-                        if (op.Kind == OperandKind.Arg)
-                        {
-                            localArguments.Add(op);
-                        }
-
-                    }
-                }
+                localArguments.Add(firstBlock.Instructions[i].GetRightHandSideOperand(0));
             }
 
-            return localArguments.ToList();
+            return localArguments;
         }
 
-        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges, List<ArgumentGroup> argumentGroups, int argCount = 0)
+        private void AllocateFunctionArgumentsRegister(Dictionary<Operand, int> registerAssignment, List<ArgumentGroup> argumentGroups, Dictionary<Operand, List<Operand>> edges, bool isNewMethod)
         {
-            Dictionary<Operand, int> registerAssignment = new Dictionary<Operand, int>();
-
-            // First allocate all arguments
-            // First element of argumentGroups
-            List<Operand> localArguments = argumentGroups.First().operands;
-            for (int i = 0; i < localArguments.Count; i++)
-            {
-                registerAssignment.Add(localArguments[i], i);
-                localArguments[i].AssignRegister(i);
-            }
-
             // Try to allocate continuous arguments
-            for (int i = 1; i < argumentGroups.Count; i++)
+            for (int i = 0; i < argumentGroups.Count; i++)
             {
                 ArgumentGroup group = argumentGroups[i];
                 if (group.operands.Count == 0)
+                {
+                    continue;
+                }
+
+                CallInstruction call = group.instruction as CallInstruction;
+                if (isNewMethod != call.IsNewMethod)
                 {
                     continue;
                 }
@@ -2960,7 +2995,7 @@ namespace Regulus.Core.Ssa
 
                 int startReg = 0;
                 bool found = false;
-                
+
                 while (!found)
                 {
                     bool valid = true;
@@ -2978,7 +3013,9 @@ namespace Regulus.Core.Ssa
                     // Additionally, ensure none of the registers in the range are occupied by non-group operands
                     if (valid)
                     {
-                        for (int j = 0; j < group.operands.Count; j++)
+                        //CallInstruction call = (CallInstruction)group.instruction;
+                        int opCount = call.IsNewMethod ? VirtualMachine.MAX_REGISTERS : group.operands.Count;
+                        for (int j = 0; j < opCount; j++)
                         {
                             int requiredReg = startReg + j;
                             if (registerAssignment.Values.Contains(requiredReg))
@@ -2997,9 +3034,9 @@ namespace Regulus.Core.Ssa
                     {
                         startReg++;
                     }
-                   
+
                 }
-               
+
                 // Assign registers to the group
                 for (int j = 0; j < group.operands.Count; j++)
                 {
@@ -3010,6 +3047,23 @@ namespace Regulus.Core.Ssa
                 }
 
             }
+
+        }
+        private void AllocateRegister(Dictionary<Operand, List<Operand>> edges, List<ArgumentGroup> argumentGroups, List<Operand> localArguments)
+        {
+            Dictionary<Operand, int> registerAssignment = new Dictionary<Operand, int>();
+
+            // First allocate all arguments
+            // First element of argumentGroups
+            
+            for (int i = 0; i < localArguments.Count; i++)
+            {
+                int regIndex = localArguments[i].Index;
+                registerAssignment.Add(localArguments[i], regIndex);
+                localArguments[i].AssignRegister(regIndex);
+            }
+
+            AllocateFunctionArgumentsRegister(registerAssignment, argumentGroups, edges, false);
 
 
             // Process remaining operands using the original greedy algorithm
@@ -3036,6 +3090,9 @@ namespace Regulus.Core.Ssa
                 registerAssignment[operand] = register;
                 operand.AssignRegister(register);
             }
+
+            AllocateFunctionArgumentsRegister(registerAssignment, argumentGroups, edges, true);
+
 
         }
 

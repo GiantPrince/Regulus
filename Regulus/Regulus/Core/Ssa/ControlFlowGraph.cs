@@ -85,15 +85,15 @@ namespace Regulus.Core.Ssa
                 if (branchInstruction is Mono.Cecil.Cil.Instruction target)
                 {
                     int targetBlockIndex = InstructionBlockIndex(instructions, target);
-                    basicBlock.Successors.Add(targetBlockIndex);
-                    Blocks[targetBlockIndex].Predecessors.Add(i);
+                    basicBlock.Successors.Add(Blocks[targetBlockIndex]);
+                    Blocks[targetBlockIndex].Predecessors.Add(Blocks[i]);
                     if (instructions[basicBlock.EndIndex].OpCode.Code != Code.Br &&
                         instructions[basicBlock.EndIndex].OpCode.Code != Code.Br_S &&
                         instructions[basicBlock.EndIndex].OpCode.Code != Code.Ret &&
                         basicBlock.Index + 1 < Blocks.Count)
                     {
-                        basicBlock.Successors.Add(basicBlock.Index + 1);
-                        Blocks[basicBlock.Index + 1].Predecessors.Add(basicBlock.Index);
+                        basicBlock.Successors.Add(Blocks[basicBlock.Index + 1]);
+                        Blocks[basicBlock.Index + 1].Predecessors.Add(basicBlock);
                     }
                 }
                 else if (branchInstruction is Mono.Cecil.Cil.Instruction[] targets)
@@ -101,8 +101,8 @@ namespace Regulus.Core.Ssa
                     foreach (var targetBlock in targets)
                     {
                         int targetBlockIndex = InstructionBlockIndex(instructions, targetBlock);
-                        basicBlock.Successors.Add(targetBlockIndex);
-                        Blocks[targetBlockIndex].Predecessors.Add(i);
+                        basicBlock.Successors.Add(Blocks[targetBlockIndex]);
+                        Blocks[targetBlockIndex].Predecessors.Add(Blocks[i]);
                     }
                 }
                 else
@@ -111,8 +111,8 @@ namespace Regulus.Core.Ssa
                     if (basicBlock.Index + 1 < Blocks.Count)
                     {
                         int targetBlockIndex = basicBlock.Index + 1;
-                        basicBlock.Successors.Add(targetBlockIndex);
-                        Blocks[targetBlockIndex].Predecessors.Add(i);
+                        basicBlock.Successors.Add(Blocks[targetBlockIndex]);
+                        Blocks[targetBlockIndex].Predecessors.Add(Blocks[i]);
                     }
                     
                 }

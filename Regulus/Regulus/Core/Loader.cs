@@ -23,11 +23,12 @@ namespace Regulus.Core
         }
 
 
-        public unsafe static void LoadMeta(Stream bytes, out List<Type> types, out List<MethodBase> methods, out List<FieldInfo> fields)
+        public unsafe static void LoadMeta(Stream bytes, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields)
         {
             methods = new List<MethodBase>();
             types = new List<Type>();
             fields = new List<FieldInfo>();
+            internedStrings = new List<string>();
             using (BinaryReader reader = new BinaryReader(bytes))
             {
                 // Load all the types that can be accessed through reflection
@@ -35,6 +36,13 @@ namespace Regulus.Core
                 for (int i = 0; i < numOfTypes; i++)
                 {
                     types.Add(LoadType(reader));
+                }
+
+                // Load internedStrings
+                int numOfStrings = reader.ReadInt32();
+                for (int i = 0; i < numOfStrings; i++)
+                {
+                    internedStrings.Add(reader.ReadString());
                 }
 
                 // Load all the method names
@@ -85,7 +93,7 @@ namespace Regulus.Core
                     codes[patchIndex] = code;
                 }
 
-                VirtualMachine.s_code = codes;
+                VirtualMachine.s_bytecode = codes;
                 VirtualMachine.s_codeSize = maxPatchIndex + 1;
 
 
