@@ -10,6 +10,10 @@ namespace Regulus
     public class ReferenceTest
     {
         public int a;
+        public long b;
+        public float c;
+        public double d;
+        
         public static int s_a;
         public string s;
         public static string s_s;
@@ -39,7 +43,16 @@ namespace Regulus
         
     }
 
-    
+    public class BaseTest
+    {
+        public string s;
+        public static void Add(int a, int b)
+        {
+            Console.WriteLine(a + " " + b);
+        }
+    }
+
+
 
     public struct ReferenceDataStruct
     {

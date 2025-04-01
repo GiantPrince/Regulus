@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Regulus.Core.Ssa.Instruction;
+using Regulus.Inject;
 
 namespace Regulus.Core.Ssa
 {
@@ -399,6 +400,7 @@ namespace Regulus.Core.Ssa
                 EmitIntMeta(bytecode.Value.Count);
                 EmitBytesMeta(bytecode.Value.ToArray());
             }
+            EmitStringMeta(Injector.PatchClassName);
             meta.Seek(0, SeekOrigin.Begin);
         }
 

@@ -16,8 +16,7 @@ namespace Regulus.Core
        
         public static Value* s_registers;
         public static byte** s_bytecode;
-        public static int s_codeSize;
-        private int _gchandleStackTop = 0;
+        public static int s_codeSize;        
         public object[] Objects;
         public Invoker[] Invokers;
         public string[] internedStrings;
@@ -49,6 +48,31 @@ namespace Regulus.Core
             return s_registers[index];
         }
 
+        public int GetRegisterInt(int index)
+        {
+            return s_registers[index].Upper;
+        }
+
+        public long GetRegisterLong(int index)
+        {
+            return *(long*)&s_registers[index].Upper;
+        }
+
+        public float GetRegisterFloat(int index)
+        {
+            return *(float*)&s_registers[index].Upper;
+        }
+
+        public double GetRegisterDouble(int index)
+        {
+            return *(double*)&s_registers[index].Upper;
+        }
+
+        public T GetRegisterObject<T>(int index)   
+        {
+            return (T)Objects[index];
+        }
+
         public void SetRegister(int index, Value value)
         {
             s_registers[index] = value;
@@ -67,6 +91,11 @@ namespace Regulus.Core
         public void SetRegisterFloat(int index, float value)
         {
             *(float*)&s_registers[index].Upper = value;
+        }
+
+        public void Empty()
+        {
+            Console.Write(1);
         }
 
         public void SetRegisterDouble(int index, double value)
@@ -94,10 +123,10 @@ namespace Regulus.Core
             }
         }
 
-        public void Run(byte* ip, Value* reg, byte returnReg)
+        public void Run(int methodIndex, Value* reg, byte returnReg)
         {
             //ResetRegister();
-            
+            byte* ip = s_bytecode[methodIndex];
             while (true)
             {
                 
@@ -1194,6 +1223,30 @@ namespace Regulus.Core
                             ip += ABCInstruction.Size;
                         }
                         break;
+                    case OpCode.BneI_B4:
+                        APPInstruction* bneIB4Instruction = (APPInstruction*)ip;
+                        if (reg[bneIB4Instruction->RegisterA].Upper !=
+                            bneIB4Instruction->Operand1)
+                        {
+                            ip += bneIB4Instruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BneI_B8:
+                        ALPPInstruction* bneIB8Instruction = (ALPPInstruction*)ip;
+                        if (*(long*)&reg[bneIB8Instruction->RegisterA].Upper !=
+                            bneIB8Instruction->Operand1)
+                        {
+                            ip += bneIB8Instruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
 
                     case OpCode.Bge_Int:
                         ABPInstruction* bgeIntInstruction = (ABPInstruction*)ip;
@@ -1246,6 +1299,104 @@ namespace Regulus.Core
                             ip += ABCInstruction.Size;
                         }
                         break;
+                    case OpCode.Bge_Un_Int:
+                        ABPInstruction* bgeUnIntInstruction = (ABPInstruction*)ip;
+                        if (*(uint*)&reg[bgeUnIntInstruction->RegisterA].Upper >=
+                            *(uint*)&reg[bgeUnIntInstruction->RegisterB].Upper)
+                        {
+                            ip += bgeUnIntInstruction->Operand;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.Bge_Un_Long:
+                        ABPInstruction* bgeUnLongInstruction = (ABPInstruction*)ip;
+                        if (*(ulong*)&reg[bgeUnLongInstruction->RegisterA].Upper >=
+                            *(ulong*)&reg[bgeUnLongInstruction->RegisterB].Upper)
+                        {
+                            ip += bgeUnLongInstruction->Operand;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.Bge_Un_Float:
+                        ABPInstruction* bgeUnFloatInstruction = (ABPInstruction*)ip;
+                        if (!(*(float*)&reg[bgeUnFloatInstruction->RegisterA].Upper <
+                            *(float*)&reg[bgeUnFloatInstruction->RegisterB].Upper))
+                        {
+                            ip += bgeUnFloatInstruction->Operand;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.Bge_Un_Double:
+                        ABPInstruction* bgeUnDoubleInstruction = (ABPInstruction*)ip;
+                        if (!(*(double*)&reg[bgeUnDoubleInstruction->RegisterA].Upper <
+                            *(double*)&reg[bgeUnDoubleInstruction->RegisterB].Upper))
+                        {
+                            ip += bgeUnDoubleInstruction->Operand;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgeI_Un_Int:
+                        APPInstruction* bgeIUnIntInstruction = (APPInstruction*)ip;
+                        if (*(uint*)&reg[bgeIUnIntInstruction->RegisterA].Upper >=
+                            *(uint*)&bgeIUnIntInstruction->Operand1)
+                        {
+                            ip += bgeIUnIntInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgeI_Un_Long:
+                        ALPPInstruction* bgeIUnLongInstruction = (ALPPInstruction*)ip;
+                        if (*(ulong*)&reg[bgeIUnLongInstruction->RegisterA].Upper >=
+                            *(ulong*)&bgeIUnLongInstruction->Operand1)
+                        {
+                            ip += bgeIUnLongInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgeI_Un_Float:
+                        APPInstruction* bgeIUnFloatInstruction = (APPInstruction*)ip;
+                        if (*(float*)&reg[bgeIUnFloatInstruction->RegisterA].Upper >=
+                            *(float*)&bgeIUnFloatInstruction->Operand1)
+                        {
+                            ip += bgeIUnFloatInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BgeI_Un_Double:
+                        ALPPInstruction* bgeIUnDoubleInstruction = (ALPPInstruction*)ip;
+                        if (*(double*)&reg[bgeIUnDoubleInstruction->RegisterA].Upper >=
+                            *(double*)&bgeIUnDoubleInstruction->Operand1)
+                        {
+                            ip += bgeIUnDoubleInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+
+
 
                     case OpCode.Bgt_Int:
                         ABPInstruction* bgtIntInstruction = (ABPInstruction*)ip;
@@ -1403,7 +1554,7 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
 
@@ -1416,7 +1567,7 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
 
@@ -1429,7 +1580,7 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
                         }
                         break;
 
@@ -1442,7 +1593,55 @@ namespace Regulus.Core
                         }
                         else
                         {
-                            ip += ABCInstruction.Size;
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Int:
+                        APPInstruction* bleIIntInstruction = (APPInstruction*)ip;
+                        if (reg[bleIIntInstruction->RegisterA].Upper <=
+                            bleIIntInstruction->Operand1) 
+                        {
+                            ip += bleIIntInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Long:
+                        ALPPInstruction* bleILongInstruction = (ALPPInstruction*)ip;
+                        if (*(long*)&reg[bleILongInstruction->RegisterA].Upper <=
+                            bleILongInstruction->Operand1)
+                        {
+                            ip += bleILongInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Float:
+                        APPInstruction* bleIFloatInstruction = (APPInstruction*)ip;
+                        if (*(float*)&reg[bleIFloatInstruction->RegisterA].Upper <=
+                            bleIFloatInstruction->Operand1)
+                        {
+                            ip += bleIFloatInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Double:
+                        ALPPInstruction* bleIDoubleInstruction = (ALPPInstruction*)ip;
+                        if (*(double*)&reg[bleIDoubleInstruction->RegisterA].Upper <=
+                            bleIDoubleInstruction->Operand1)
+                        {
+                            ip += bleIDoubleInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
                         }
                         break;
 
@@ -1548,7 +1747,78 @@ namespace Regulus.Core
                             ip += ABPInstruction.Size;
                         }
                         break;
-
+                    case OpCode.Ble_Un_Float:
+                        ABPInstruction* bleUnFloatInstruction = (ABPInstruction*)ip;
+                        if (!(*(float*)&reg[bleUnFloatInstruction->RegisterA].Upper >
+                            *(float*)&reg[bleUnFloatInstruction->RegisterB].Upper))
+                        {
+                            ip += bleUnFloatInstruction->Operand;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.Ble_Un_Double:
+                        ABPInstruction* bleUnDoubleInstruction = (ABPInstruction*)ip;
+                        if (!(*(double*)&reg[bleUnDoubleInstruction->RegisterA].Upper >
+                            *(double*)&reg[bleUnDoubleInstruction->RegisterB].Upper))
+                        {
+                            ip += bleUnDoubleInstruction->Operand;
+                        }
+                        else
+                        {
+                            ip += ABPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Un_Int:
+                        APPInstruction* bleIUnIntInstruction = (APPInstruction*)ip;
+                        if (*(uint*)&reg[bleIUnIntInstruction->RegisterA].Upper <=
+                            *(uint*)&bleIUnIntInstruction->Operand1)
+                        {
+                            ip += bleIUnIntInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Un_Long:
+                        ALPPInstruction* bleIUnLongInstruction = (ALPPInstruction*)ip;
+                        if (*(ulong*)&reg[bleIUnLongInstruction->RegisterA].Upper <=
+                            *(ulong*)&bleIUnLongInstruction->Operand1)
+                        {
+                            ip += bleIUnLongInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Un_Float:
+                        APPInstruction* bleIUnFloatInstruction = (APPInstruction*)ip;
+                        if (!(*(float*)&reg[bleIUnFloatInstruction->RegisterA].Upper >
+                            *(float*)&bleIUnFloatInstruction->Operand1))
+                        {
+                            ip += bleIUnFloatInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += APPInstruction.Size;
+                        }
+                        break;
+                    case OpCode.BleI_Un_Double:
+                        ALPPInstruction* bleIUnDoubleInstruction = (ALPPInstruction*)ip;
+                        if (!(*(double*)&reg[bleIUnDoubleInstruction->RegisterA].Upper >
+                            *(double*)&bleIUnDoubleInstruction->Operand1))
+                        {
+                            ip += bleIUnDoubleInstruction->Operand2;
+                        }
+                        else
+                        {
+                            ip += ALPPInstruction.Size;
+                        }
+                        break;
                     case OpCode.Blt_Un_Int:
                         ABPInstruction* bltUnIntInstruction = (ABPInstruction*)ip;
                         if (*(uint*)&reg[bltUnIntInstruction->RegisterA].Upper <
@@ -2154,7 +2424,7 @@ namespace Regulus.Core
                         break;
                     case OpCode.Calln:
                         ABPInstruction* callnInstruction = (ABPInstruction*)ip;
-                        Run(s_bytecode[callnInstruction->Operand], reg + callnInstruction->RegisterA, callnInstruction->RegisterB);
+                        Run(callnInstruction->Operand, reg + callnInstruction->RegisterA, callnInstruction->RegisterB);
                         ip += ABPInstruction.Size;
                         break;
                     case OpCode.Ldelem_I1:
@@ -2380,9 +2650,7 @@ namespace Regulus.Core
                         break;
 
                     case OpCode.Stelem_I4II:
-                        APPInstruction* stelemI4IIInstruction = (APPInstruction*)ip;
-                        
-                        
+                        APPInstruction* stelemI4IIInstruction = (APPInstruction*)ip;                                                
                         object I4IIArray = Objects[stelemI4IIInstruction->RegisterA];
 
                         if (I4IIArray is int[] I4IIIntArray)
@@ -2447,8 +2715,9 @@ namespace Regulus.Core
                         Type arrType = Types[newarrInstruction->Operand];
 
                         Array arr = Array.CreateInstance(arrType, reg[newarrInstruction->RegisterA].Upper);
-                        Objects[newarrInstruction->RegisterB] = arr;
-                        reg[newarrInstruction->RegisterB].Upper = newarrInstruction->RegisterB;
+                        int newarrIndex = (int)(reg - s_registers) + newarrInstruction->RegisterB;
+                        Objects[newarrIndex] = arr;
+                        reg[newarrInstruction->RegisterB].Upper = newarrIndex;
                         ip += ABPInstruction.Size;
                         break;
 

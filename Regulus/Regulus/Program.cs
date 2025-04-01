@@ -27,29 +27,29 @@ namespace Regulus
             Console.WriteLine(a + b);
         }
 
-        public static string GetBackupFile(string file)
+        public static string GetBackupFile(string file, string extension)
         {
-            string fileName = Path.GetFileName(file);
+            string fileName = Path.GetFileNameWithoutExtension(file) + extension;
             string dir = "C:\\Users\\Harry\\Desktop";
             return Path.Combine(dir, fileName);
         }
-        public static void Inject(string path)
-        {
-            string bakPath = GetBackupFile(path);
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
-            List<MethodDefinition> methods = TagFilter.ScanPatchMethod(assembly);
-            Injector.Inject(assembly, methods.First(), 1);            
-            assembly.Write(bakPath);                        
-        }
+        //public static void Inject(string path)
+        //{
+        //    string bakPath = GetBackupFile(path);
+        //    AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
+        //    List<MethodDefinition> methods = TagFilter.ScanTaggedMethod(assembly);
+        //    Injector.Inject(assembly, methods.First(), 1);            
+        //    assembly.Write(bakPath);                        
+        //}
 
-        public static void Write(string path)
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-            File.Move(GetBackupFile(path), path);
-        }
+        //public static void Write(string path)
+        //{
+        //    if (File.Exists(path))
+        //    {
+        //        File.Delete(path);
+        //    }
+        //    File.Move(GetBackupFile(path), path);
+        //}
 
         public unsafe static void Test()
         {
@@ -99,41 +99,65 @@ namespace Regulus
         public unsafe static void Main(string[] args)
         {
             string path = "D:\\Harry\\university\\Regulus\\Regulus\\TestLibrary\\bin\\Release\\net8.0\\TestLibrary.dll";
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
+            List<MethodDefinition> methods = TagFilter.ScanTaggedMethod(assembly);
 
-            //Inject(path);
-            //Write(path);
-            PatchGenerator.GeneratePatch(path, GetBackupFile(path));
-            using (FileStream file = File.OpenRead(GetBackupFile(path)))
+            //PatchGenerator.GeneratePatch(path, GetBackupFile(path, ".bytes"));
+            foreach (MethodDefinition method in methods)
             {
-                VirtualMachine vm = new VirtualMachine();
-                Loader.LoadMeta(file, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields);
-                vm.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
-                vm.internedStrings = internedStrings.ToArray();
-                vm.Fields = fields.ToArray();
-                vm.Types = types.ToArray();
-                Stopwatch sw = Stopwatch.StartNew();
-                vm.SetRegisterInt(0, 35);                
-                vm.Run(VirtualMachine.s_bytecode[0], VirtualMachine.s_registers, 0);
-                Value ret = vm.GetRegister(0);
-                sw.Stop();
-                Console.WriteLine(ret.Upper);
-                Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
-                sw.Restart();
-                long h = Fib(35);
-                sw.Stop();
-                Console.WriteLine(h);
-                Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
+                if (TagFilter.IsPatched(method))
+                {
+                    Injector.Inject(assembly, method, TagFilter.GetMethodId(method));
+                }
             }
+            assembly.Write(GetBackupFile(path, ".dll"));
+            //Injector.Inject()
+            //using (FileStream file = File.OpenRead(GetBackupFile(path)))
+            //{
+            //    VirtualMachine vm = new VirtualMachine();
+            //    Loader.LoadMeta(file, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields);
+            //    vm.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
+            //    vm.internedStrings = internedStrings.ToArray();
+            //    vm.Fields = fields.ToArray();
+            //    vm.Types = types.ToArray();
+            //    Stopwatch sw = Stopwatch.StartNew();
+            //    vm.SetRegisterInt(0, 1000000);                
+            //    vm.Run(VirtualMachine.s_bytecode[0], VirtualMachine.s_registers, 0);
+            //    Value ret = vm.GetRegister(0);
+            //    sw.Stop();
+            //    Console.WriteLine(ret.Upper);
+            //    Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
+            //    sw.Restart();
+            //    int h = Fib(1000000);
+            //    sw.Stop();
+            //    Console.WriteLine(h);
+            //    Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
+            //}
         }
+        [Tag(TagType.NewMethod)]
+        public static int Func(double b)
+        {
+            return (int)b + 10;
+        }
+
+
+        [Tag(TagType.Patch)]
         public static int Fib(int n)
         {
-            if (n == 0)
-                return 0;
-            if (n == 1)
-                return 1;
-            return Fib(n - 2) + Fib(n - 1);
+            ReferenceTest test = new ReferenceTest(n);
+            for (int i = 0; i < n; i++)
+            {
+                test.a = test.a + i;
+                test.b = test.b + i * test.a;
+                test.c = i * 2.3f;
+                test.d = i * test.d + test.c;
+            }
+            Console.WriteLine(test.a);
+            Console.WriteLine(test.b);
+            Console.WriteLine(test.c);
+            Console.WriteLine(test.d);
+            return test.a;
         }
-
 
 
     }

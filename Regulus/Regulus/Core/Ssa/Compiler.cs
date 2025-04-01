@@ -565,8 +565,8 @@ namespace Regulus.Core.Ssa
             {
                 _emitter.EmitABPInstruction(
                     GetOpCodeWithoutConst(instruction.Code, op1.OpType),
-                    ComputeRegisterLocation(op1),
                     ComputeRegisterLocation(op2),
+                    ComputeRegisterLocation(op1),
                     target);
                 offset = sizeof(OpCode) + 2 * sizeof(byte);
             }
@@ -860,6 +860,48 @@ namespace Regulus.Core.Ssa
                             return OpCode.Bgt_Un_Float;
                         case ValueOperandType.Double:
                             return OpCode.Bgt_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Ble:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Ble_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Ble_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Ble_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Ble_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Ble_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Ble_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Ble_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Ble_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Ble_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Bge_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Bge_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Bge_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Bge_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Bge_Un_Double;
                         default:
                             throw new NotImplementedException();
                     }
@@ -1312,10 +1354,31 @@ namespace Regulus.Core.Ssa
                     }
                 case AbstractOpCode.Ldelema:
                     return OpCode.Ldelema;
+                case AbstractOpCode.Stelem_I1:
+                    return OpCode.Stelem_I1;
+                case AbstractOpCode.Stelem_I2:
+                    return OpCode.Stelem_I2;
 
-
-
-
+                case AbstractOpCode.Stelem_I8:
+                    return OpCode.Stelem_I8;
+                case AbstractOpCode.Stelem_R4:
+                    return OpCode.Stelem_R4;
+                case AbstractOpCode.Stelem_R8:
+                    return OpCode.Stelem_R8;
+                case AbstractOpCode.Blt:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.Blt_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.Blt_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.Blt_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.Blt_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 default:
                     throw new NotImplementedException();
             }
@@ -1625,6 +1688,60 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
+                case AbstractOpCode.Bge_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.BgeI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.BgeI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.BgeI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.BgeI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Bne:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                        case ValueOperandType.Float:
+                            return OpCode.BneI_B4;
+                        case ValueOperandType.Long:                           
+                        case ValueOperandType.Double:
+                            return OpCode.BneI_B8;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Ble:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.BleI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.BleI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.BleI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.BleI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Ble_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.BleI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.BleI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.BleI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.BleI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
 
 
                 default:
@@ -1795,7 +1912,49 @@ namespace Regulus.Core.Ssa
                         default:
                             throw new NotImplementedException();
                     }
-                
+                case AbstractOpCode.Ble:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.BgeI_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.BgeI_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.BgeI_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.BgeI_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Ble_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.BgeI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.BgeI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.BgeI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.BgeI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                case AbstractOpCode.Bge_Un:
+                    switch (opType)
+                    {
+                        case ValueOperandType.Integer:
+                            return OpCode.BleI_Un_Int;
+                        case ValueOperandType.Long:
+                            return OpCode.BleI_Un_Long;
+                        case ValueOperandType.Float:
+                            return OpCode.BleI_Un_Float;
+                        case ValueOperandType.Double:
+                            return OpCode.BleI_Un_Double;
+                        default:
+                            throw new NotImplementedException();
+                    }
+
                 case AbstractOpCode.Ceq:
                     return OpCode.CeqI;
 

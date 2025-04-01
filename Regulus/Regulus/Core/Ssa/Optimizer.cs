@@ -128,30 +128,129 @@ namespace Regulus.Core.Ssa
             }
         }
 
+        private void TryResolveLocalPointer(BasicBlock block, AbstractInstruction instruction)
+        {
+            ValueOperand locaOp = instruction.GetLeftHandSideOperand(0) as ValueOperand;
+            Operand resolveOp = locaOp.ResolveLocalPointer();
+            // resolveOp should be fixed
+            resolveOp.IsFixed = true;
+            if (ResolveLocalPointer(block, instruction, resolveOp))
+            {
+                instruction.IsObselete = true;
+            }
+        }
+
+        private void TryResolveArrayPointer(BasicBlock block, AbstractInstruction instruction)
+        {
+
+        }
+
         private void ResolvePointers()
         {
             foreach (BasicBlock block in _ssaBuilder.GetBlocks())
             {
                 foreach (AbstractInstruction instruction in block.Instructions)
                 {
-                    if (!IsPointerInstruction(instruction))
+                    switch (instruction.Code)
                     {
-                        continue;
-                    }
-                    ValueOperand locaOp = instruction.GetLeftHandSideOperand(0) as ValueOperand;
-                    Operand resolveOp = locaOp.ResolveLocalPointer();
-                    // resolveOp should be fixed
-                    resolveOp.IsFixed = true;
-                    if (ResolveLocalPointer(block, instruction, resolveOp))
-                    {
-                        instruction.IsObselete = true;
-                    }
+                        case AbstractOpCode.Ldloca:
+                            TryResolveLocalPointer(block, instruction);
+                            break;
 
+                    }
+                    
                 }
             }
             ClearEmptyInstructions();
         }
 
+        private AbstractOpCode TransformIndirectArrayOpCode(AbstractOpCode code)
+        {
+            switch (code)
+            {
+                case AbstractOpCode.Ldind_I:
+                    return AbstractOpCode.Ldelem_I;
+                case AbstractOpCode.Stind_I:
+                    return AbstractOpCode.Stelem_I;
+
+                case AbstractOpCode.Ldind_I1:
+                    return AbstractOpCode.Ldelem_I1;
+                case AbstractOpCode.Ldind_I2:
+                    return AbstractOpCode.Ldelem_I2;
+                case AbstractOpCode.Ldind_I4:
+                    return AbstractOpCode.Ldelem_I4;
+                case AbstractOpCode.Ldind_I8:
+                    return AbstractOpCode.Ldelem_I8;
+                case AbstractOpCode.Ldind_R4:
+                    return AbstractOpCode.Ldelem_R4;
+                case AbstractOpCode.Ldind_R8:
+                    return AbstractOpCode.Ldelem_R8;
+
+                case AbstractOpCode.Stind_I1:
+                    return AbstractOpCode.Stelem_I1;
+                case AbstractOpCode.Stind_I2:
+                    return AbstractOpCode.Stelem_I2;
+                case AbstractOpCode.Stind_I4:
+                    return AbstractOpCode.Stelem_I4;
+                case AbstractOpCode.Stind_I8:
+                    return AbstractOpCode.Stelem_I8;
+                case AbstractOpCode.Stind_R4:
+                    return AbstractOpCode.Stelem_R4;
+                case AbstractOpCode.Stind_R8:
+                    return AbstractOpCode.Stelem_R8;
+
+                default:
+                    throw new ArgumentException("Unsupported opcode for indirect array transformation", nameof(code));
+            }
+        }
+
+        private bool ResolveArrayPointer(BasicBlock block, AbstractInstruction instruction, AbstractInstruction ldelemaInstruction, AbstractInstruction arrDefInstruction, AbstractInstruction idxDefInstruction)
+        {
+            bool result = true;
+            List<Use> uses = _ssaBuilder.GetUses(instruction);
+            foreach (Use use in uses)
+            {
+                if (instruction.Kind == InstructionKind.Move)
+                {
+                    result = result && ResolveArrayPointer(block, use.Instruction, ldelemaInstruction, arrDefInstruction, idxDefInstruction);
+                }
+                else if (use.Instruction.Kind == InstructionKind.Transform)
+                {
+                    switch (use.Instruction.Code)
+                    {
+                        case AbstractOpCode.Ldind_I:
+                        case AbstractOpCode.Ldind_I1:
+                        case AbstractOpCode.Ldind_I2:
+                        case AbstractOpCode.Ldind_I4:
+                        case AbstractOpCode.Ldind_I8:
+                        case AbstractOpCode.Ldind_R4:
+                        case AbstractOpCode.Ldind_R8:
+                            TransformInstruction ldindInstruction = (TransformInstruction)use.Instruction;
+                            ldindInstruction.Code = TransformIndirectArrayOpCode(use.Instruction.Code);
+                            ldindInstruction.SetLeftHandSideOperand(0, ldelemaInstruction.GetLeftHandSideOperand(0).Clone());
+                            ldindInstruction.AddLeftOperand(ldelemaInstruction.GetLeftHandSideOperand(1).Clone());                            
+                            _ssaBuilder.AddUse(arrDefInstruction, new Use(ldindInstruction, 1));
+                            _ssaBuilder.AddUse(idxDefInstruction, new Use(ldindInstruction, 0));
+                            return true;
+                        case AbstractOpCode.Stind_I: 
+                        case AbstractOpCode.Stind_I1:
+                        case AbstractOpCode.Stind_I2:
+                        case AbstractOpCode.Stind_I4:
+                        case AbstractOpCode.Stind_I8:
+                        case AbstractOpCode.Stind_R4:
+                        case AbstractOpCode.Stind_R8:
+                            //TransformInstruction stindInstruction = (TransformInstruction)use.Instruction;
+                            //stindInstruction.Code = TransformIndirectArrayOpCode(use.Instruction.Code);
+                            return false;
+
+                            break;
+
+
+                    }
+                }
+            }
+            return false;
+        } 
         /// <summary>
         /// Resolve a local pointer (ldloca) recursively
         /// </summary>
@@ -170,6 +269,7 @@ namespace Regulus.Core.Ssa
                 }
                 else if (use.Instruction.Kind == InstructionKind.Transform)
                 {
+                    
                     // can not solve now
                     result = false;
                 }

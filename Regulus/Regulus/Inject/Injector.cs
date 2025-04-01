@@ -23,6 +23,14 @@ namespace Regulus.Inject
         private const string _patch_class_namespace = "Regulus";
         private static TypeDefinition _patch_class;
 
+        public static string PatchClassName
+        {
+            get
+            {
+                return $"{_patch_class_namespace}.{_patch_class_name}";
+            }
+        }
+
         public static TypeDefinition GeneratePatchClass(AssemblyDefinition assembly)
         {
             ModuleDefinition module = assembly.MainModule;
@@ -128,7 +136,7 @@ namespace Regulus.Inject
             var patchMethod = new MethodDefinition(
                 methodName,
                 MethodAttributes.Public | MethodAttributes.Static,
-                module.TypeSystem.Void);
+                originalMethod.ReturnType);
 
             // Copy parameters including 'this' for instance methods
             if (!originalMethod.IsStatic)
@@ -149,22 +157,21 @@ namespace Regulus.Inject
                 patchMethod.Parameters.Add(newParam);
             }
 
-            patchApplicator.Methods.Add(patchMethod);
-
+            
             // Generate IL body
             var il = patchMethod.Body.GetILProcessor();
             var vmField = patchApplicator.Fields.First(f => f.Name == "_vm");
-            var vmType = module.ImportReference(typeof(Core.VirtualMachine));
+           
+            var vmType = module.ImportReference(typeof(VirtualMachine));
+            var vmDef = vmType.Resolve();
             
-            //System.Reflection.MethodInfo Print = typeof(Console).GetMethod("WriteLine", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public, [typeof(string)]);
-            
-            //il.Emit(OpCodes.Ldstr, $"This is patch {patchIndex}\n");
-            //il.Emit(OpCodes.Call, module.ImportReference(Print));
-            //il.Emit(OpCodes.Ret);
+            var registerField = vmDef.Fields.First(f => f.Name == "s_registers");              
+            var importedRegisterField = module.ImportReference(registerField);
+            var vmEmpty = module.ImportReference(vmDef.Methods.First(f => f.Name == "Empty"));
             // 1. Load VirtualMachine instance
             il.Emit(OpCodes.Ldsfld, vmField);
 
-            // 2. Prepare all parameters
+            // 2.Prepare all parameters
             int registerIndex = 0;
             foreach (var param in patchMethod.Parameters)
             {
@@ -234,19 +241,87 @@ namespace Regulus.Inject
                 registerIndex++;
             }
 
-            // 3. Call Run with patch index
-            il.Emit(OpCodes.Dup); // Duplicate VM reference
+            //// 3. Call Run with patch index
+            //il.Emit(OpCodes.Dup); // Duplicate VM reference
             il.Emit(OpCodes.Ldc_I4, patchIndex);
+            il.Emit(OpCodes.Ldsfld, importedRegisterField);
+            il.Emit(OpCodes.Ldc_I4, 0);
             var runMethod = module.ImportReference(
                 typeof(Core.VirtualMachine).GetMethod("Run"));
             il.Emit(OpCodes.Callvirt, runMethod);
+            
 
-            // 4. Return from method
+
+            // Call appropriate getter based on return type
+            var returnType = originalMethod.ReturnType;
+            if (returnType.MetadataType == MetadataType.Void)
+            {
+                // No return value needed
+            }
+            else if (returnType.IsValueType)
+            {
+                // 4. Get return value from register 0
+                //il.Emit(OpCodes.Dup); // Load VM instance
+                il.Emit(OpCodes.Ldsfld, vmField);
+                // Load register index 0
+                il.Emit(OpCodes.Ldc_I4, 0);
+
+                switch (returnType.MetadataType)
+                {
+                    case MetadataType.Int32:
+                        il.Emit(OpCodes.Callvirt,
+                            module.ImportReference(typeof(Core.VirtualMachine)
+                                .GetMethod("GetRegisterInt")));
+                        break;
+                    case MetadataType.Int64:
+                        il.Emit(OpCodes.Callvirt,
+                            module.ImportReference(typeof(Core.VirtualMachine)
+                                .GetMethod("GetRegisterLong")));
+                        break;
+                    case MetadataType.Single:
+                        il.Emit(OpCodes.Callvirt,
+                            module.ImportReference(typeof(Core.VirtualMachine)
+                                .GetMethod("GetRegisterFloat")));
+                        break;
+                    case MetadataType.Double:
+                        il.Emit(OpCodes.Callvirt,
+                            module.ImportReference(typeof(Core.VirtualMachine)
+                                .GetMethod("GetRegisterDouble")));
+                        break;
+                    default:
+                        // For other value types, use GetRegisterObject with the specific type
+                        var genericGetObject = module.ImportReference(
+                            typeof(Core.VirtualMachine).GetMethod("GetRegisterObject"));
+                        var specializedGetObject = new GenericInstanceMethod(genericGetObject);
+                        specializedGetObject.GenericArguments.Add(returnType);
+                        il.Emit(OpCodes.Callvirt, specializedGetObject);
+                        break;
+                }
+            }
+            else
+            {
+                // 4. Get return value from register 0
+                il.Emit(OpCodes.Ldsfld, vmField); // Load VM instance
+
+                // Load register index 0
+                il.Emit(OpCodes.Ldc_I4, 0);
+
+                // For reference types, use GetRegisterObject
+                var genericGetObject = module.ImportReference(
+                    typeof(Core.VirtualMachine).GetMethod("GetRegisterObject"));
+                var specializedGetObject = new GenericInstanceMethod(genericGetObject);
+                specializedGetObject.GenericArguments.Add(returnType);
+                il.Emit(OpCodes.Callvirt, specializedGetObject);
+            }
+
+            // 5. Return from method
             il.Emit(OpCodes.Ret);
 
             // Optimize and rebuild method
             patchMethod.Body.OptimizeMacros();
             patchMethod.Body.SimplifyMacros();
+            patchApplicator.Methods.Add(patchMethod);
+
             return patchMethod;
         }
 
@@ -352,9 +427,7 @@ namespace Regulus.Inject
             // Add original instructions if no patch applied
             if (originalFirstInstruction != null)
                 foreach (var instr in originalInstructions)
-                    ilProcessor.Append(instr);
-
-           
+                    ilProcessor.Append(instr);           
 
         }
 

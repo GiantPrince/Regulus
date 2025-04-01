@@ -492,7 +492,6 @@ namespace Regulus.Core.Ssa
 
                         frontier.PhiInstructions.Add(new PhiInstruction(op.Clone()));
 
-
                         if (everOnWorkList.Contains(frontier.Index))
                         {
                             continue;

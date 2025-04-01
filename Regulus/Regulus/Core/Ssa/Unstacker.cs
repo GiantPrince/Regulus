@@ -104,6 +104,12 @@ namespace Regulus.Core.Ssa
                 case Code.Ble:
                 case Code.Ble_S:
                     return AbstractOpCode.Ble;
+                case Code.Ble_Un:
+                case Code.Ble_Un_S:
+                    return AbstractOpCode.Ble_Un;
+                case Code.Bge_Un:
+                case Code.Bge_Un_S:
+                    return AbstractOpCode.Bge_Un;
                 case Code.Br:
                 case Code.Br_S:
                     return AbstractOpCode.Br;
@@ -495,6 +501,10 @@ namespace Regulus.Core.Ssa
                 case Code.Bge_S:
                 case Code.Ble:
                 case Code.Ble_S:
+                case Code.Ble_Un:
+                case Code.Ble_Un_S:
+                case Code.Bge_Un:
+                case Code.Bge_Un_S:
                 case Code.Bne_Un:
                 case Code.Bne_Un_S:
                     return new CmpBranchInstruction(ToAbstractOpCode(instruction.OpCode.Code),

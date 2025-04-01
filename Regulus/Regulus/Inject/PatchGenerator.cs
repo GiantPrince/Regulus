@@ -14,7 +14,7 @@ namespace Regulus.Inject
         public static void GeneratePatch(string ddlName, string patchPath)
         {
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(ddlName);
-            List<MethodDefinition> patchMethods = TagFilter.ScanPatchMethod(assembly);
+            List<MethodDefinition> patchMethods = TagFilter.ScanTaggedMethod(assembly);
             Compiler compiler = new Compiler();
             foreach (MethodDefinition method in patchMethods)
             {

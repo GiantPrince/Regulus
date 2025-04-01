@@ -17,18 +17,18 @@ namespace Regulus.Inject
             return s_id;
         }
 
-        public static List<MethodDefinition> ScanPatchMethod(AssemblyDefinition assembly)
+        public static List<MethodDefinition> ScanTaggedMethod(AssemblyDefinition assembly)
         {           
             List<MethodDefinition> patchMethod = new List<MethodDefinition>();
             foreach (TypeDefinition type in assembly.MainModule.Types)
             {
-                patchMethod.AddRange(type.Methods.Where(m => IsPatched(m)));
+                patchMethod.AddRange(type.Methods.Where(m => IsTagged(m)));
             }
-            ScanTaggedMethod(assembly.MainModule);
+            MarkTaggedMethod(assembly.MainModule);
             return patchMethod;
-        }
+        }       
 
-        private static void ScanTaggedMethod(ModuleDefinition module)
+        private static void MarkTaggedMethod(ModuleDefinition module)
         {
             foreach (TypeDefinition type in module.Types)
             {
@@ -48,6 +48,14 @@ namespace Regulus.Inject
         public static bool IsTagged(MethodDefinition method)
         {
             string tagFullName = (typeof(Tag)).FullName;
+            if (method == null)
+            {
+                return false;
+            }
+            if (!method.HasCustomAttributes)
+            {
+                return false;
+            }
             return method.CustomAttributes.Any(attr =>
                 attr.AttributeType.FullName == tagFullName);
         }

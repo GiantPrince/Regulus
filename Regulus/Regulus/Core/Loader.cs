@@ -22,8 +22,20 @@ namespace Regulus.Core
             return strings;
         }
 
+        public unsafe static string Load(Stream bytes, out VirtualMachine vm, out bool[] hasPatch)
+        {
+            vm = new VirtualMachine();
+            Loader.LoadMeta(bytes, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields, out hasPatch, out string patchRepositoryName);
+            vm.Invokers = methods.Select(m => new Invoker(m, !m.IsStatic)).ToArray();
+            vm.internedStrings = internedStrings.ToArray();
+            vm.Fields = fields.ToArray();
+            vm.Types = types.ToArray();
+            return patchRepositoryName;
+            //Type patchRepository = Type.GetType(patchRepositoryName);
+            //Activator.CreateInstance(patchRepositoryName, [vm, hasPatch]);
+        }
 
-        public unsafe static void LoadMeta(Stream bytes, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields)
+        public unsafe static void LoadMeta(Stream bytes, out List<Type> types, out List<string> internedStrings, out List<MethodBase> methods, out List<FieldInfo> fields, out bool[] hasPatch, out string patchRepositoryName )
         {
             methods = new List<MethodBase>();
             types = new List<Type>();
@@ -81,9 +93,11 @@ namespace Regulus.Core
                 int numOfBytecode = reader.ReadInt32();
                 int maxPatchIndex = reader.ReadInt32();
                 byte** codes = (byte**)Marshal.AllocHGlobal(sizeof(byte*) * (maxPatchIndex + 1));
+                hasPatch = new bool[maxPatchIndex + 1];
                 for (int i = 0; i < numOfBytecode; i++)
                 {
                     int patchIndex = reader.ReadInt32();
+                    hasPatch[patchIndex] = true;
                     int bytecodeSize = reader.ReadInt32();
                     byte* code = (byte*)Marshal.AllocHGlobal(sizeof(byte) * bytecodeSize);
                     for (int j = 0; j < bytecodeSize; j++)
@@ -96,8 +110,7 @@ namespace Regulus.Core
                 VirtualMachine.s_bytecode = codes;
                 VirtualMachine.s_codeSize = maxPatchIndex + 1;
 
-
-
+                patchRepositoryName = reader.ReadString();
             }
 
         }
