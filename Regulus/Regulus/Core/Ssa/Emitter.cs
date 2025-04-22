@@ -228,6 +228,11 @@ namespace Regulus.Core.Ssa
             _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
         }
 
+        public void EmitShort(short value)
+        {
+            _bytecodes[_currentMethodIndex].AddRange(BitConverter.GetBytes(value));
+        }
+
         public void EmitByte(byte value)
         {
             _bytecodes[_currentMethodIndex].Add(value);

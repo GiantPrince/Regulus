@@ -44,13 +44,10 @@ namespace Regulus.Core.Ssa
                 foreach (BasicBlock successor in cfg.Blocks[info.Index].Successors)
                 {
                     stackInfo.Push(new BasicBlockStackInfo() { Index = successor.Index, StackDepth = nextDepth });
-                    
                 }
-
             }
-
         }
- 
+
 
         public int UnstackBasicBlock(MethodDefinition method, BasicBlock bb, int stackDepth = 0)
         {
@@ -66,7 +63,7 @@ namespace Regulus.Core.Ssa
             return stackDepth;
         }
 
-        
+
 
         public AbstractOpCode ToAbstractOpCode(Code code)
         {
@@ -235,7 +232,7 @@ namespace Regulus.Core.Ssa
                 case Code.Stind_R4: return AbstractOpCode.Stind_R4;
                 case Code.Stind_R8: return AbstractOpCode.Stind_R8;
                 case Code.Stind_Ref: return AbstractOpCode.Stind_Ref;
-                
+
 
                 default: return AbstractOpCode.Mov; // default case to handle any unrecognized codes
             }
@@ -259,7 +256,7 @@ namespace Regulus.Core.Ssa
         {
             // newobj, must be constructor, same parameter, return new obj
             // if has this should include one more parameter
-            
+
             CallInstruction call = new CallInstruction(ToAbstractOpCode(code), method);
             stackDepth -= call.ArgCount;
             for (int i = 0; i < call.ArgCount; i++)
@@ -359,9 +356,10 @@ namespace Regulus.Core.Ssa
 
                 case Code.Ldarg_S:
                 case Code.Ldarg:
+                    ParameterDefinition arg = (ParameterDefinition)instruction.Operand;
                     return new MoveInstruction(AbstractOpCode.Mov,
-                        new ValueOperand(OperandKind.Arg, (int)instruction.Operand,
-                        Operand.StringToValueType(method.Parameters[(int)instruction.Operand].ParameterType.Name)),
+                        new ValueOperand(OperandKind.Arg, arg.Index,
+                        Operand.StringToValueType(method.Parameters[arg.Index].ParameterType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_0:
                     // may be callvirt
@@ -373,10 +371,10 @@ namespace Regulus.Core.Ssa
                         new Operand(OperandKind.Stack, stackDepth++));
                     }
                     else
-                    return new MoveInstruction(AbstractOpCode.Mov,
-                        new ValueOperand(OperandKind.Arg, 0,
-                        Operand.StringToValueType(method.Parameters[0].ParameterType.Name)),
-                        new Operand(OperandKind.Stack, stackDepth++));
+                        return new MoveInstruction(AbstractOpCode.Mov,
+                            new ValueOperand(OperandKind.Arg, 0,
+                            Operand.StringToValueType(method.Parameters[0].ParameterType.Name)),
+                            new Operand(OperandKind.Stack, stackDepth++));
                 case Code.Ldarg_1:
                     return new MoveInstruction(AbstractOpCode.Mov,
                         new ValueOperand(OperandKind.Arg, 1,
@@ -488,7 +486,7 @@ namespace Regulus.Core.Ssa
                 case Code.Ldelem_Ref:
                 case Code.Ldelem_U1:
                 case Code.Ldelem_U2:
-                case Code.Ldelem_U4:               
+                case Code.Ldelem_U4:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth);
                 case Code.Ldelema:
                     return CreateStackTransformInstruction(instruction.OpCode.Code, 2, 1, ref stackDepth)
@@ -535,7 +533,7 @@ namespace Regulus.Core.Ssa
                 case Code.Ldloca:
                 case Code.Ldloca_S:
                     return new MoveInstruction(AbstractOpCode.Ldloca,
-                        new ValueOperand(OperandKind.Const, constantCounter++, 
+                        new ValueOperand(OperandKind.Const, constantCounter++,
                         ((VariableDefinition)instruction.Operand).Index, ValueOperandType.LocalPointer,
                         Operand.StringToValueType(((VariableDefinition)instruction.Operand).VariableType.Name)),
                         new Operand(OperandKind.Stack, stackDepth++));

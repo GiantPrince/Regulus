@@ -70,7 +70,7 @@ namespace Regulus.Core
 
         public T GetRegisterObject<T>(int index)   
         {
-            return (T)Objects[index];
+            return (T)Objects[s_registers[index].Upper];
         }
 
         public void SetRegister(int index, Value value)
@@ -127,6 +127,7 @@ namespace Regulus.Core
         {
             //ResetRegister();
             byte* ip = s_bytecode[methodIndex];
+            
             while (true)
             {
                 
@@ -2667,6 +2668,24 @@ namespace Regulus.Core
                             break;
                         }
                         break;
+                    case OpCode.Stelem_I4I:
+                        ABPInstruction* stelemI4IInstruction = (ABPInstruction*)ip;
+                        object I4IArray = Objects[stelemI4IInstruction->RegisterA];
+
+                        if (I4IArray is int[] I4IIntArray)
+                        {
+                            I4IIntArray[reg[stelemI4IInstruction->RegisterB].Upper] = stelemI4IInstruction->Operand;
+                            ip += ABPInstruction.Size;
+                            break;
+                        }                        
+
+                        if (I4IArray is uint[] I4IUIntArray)
+                        {
+                            I4IUIntArray[reg[stelemI4IInstruction->RegisterB].Upper] = (uint)stelemI4IInstruction->Operand;
+                            ip += ABPInstruction.Size;
+                            break;
+                        }
+                        break;
                     case OpCode.Stelem_I8:
                         ABCInstruction* stelemI8Instruction = (ABCInstruction*)ip;
                         long I8Value = *(long*)&reg[stelemI8Instruction->RegisterA].Upper;
@@ -3158,6 +3177,8 @@ namespace Regulus.Core
                         break;
 
                     case OpCode.Ldflda:
+                        APInstruction* ldfldaInstruction = (APInstruction*)ip;
+                        break;
                     case OpCode.Ldsflda:
                         APInstruction* ldsfldaInstruction = (APInstruction*)ip;
                         reg[ldsfldaInstruction->RegisterA].Upper = ldsfldaInstruction->Operand;

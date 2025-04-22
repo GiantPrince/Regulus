@@ -394,8 +394,7 @@ namespace Regulus.Core.Ssa
                 }
             }
             foreach (BasicBlock SuccBlock in block.Successors)
-            {
-                //BasicBlock SuccBlock = _cfg.Blocks[succ];
+            {                
                 foreach (PhiInstruction phiInstruction in SuccBlock.PhiInstructions)
                 {
                     int index = phiInstruction.GetBlockIndex(block);
@@ -423,7 +422,6 @@ namespace Regulus.Core.Ssa
                     PopName(instruction.GetRightHandSideOperand(i));
                 }
             }
-
         }
 
 

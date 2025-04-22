@@ -24,6 +24,10 @@ namespace Regulus.Inject
                 }
                 SsaBuilder ssaBuilder = new SsaBuilder(method);
                 Optimizer optimizer = new Optimizer(ssaBuilder);
+                foreach (BasicBlock block in ssaBuilder.GetBlocks())
+                {
+                    Console.WriteLine(block);
+                }
                 compiler.Compile(TagFilter.GetMethodId(method), ssaBuilder.GetBlocks(), ssaBuilder, method.Parameters.Count);
             }
             compiler.CompileTo(patchPath);

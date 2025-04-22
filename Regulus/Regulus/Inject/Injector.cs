@@ -367,7 +367,11 @@ namespace Regulus.Inject
             MethodDefinition hasPatchMethod = patchesType.Methods.First(m => m.Name == "HasPatch");
             //MethodReference hasPatchMethodRef = module.ImportReference(hasPatchMethod);
 
-            TypeDefinition vmType = module.ImportReference(typeof(Core.VirtualMachine)).Resolve();
+            TypeDefinition vmType = module.Types.FirstOrDefault(t => t.Name == "VirtualMachine");
+            if (vmType == null)
+            {
+                vmType = module.ImportReference(typeof(Core.VirtualMachine)).Resolve();
+            }
             MethodDefinition setIntMethod = vmType.Methods.First(m => m.Name == "SetRegisterInt");
             MethodReference setRegisterMethodRef = module.ImportReference(setIntMethod);
             MethodDefinition runMethod = vmType.Methods.First(m => m.Name == "Run");

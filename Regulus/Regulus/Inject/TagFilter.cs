@@ -10,7 +10,7 @@ namespace Regulus.Inject
     public class TagFilter
     {
         private static int s_id = 0;
-        private static Dictionary<MethodDefinition, int> s_methodId = new Dictionary<MethodDefinition, int>();
+        private static Dictionary<string, int> s_methodId = new Dictionary<string, int>();
 
         public static int GetNumOfMethods()
         {
@@ -34,14 +34,16 @@ namespace Regulus.Inject
             {
                 foreach (MethodDefinition method in type.Methods.Where(m => IsTagged(m)))
                 {
-                    s_methodId.Add(method, s_id++);
+                    if (s_methodId.ContainsKey(method.FullName))
+                        continue;
+                    s_methodId.Add(method.FullName, s_id++);
                 }
             }
         }
 
         public static int GetMethodId(MethodDefinition method)
         {
-            if (s_methodId.TryGetValue(method, out int id)) 
+            if (s_methodId.TryGetValue(method.FullName, out int id)) 
                 return id;
             return -1;
         }

@@ -68,7 +68,7 @@ namespace Regulus.Core.Ssa.Instruction
 
         public virtual Operand Clone()
         {
-            return new Operand(Kind, Index, Version, IsFixed);
+            return new Operand(Kind, Index, OpType, Version, IsFixed);
         }
         
         public virtual bool IsDefault()

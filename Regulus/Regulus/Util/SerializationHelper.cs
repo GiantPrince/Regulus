@@ -34,7 +34,7 @@ namespace Regulus.Util
             }
             else if (type is ByReferenceType byReferenceType) 
             {
-                sb.Append(GetQualifiedName(byReferenceType, contextType, skipAssemblyQualified, true));
+                sb.Append(GetQualifiedName(byReferenceType.ElementType, contextType, skipAssemblyQualified, true));
                 sb.Append('&');
             }
             else

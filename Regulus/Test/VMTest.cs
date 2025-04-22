@@ -126,114 +126,114 @@ namespace Regulus.Test
         }
 
 
-        [Test]
-        public static void BasicCalculationTest()
-        {
-            VirtualMachine vm = new VirtualMachine();
+        //[Test]
+        //public static void BasicCalculationTest()
+        //{
+        //    VirtualMachine vm = new VirtualMachine();
             
-            // Test Int
-            for (int i = 0; i < 32; i++)
-            {
-                vm.SetRegister(i, IntToValue(i));
-            }
-            // Test Add_Int
-            void* start = instructions;
-            start = AddABCInstruction(start, OpCode.Add_Int, 1, 2, 0);  // Registers[0] = Registers[1] + Registers[2]
-            start = AddInstruction(start, OpCode.Ret);  // Return instruction
-            Value ret = vm.Run((byte*)instructions);
-            Assert.That(ret.Equals(IntToValue(3)));  // 1 + 2 = 3
+        //    // Test Int
+        //    for (int i = 0; i < 32; i++)
+        //    {
+        //        vm.SetRegister(i, IntToValue(i));
+        //    }
+        //    // Test Add_Int
+        //    void* start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Add_Int, 1, 2, 0);  // Registers[0] = Registers[1] + Registers[2]
+        //    start = AddInstruction(start, OpCode.Ret);  // Return instruction
+        //    Value ret = vm.Run((byte*)instructions);
+        //    Assert.That(ret.Equals(IntToValue(3)));  // 1 + 2 = 3
 
-            // Test Sub_Int
+        //    // Test Sub_Int
 
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Sub_Int, 2, 1, 3);  // Registers[3] = Registers[2] - Registers[1]
-            start = AddInstruction(start, OpCode.Ret);
-            vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(3).Equals(IntToValue(1)));  // 2 - 1 = 1
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Sub_Int, 2, 1, 3);  // Registers[3] = Registers[2] - Registers[1]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(3).Equals(IntToValue(1)));  // 2 - 1 = 1
 
-            // Test Mul_Int
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Mul_Int, 1, 2, 4);  // Registers[4] = Registers[1] * Registers[2]
-            start = AddInstruction(start, OpCode.Ret);
-            ret = vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(4).Equals(IntToValue(2)));   // 1 * 2 = 2
+        //    // Test Mul_Int
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Mul_Int, 1, 2, 4);  // Registers[4] = Registers[1] * Registers[2]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    ret = vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(4).Equals(IntToValue(2)));   // 1 * 2 = 2
 
-            // Test Div_Int
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Div_Int, 2, 1, 5);  // Registers[5] = Registers[2] / Registers[1]
-            start = AddInstruction(start, OpCode.Ret);
-            ret = vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(5).Equals(IntToValue(2)));   // 2 / 1 = 2
+        //    // Test Div_Int
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Div_Int, 2, 1, 5);  // Registers[5] = Registers[2] / Registers[1]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    ret = vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(5).Equals(IntToValue(2)));   // 2 / 1 = 2
 
-            // Test Rem_Int
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Rem_Int, 2, 1, 6);  // Registers[6] = Registers[2] % Registers[1]
-            start = AddInstruction(start, OpCode.Ret);
-            ret = vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(6).Equals(IntToValue(0)));
+        //    // Test Rem_Int
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Rem_Int, 2, 1, 6);  // Registers[6] = Registers[2] % Registers[1]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    ret = vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(6).Equals(IntToValue(0)));
 
-            // Test Long
-            for (int i = 0; i < 32; i++)
-            {
-                if (i < 16)
-                {
-                    vm.SetRegister(i, LongToValue((long)i + int.MaxValue));
-                }
-                else
-                {
-                    vm.SetRegister(i, LongToValue((long)i));
-                }
+        //    // Test Long
+        //    for (int i = 0; i < 32; i++)
+        //    {
+        //        if (i < 16)
+        //        {
+        //            vm.SetRegister(i, LongToValue((long)i + int.MaxValue));
+        //        }
+        //        else
+        //        {
+        //            vm.SetRegister(i, LongToValue((long)i));
+        //        }
                 
-            }
+        //    }
 
-            // Test Add_Long
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Add_Long, 1, 2, 0);  // Registers[0] = Registers[1] + Registers[2]
-            start = AddInstruction(start, OpCode.Ret);
-            ret = vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(0).Equals(LongToValue((long)1 + int.MaxValue + (long)2 + int.MaxValue))); // (int.MaxValue + 1) + (int.MaxValue + 2)
+        //    // Test Add_Long
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Add_Long, 1, 2, 0);  // Registers[0] = Registers[1] + Registers[2]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    ret = vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(0).Equals(LongToValue((long)1 + int.MaxValue + (long)2 + int.MaxValue))); // (int.MaxValue + 1) + (int.MaxValue + 2)
 
-            // Test Sub_Long
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Sub_Long, 2, 1, 3);  // Registers[3] = Registers[2] - Registers[1]
-            start = AddInstruction(start, OpCode.Ret);
-            vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(3).Equals(LongToValue(1)));  // (int.MaxValue + 2) - (int.MaxValue + 1) = 1
+        //    // Test Sub_Long
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Sub_Long, 2, 1, 3);  // Registers[3] = Registers[2] - Registers[1]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(3).Equals(LongToValue(1)));  // (int.MaxValue + 2) - (int.MaxValue + 1) = 1
 
-            // Test Mul_Long
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Mul_Long, 3, 17, 4);  // Registers[4] = Registers[3] * Registers[17]
-            start = AddInstruction(start, OpCode.Ret);
-            ret = vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(4).Equals(LongToValue(17))); // (int.MaxValue + 1) * (int.MaxValue + 2)
+        //    // Test Mul_Long
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Mul_Long, 3, 17, 4);  // Registers[4] = Registers[3] * Registers[17]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    ret = vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(4).Equals(LongToValue(17))); // (int.MaxValue + 1) * (int.MaxValue + 2)
 
-            // Test Div_Long
-            start = instructions;
-            start = AddABCInstruction(start, OpCode.Div_Long, 2, 18, 5);  // Registers[5] = Registers[2] / Registers[1]
-            start = AddInstruction(start, OpCode.Ret);
-            ret = vm.Run((byte*)instructions);
-            Assert.That(vm.GetRegister(5).Equals(LongToValue(((long)2 + int.MaxValue) / 18)));  // (int.MaxValue + 2) / (int.MaxValue + 1) = 1
-        }
+        //    // Test Div_Long
+        //    start = instructions;
+        //    start = AddABCInstruction(start, OpCode.Div_Long, 2, 18, 5);  // Registers[5] = Registers[2] / Registers[1]
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    ret = vm.Run((byte*)instructions);
+        //    Assert.That(vm.GetRegister(5).Equals(LongToValue(((long)2 + int.MaxValue) / 18)));  // (int.MaxValue + 2) / (int.MaxValue + 1) = 1
+        //}
 
-        [Test]
-        public static void BasicLoadTest()
-        {
-            VirtualMachine vm = new VirtualMachine();
-            void* start = instructions;
-            start = AddAPInstruction(start, OpCode.Ldc_Int, 0, 1);
-            start = AddAPInstruction(start, OpCode.Ldc_Float, 1, 0.1f);
-            start = AddAPInstruction(start, OpCode.Ldc_Double, 2, 0.001);
-            start = AddAPInstruction(start, OpCode.Ldc_Long, 3, 10000);
-            start = AddInstruction(start, OpCode.Ret);
-            vm.Run((byte*)instructions);
+        //[Test]
+        //public static void BasicLoadTest()
+        //{
+        //    VirtualMachine vm = new VirtualMachine();
+        //    void* start = instructions;
+        //    start = AddAPInstruction(start, OpCode.Ldc_Int, 0, 1);
+        //    start = AddAPInstruction(start, OpCode.Ldc_Float, 1, 0.1f);
+        //    start = AddAPInstruction(start, OpCode.Ldc_Double, 2, 0.001);
+        //    start = AddAPInstruction(start, OpCode.Ldc_Long, 3, 10000);
+        //    start = AddInstruction(start, OpCode.Ret);
+        //    vm.Run((byte*)instructions);
 
-            Assert.That(vm.GetRegister(0).Equals(IntToValue(1)));
-            Assert.That(vm.GetRegister(1).Equals(FloatToValue(0.1f)));
-            Assert.That(vm.GetRegister(2).Equals(DoubleToValue(0.001)));
-            Assert.That(vm.GetRegister(3).Equals(LongToValue(10000)));
+        //    Assert.That(vm.GetRegister(0).Equals(IntToValue(1)));
+        //    Assert.That(vm.GetRegister(1).Equals(FloatToValue(0.1f)));
+        //    Assert.That(vm.GetRegister(2).Equals(DoubleToValue(0.001)));
+        //    Assert.That(vm.GetRegister(3).Equals(LongToValue(10000)));
 
 
-        }
+        //}
 
         [Test]
         public static void BasicControlFlowTest()

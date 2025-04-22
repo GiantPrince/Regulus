@@ -102,7 +102,7 @@ namespace Regulus
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(path);
             List<MethodDefinition> methods = TagFilter.ScanTaggedMethod(assembly);
 
-            //PatchGenerator.GeneratePatch(path, GetBackupFile(path, ".bytes"));
+            PatchGenerator.GeneratePatch(path, GetBackupFile(path, ".bytes"));
             foreach (MethodDefinition method in methods)
             {
                 if (TagFilter.IsPatched(method))

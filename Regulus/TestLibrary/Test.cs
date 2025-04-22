@@ -45,24 +45,18 @@ namespace TestLibrary
             Add((int)b, (int)b);
             return (int)b + 10;
         }
-        
+
 
         [Tag(TagType.Patch)]
-        public static int Fib(int n)
+        public static int Sum(int n)
         {
-            ReferenceTest test = new ReferenceTest(n);
-            for (int i = 0; i < n; i++)
+            int sum = 0;
+            ref int rsum = ref sum;
+            for (int i = 1; i < n; i++)
             {
-                test.a = test.a + i;
-                test.b = test.b + i * test.a;
-                test.c = i * 2.3f;
-                test.d = i * test.d + test.c;
+                rsum += i;
             }
-            Console.WriteLine(test.a);
-            Console.WriteLine(test.b);
-            Console.WriteLine(test.c);
-            //Console.WriteLine(test.d);
-            return test.a;
+            return rsum;
         }
 
         public static int Add(int a, int b)

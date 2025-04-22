@@ -14,129 +14,129 @@ namespace Test
         static List<BasicBlock> moreComplexBlocks;
         static List<BasicBlock> simpleBlocks;
 
-        [OneTimeSetUp]
-        public static void Init()
-        {
-            blocks = new List<BasicBlock>();
-            BasicBlock bb0 = new BasicBlock(0);
-            bb0.Successors.Add(1);
-            bb0.Successors.Add(2);
-            bb0.Successors.Add(4);
-            blocks.Add(bb0);
-            BasicBlock bb1 = new BasicBlock(1);
-            bb1.Predecessors.Add(0);
-            bb1.Predecessors.Add(3);
-            blocks.Add(bb1);
-            BasicBlock bb2 = new BasicBlock(2);
-            bb2.Successors.AddRange([3, 4, 5]);
-            bb2.Predecessors.Add(0);
-            blocks.Add(bb2);
-            BasicBlock bb3 = new BasicBlock(3);
-            bb3.Successors.Add(1);
-            bb3.Predecessors.Add(2);
-            bb3.Predecessors.Add(5);
-            blocks.Add(bb3);
-            BasicBlock bb4 = new BasicBlock(4);
-            bb4.Successors.Add(5);
-            bb4.Predecessors.AddRange([0, 2]);
-            blocks.Add(bb4);
-            BasicBlock bb5 = new BasicBlock(5);
-            bb5.Successors.Add(3);
-            bb5.Predecessors.AddRange([2, 4]);
-            blocks.Add(bb5);
+        //[OneTimeSetUp]
+        //public static void Init()
+        //{
+        //    blocks = new List<BasicBlock>();
+        //    BasicBlock bb0 = new BasicBlock(0);
+        //    bb0.Successors.Add(1);
+        //    bb0.Successors.Add(2);
+        //    bb0.Successors.Add(4);
+        //    blocks.Add(bb0);
+        //    BasicBlock bb1 = new BasicBlock(1);
+        //    bb1.Predecessors.Add(0);
+        //    bb1.Predecessors.Add(3);
+        //    blocks.Add(bb1);
+        //    BasicBlock bb2 = new BasicBlock(2);
+        //    bb2.Successors.AddRange([3, 4, 5]);
+        //    bb2.Predecessors.Add(0);
+        //    blocks.Add(bb2);
+        //    BasicBlock bb3 = new BasicBlock(3);
+        //    bb3.Successors.Add(1);
+        //    bb3.Predecessors.Add(2);
+        //    bb3.Predecessors.Add(5);
+        //    blocks.Add(bb3);
+        //    BasicBlock bb4 = new BasicBlock(4);
+        //    bb4.Successors.Add(5);
+        //    bb4.Predecessors.AddRange([0, 2]);
+        //    blocks.Add(bb4);
+        //    BasicBlock bb5 = new BasicBlock(5);
+        //    bb5.Successors.Add(3);
+        //    bb5.Predecessors.AddRange([2, 4]);
+        //    blocks.Add(bb5);
 
-        }
+        //}
 
-        [OneTimeSetUp]
-        public static void InitGraph()
-        {
-            moreComplexBlocks = new List<BasicBlock>();
+        //[OneTimeSetUp]
+        //public static void InitGraph()
+        //{
+        //    moreComplexBlocks = new List<BasicBlock>();
 
-            // Create BasicBlocks (Nodes)
-            BasicBlock bb0 = new BasicBlock(0); // Node 0
-            bb0.Successors.Add(1); // Successors: 1
-            moreComplexBlocks.Add(bb0);
+        //    // Create BasicBlocks (Nodes)
+        //    BasicBlock bb0 = new BasicBlock(0); // Node 0
+        //    bb0.Successors.Add(1); // Successors: 1
+        //    moreComplexBlocks.Add(bb0);
 
-            BasicBlock bb1 = new BasicBlock(1); // Node 1
-            bb1.Predecessors.Add(0); // Predecessors: 0
-            bb1.Successors.Add(2); // Successors: 2
-            bb1.Successors.Add(3); // Successors: 3
-            moreComplexBlocks.Add(bb1);
+        //    BasicBlock bb1 = new BasicBlock(1); // Node 1
+        //    bb1.Predecessors.Add(0); // Predecessors: 0
+        //    bb1.Successors.Add(2); // Successors: 2
+        //    bb1.Successors.Add(3); // Successors: 3
+        //    moreComplexBlocks.Add(bb1);
 
-            BasicBlock bb2 = new BasicBlock(2); // Node 2
-            bb2.Predecessors.Add(1); // Predecessors: 1
+        //    BasicBlock bb2 = new BasicBlock(2); // Node 2
+        //    bb2.Predecessors.Add(1); // Predecessors: 1
             
-            bb2.Successors.Add(7); // Successors: 5
-            moreComplexBlocks.Add(bb2);
+        //    bb2.Successors.Add(7); // Successors: 5
+        //    moreComplexBlocks.Add(bb2);
 
-            BasicBlock bb3 = new BasicBlock(3); // Node 3
-            bb3.Predecessors.Add(1); // Predecessors: 1
+        //    BasicBlock bb3 = new BasicBlock(3); // Node 3
+        //    bb3.Predecessors.Add(1); // Predecessors: 1
            
-            bb3.Successors.Add(4); // Successors: 4
-            moreComplexBlocks.Add(bb3);
+        //    bb3.Successors.Add(4); // Successors: 4
+        //    moreComplexBlocks.Add(bb3);
 
-            BasicBlock bb4 = new BasicBlock(4); // Node 4
-            bb4.Predecessors.Add(3); // Predecessors: 3
-            bb4.Predecessors.Add(6); // Predecessors: 2
-            bb4.Successors.Add(5); // Successors: 5
-            bb4.Successors.Add(6);
-            moreComplexBlocks.Add(bb4);
+        //    BasicBlock bb4 = new BasicBlock(4); // Node 4
+        //    bb4.Predecessors.Add(3); // Predecessors: 3
+        //    bb4.Predecessors.Add(6); // Predecessors: 2
+        //    bb4.Successors.Add(5); // Successors: 5
+        //    bb4.Successors.Add(6);
+        //    moreComplexBlocks.Add(bb4);
 
-            BasicBlock bb5 = new BasicBlock(5); // Node 5
-            bb5.Predecessors.Add(4); // Predecessors: 4
+        //    BasicBlock bb5 = new BasicBlock(5); // Node 5
+        //    bb5.Predecessors.Add(4); // Predecessors: 4
             
-            bb5.Successors.Add(7); // Successors: 7
-            moreComplexBlocks.Add(bb5);
+        //    bb5.Successors.Add(7); // Successors: 7
+        //    moreComplexBlocks.Add(bb5);
 
-            BasicBlock bb6 = new BasicBlock(6); // Node 6
-            bb6.Predecessors.Add(4); // Predecessors: 5
-            bb6.Successors.Add(4);
-            moreComplexBlocks.Add(bb6);
+        //    BasicBlock bb6 = new BasicBlock(6); // Node 6
+        //    bb6.Predecessors.Add(4); // Predecessors: 5
+        //    bb6.Successors.Add(4);
+        //    moreComplexBlocks.Add(bb6);
 
-            BasicBlock bb7 = new BasicBlock(7); // Node 7
-            bb7.Predecessors.Add(5); // Predecessors: 5
-            bb7.Predecessors.Add(2); // Successors: 2
-            moreComplexBlocks.Add(bb7);
-        }
+        //    BasicBlock bb7 = new BasicBlock(7); // Node 7
+        //    bb7.Predecessors.Add(5); // Predecessors: 5
+        //    bb7.Predecessors.Add(2); // Successors: 2
+        //    moreComplexBlocks.Add(bb7);
+        //}
 
-        [OneTimeSetUp]
-        public static void InitSimple()
-        {
-            simpleBlocks = new List<BasicBlock>();
-            BasicBlock bb0 = new BasicBlock(0);
-            bb0.Successors.Add(1);
-            bb0.Successors.Add(5);
-            simpleBlocks.Add(bb0);
+        //[OneTimeSetUp]
+        //public static void InitSimple()
+        //{
+        //    simpleBlocks = new List<BasicBlock>();
+        //    BasicBlock bb0 = new BasicBlock(0);
+        //    bb0.Successors.Add(1);
+        //    bb0.Successors.Add(5);
+        //    simpleBlocks.Add(bb0);
 
-            BasicBlock bb1 = new BasicBlock(1);
-            bb1.Successors.Add(2);
-            bb1.Successors.Add(3);
-            bb1.Predecessors.Add(0);
-            simpleBlocks.Add(bb1);
+        //    BasicBlock bb1 = new BasicBlock(1);
+        //    bb1.Successors.Add(2);
+        //    bb1.Successors.Add(3);
+        //    bb1.Predecessors.Add(0);
+        //    simpleBlocks.Add(bb1);
 
-            BasicBlock bb2 = new BasicBlock(2);
-            bb2.Successors.Add(4);
-            bb2.Predecessors.Add(1);
-            simpleBlocks.Add (bb2);
+        //    BasicBlock bb2 = new BasicBlock(2);
+        //    bb2.Successors.Add(4);
+        //    bb2.Predecessors.Add(1);
+        //    simpleBlocks.Add (bb2);
 
-            BasicBlock bb3 = new BasicBlock(3);
-            bb3.Successors.Add(4);
-            bb3.Predecessors.Add(1);
-            simpleBlocks.Add(bb3);
+        //    BasicBlock bb3 = new BasicBlock(3);
+        //    bb3.Successors.Add(4);
+        //    bb3.Predecessors.Add(1);
+        //    simpleBlocks.Add(bb3);
 
-            BasicBlock bb4 = new BasicBlock(4);
-            bb4.Successors.Add(5);
-            bb4.Predecessors.Add(2);
-            bb4.Predecessors.Add(3);
+        //    BasicBlock bb4 = new BasicBlock(4);
+        //    bb4.Successors.Add(5);
+        //    bb4.Predecessors.Add(2);
+        //    bb4.Predecessors.Add(3);
 
-            simpleBlocks.Add(bb4);
+        //    simpleBlocks.Add(bb4);
 
-            BasicBlock bb5 = new BasicBlock(5);
-            bb5.Predecessors.Add(4);
-            bb5.Predecessors.Add(0);
-            simpleBlocks.Add(bb5);
+        //    BasicBlock bb5 = new BasicBlock(5);
+        //    bb5.Predecessors.Add(4);
+        //    bb5.Predecessors.Add(0);
+        //    simpleBlocks.Add(bb5);
 
-        }
+        //}
 
 
         [Test]

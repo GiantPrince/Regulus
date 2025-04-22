@@ -472,6 +472,7 @@ namespace Regulus.Core
         // Array imm
         NewarrI,
         Stelem_I4II,
+        Stelem_I4I,
         Ldelem_I4I,
 
 

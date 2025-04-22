@@ -16,7 +16,7 @@ namespace Regulus.Core.Ssa
         public Optimizer(SsaBuilder ssaBuilder)
         {
             _ssaBuilder = ssaBuilder;
-            
+
             TypeInference();
             ResolvePointers();
             CopyPropagation();
@@ -140,11 +140,6 @@ namespace Regulus.Core.Ssa
             }
         }
 
-        private void TryResolveArrayPointer(BasicBlock block, AbstractInstruction instruction)
-        {
-
-        }
-
         private void ResolvePointers()
         {
             foreach (BasicBlock block in _ssaBuilder.GetBlocks())
@@ -154,11 +149,12 @@ namespace Regulus.Core.Ssa
                     switch (instruction.Code)
                     {
                         case AbstractOpCode.Ldloca:
+                        case AbstractOpCode.Ldarga:
                             TryResolveLocalPointer(block, instruction);
                             break;
 
                     }
-                    
+
                 }
             }
             ClearEmptyInstructions();
@@ -228,11 +224,11 @@ namespace Regulus.Core.Ssa
                             TransformInstruction ldindInstruction = (TransformInstruction)use.Instruction;
                             ldindInstruction.Code = TransformIndirectArrayOpCode(use.Instruction.Code);
                             ldindInstruction.SetLeftHandSideOperand(0, ldelemaInstruction.GetLeftHandSideOperand(0).Clone());
-                            ldindInstruction.AddLeftOperand(ldelemaInstruction.GetLeftHandSideOperand(1).Clone());                            
+                            ldindInstruction.AddLeftOperand(ldelemaInstruction.GetLeftHandSideOperand(1).Clone());
                             _ssaBuilder.AddUse(arrDefInstruction, new Use(ldindInstruction, 1));
                             _ssaBuilder.AddUse(idxDefInstruction, new Use(ldindInstruction, 0));
                             return true;
-                        case AbstractOpCode.Stind_I: 
+                        case AbstractOpCode.Stind_I:
                         case AbstractOpCode.Stind_I1:
                         case AbstractOpCode.Stind_I2:
                         case AbstractOpCode.Stind_I4:
@@ -250,7 +246,28 @@ namespace Regulus.Core.Ssa
                 }
             }
             return false;
-        } 
+        }
+
+        private void ResolveStindPointer(Use use, BasicBlock block, AbstractInstruction instruction, Operand resolveOp)
+        {
+            AbstractInstruction prevDefInstruction = _ssaBuilder.FindLatestDefinition(block, instruction, resolveOp);
+            // all uses of prevDef should be fixed
+            if (prevDefInstruction.Kind == InstructionKind.Empty)
+            {
+                resolveOp.Version = Operand.DefaultVersion;
+                use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());
+                return;
+            }
+            List<Use> prevDefUses = _ssaBuilder.GetUses(prevDefInstruction);
+            foreach (Use prevDefUse in prevDefUses)
+            {
+                prevDefUse.Instruction.GetLeftHandSideOperand(prevDefUse.OperandIndex).IsFixed = true;
+            }
+            // add use
+            _ssaBuilder.AddUse(prevDefInstruction, new Use(use.Instruction, use.OperandIndex));
+            resolveOp.Version = prevDefInstruction.GetRightHandSideOperand(0).Version;
+            use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());            
+        }
         /// <summary>
         /// Resolve a local pointer (ldloca) recursively
         /// </summary>
@@ -269,21 +286,88 @@ namespace Regulus.Core.Ssa
                 }
                 else if (use.Instruction.Kind == InstructionKind.Transform)
                 {
-                    
-                    // can not solve now
-                    result = false;
+                    if (use.Instruction.Code == AbstractOpCode.Stfld ||
+                        use.Instruction.Code == AbstractOpCode.Ldfld)
+                    {
+                        AbstractInstruction prevDefInstruction = _ssaBuilder.FindLatestDefinition(block, instruction, resolveOp);
+                        // all uses of prevDef should be fixed
+                        if (prevDefInstruction.Kind == InstructionKind.Empty)
+                        {
+                            resolveOp.Version = Operand.DefaultVersion;
+                            use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());
+                            continue;
+                        }
+                        List<Use> prevDefUses = _ssaBuilder.GetUses(prevDefInstruction);
+                        foreach (Use prevDefUse in prevDefUses)
+                        {
+                            prevDefUse.Instruction.GetLeftHandSideOperand(prevDefUse.OperandIndex).IsFixed = true;
+                        }
+                        // add use
+                        _ssaBuilder.AddUse(prevDefInstruction, new Use(use.Instruction, use.OperandIndex));
+                        resolveOp.Version = prevDefInstruction.GetRightHandSideOperand(0).Version;
+                        use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());
+                        result = true;
+                    }
+                    else if (use.Instruction.Code == AbstractOpCode.Stind_I4)
+                    {
+                        ResolveStindPointer(use, block, instruction, resolveOp);
+                        result = true;
+                    }
+                    else
+                    {
+                        result = false;
+                    }
                 }
                 else if (use.Instruction.Kind == InstructionKind.Call)
                 {
+                    CallInstruction call = (CallInstruction)use.Instruction;
+                    if (call.IsStructConstructor)
+                    {
+                        AbstractInstruction prevInstruction = _ssaBuilder.FindLatestDefinition(block, instruction, resolveOp);
+                        if (prevInstruction.Kind == InstructionKind.Empty)
+                        {
+                            resolveOp.Version = Operand.DefaultVersion;
+                        }
+                        else
+                        {
+                            resolveOp.Version = prevInstruction.GetRightHandSideOperand(0).Version;
+                        }
+                        Operand newOperand = resolveOp.Clone();
+                        newOperand.Version = _ssaBuilder.GetNewVersion(resolveOp);
+                        _ssaBuilder.UpdateVersion(resolveOp);
+                        call.SetReturnOperand(newOperand);
+                        call.RemoveArgument(0);
+                        _ssaBuilder.UpdateOperand(block, use.Instruction, resolveOp, newOperand, new OperandComparer());
+                        for (int i = 0; i < call.LeftHandSideOperandCount(); i++)
+                        {
+                            AbstractInstruction argDefInstruction = _ssaBuilder.FindLatestDefinition(block, use.Instruction, call.GetLeftHandSideOperand(i));
+                            foreach (Use argDefUse in _ssaBuilder.GetUses(argDefInstruction))
+                            {
+                                if (argDefUse.Instruction == call && argDefUse.OperandIndex - 1 == i)
+                                {
+                                    argDefUse.OperandIndex = i;
+                                }
+                            }
+                        }
+                        result = true;
+                        continue;
+                    }
+
                     AbstractInstruction prevDefInstruction = _ssaBuilder.FindLatestDefinition(block, instruction, resolveOp);
                     // all uses of prevDef should be fixed
+                    if (prevDefInstruction.Kind == InstructionKind.Empty)
+                    {
+                        resolveOp.Version = Operand.DefaultVersion;
+                        use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());
+                        continue;
+                    }
                     List<Use> prevDefUses = _ssaBuilder.GetUses(prevDefInstruction);
                     foreach (Use prevDefUse in prevDefUses)
                     {
                         prevDefUse.Instruction.GetLeftHandSideOperand(prevDefUse.OperandIndex).IsFixed = true;
                     }
                     // add use
-                    _ssaBuilder.AddUse(prevDefInstruction, new Use(use.Instruction, use.OperandIndex)); 
+                    _ssaBuilder.AddUse(prevDefInstruction, new Use(use.Instruction, use.OperandIndex));
                     resolveOp.Version = prevDefInstruction.GetRightHandSideOperand(0).Version;
                     use.Instruction.SetLeftHandSideOperand(use.OperandIndex, resolveOp.Clone());
                 }
@@ -291,7 +375,6 @@ namespace Regulus.Core.Ssa
                 {
                     throw new NotImplementedException();
                 }
-
             }
             return result;
         }
@@ -570,8 +653,6 @@ namespace Regulus.Core.Ssa
                     ready.Push(b);
                 }
             }
-
-
         }
 
 
@@ -820,6 +901,8 @@ namespace Regulus.Core.Ssa
         {
             if (callInstruction.Code == AbstractOpCode.Newobj)
                 return ValueOperandType.Object;
+            if (callInstruction.IsStructConstructor)
+                return ValueOperandType.Object;
             return Operand.StringToValueType(callInstruction.ReturnTypeName);
         }
 
@@ -863,8 +946,6 @@ namespace Regulus.Core.Ssa
             while (queue.Count > 0)
             {
                 AbstractInstruction i = queue.Dequeue();
-
-
                 ValueOperandType inferencedType = TypeInference(i, out bool needExtraIteration);
                 if (inferencedType != ValueOperandType.Unknown && i.HasRightHandSideOperand())
                 {
@@ -923,10 +1004,6 @@ namespace Regulus.Core.Ssa
 
         private void EliminateEmptyBlocks()
         {
-            foreach (BasicBlock bb in _ssaBuilder.GetBlocks())
-            {
-                Console.WriteLine(bb.ToString());
-            }
             List<BasicBlock> blocks = _ssaBuilder.GetBlocks();
             foreach (BasicBlock block in blocks)
             {
@@ -945,7 +1022,6 @@ namespace Regulus.Core.Ssa
             }
 
             _ssaBuilder.SetBlocks(_ssaBuilder.GetBlocks().Where(bb => !IsEmptyBlock(bb)).ToList());
-
         }
 
         private bool CanBeCopyPropagated(AbstractInstruction instruction)
@@ -956,7 +1032,7 @@ namespace Regulus.Core.Ssa
             switch (instruction.Code)
             {
                 case AbstractOpCode.Ldloca:
-                case AbstractOpCode.Ldarga:                
+                case AbstractOpCode.Ldarga:
                     return false;
                     //case AbstractOpCode.Ldstr
             }
@@ -995,9 +1071,6 @@ namespace Regulus.Core.Ssa
                         else if (use.Instruction.GetLeftHandSideOperand(use.OperandIndex).IsFixed)
                         {
                             delete = false;
-                            //Operand defClone = i.GetRightHandSideOperand(0).Clone();
-                            //defClone.IsFixed = true;
-                            //use.Instruction.SetLeftHandSideOperand(use.OperandIndex, defClone);
                         }
                         else
                         {

@@ -62,10 +62,8 @@ namespace Regulus.Core.Ssa.Tree
 
         private void Build(List<BasicBlock> blocks)
         {
-            // Init root
             InitRoot(blocks);
 
-            // build dom tree
             var dfsTreeNodes = dfsTree.GetTreeNodes();
             for (int i = 1; i < blocks.Count; i++)
             {
@@ -79,8 +77,7 @@ namespace Regulus.Core.Ssa.Tree
 
                 DomTreeNode domTreeNode = domTreeNodes[dfsTreeNodes[i].Block.Index];
                 domTreeNode.Parent = domTreeNodes[parent.Block.Index];
-                domTreeNodes[parent.Block.Index].Children.Add(domTreeNode);
-                
+                domTreeNodes[parent.Block.Index].Children.Add(domTreeNode);                
             }
         }
 

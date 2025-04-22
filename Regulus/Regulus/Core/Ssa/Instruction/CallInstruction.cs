@@ -103,7 +103,7 @@ namespace Regulus.Core.Ssa.Instruction
                 {
                     //method.GenericParameters
                     
-                    parameterType = Type.GetType(p.ParameterType.FullName);
+                    parameterType = Type.GetType(SerializationHelper.GetQualifiedName(p.ParameterType));
                 }
                 if (parameterType == null)
                 {
@@ -153,7 +153,7 @@ namespace Regulus.Core.Ssa.Instruction
 
         public override int LeftHandSideOperandCount()
         {
-            return _argCount;
+            return _args.Count;
         }
 
         public override Operand GetLeftHandSideOperand(int index)
