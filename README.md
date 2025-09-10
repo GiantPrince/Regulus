@@ -131,3 +131,8 @@ method public hidebysig static
  Succ:
  [Ret] Reg2[Int] =>
  ```
+
+ ### Acknowledgement
+ [InjectFix](https://github.com/Tencent/InjectFix)
+ [ILRuntime](https://github.com/Ourpalm/ILRuntime)
+ [HybridCLR](https://github.com/focus-creative-games/hybridclr)
