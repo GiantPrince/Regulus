@@ -6,6 +6,15 @@ It has almost the same easy-to-use interface as InjectFix but with much better o
 
 ## Benchmark Results
 In the performance evaluation experiments of hot update frameworks, we use Unity version 2023.1.7f1, compiled with the Mono backend under non-Development Build mode, and the output platform is Windows Intel-64bit. Here we don't use the Function Redirection and JIT features of ILRuntime, since we want to compare register-based bytecode with stack-based bytecode. So this is a weak ILRuntime baseline.
+
+We constructed nine groups of tests. For mathematical computation, we used Sum, which performs an arithmetic series summation from 1 to 10^8. For recursive functions, we used Fib, which implements the Fibonacci sequence recursively with an input parameter of 35. For array access, the tests include Sieve and Bubble. Sieve refers to the Sieve of Eratosthenes with an input of 10^7, while Bubble performs a bubble sort on 10,000 numbers arranged in reverse order.
+
+For member access, we designed MA and SMA. MA represents intensive instance member access operations, whereas SMA represents intensive static member access operations. In these two tests, we constructed an object containing primitive types, value types, and reference types, and performed repeated read and write operations on the fields of these three types.
+
+For Unity-related code, we selected Vector, Transform, and Collision. These mainly cover the most common operations in Unity projects, namely vector operations, transform manipulations, and collision detection.
+
+Each test was executed ten times on the test machine, and we recorded the average execution time and standard deviation in the table below (in milliseconds). In the performance comparison, we evaluated our method against existing open-source frameworks based on C# bytecode, as well as direct function calls.
+
 | Program       | Direct Call (ms)   | ILRuntime (ms)     | InjectFix (ms)    | Regulus (ms)   |
 |:----------:|:---------------:|:-----------------:|:----------------:|:----------------:|
 | **Sum**        | 51.00±10.33    | 8195.90±271.41    | 6749.09±318.52   | 1393.80±218.42   |
