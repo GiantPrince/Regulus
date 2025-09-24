@@ -1,7 +1,23 @@
 # Regulus
 Regulus is a hot update solution for Unity. 
 It has almost the same easy-to-use interface as InjectFix but with much better optimizations.
+
 *Warning: Regulus is an educational hot update framework, it should not be used in production*
+
+## Benchmark Results
+In the performance evaluation experiments of hot update frameworks, we use Unity version 2023.1.7f1, compiled with the Mono backend under non-Development Build mode, and the output platform is Windows Intel-64bit. Here we don't use the Function Redirection and JIT features of ILRuntime, since we want to compare register-based bytecode with stack-based bytecode. So this is a weak ILRuntime baseline.
+| Program       | Direct Call (ms)   | ILRuntime (ms)     | InjectFix (ms)    | Regulus (ms)   |
+|:----------:|:---------------:|:-----------------:|:----------------:|:----------------:|
+| **Sum**        | 51.00±10.33    | 8195.90±271.41    | 6749.09±318.52   | 1393.80±218.42   |
+| **Fib**        | 76.90±13.55    | 6346.45±1924.91   | 15699.91±295.44  | 629.90±105.02    |
+| **Sieve**      | 156.50±12.46   | 9987.50±1043.05   | 4890.18±201.37   | 1575.10±184.77   |
+| **Bubble**     | 137.10±13.58   | 31205.91±8709.75  | 19497.20±931.73  | 5066.90±397.14   |
+| **MA**         | 13.60±3.29     | 633.70±28.79      | 698.30±25.35     | 483.10±25.19     |
+| **SMA**        | 15.50±3.26     | 467.60±32.51      | 640.20±14.19     | 391.40±25.99     |
+| **Vector**     | 9.45±0.66      | 2302.31±351.02    | 2165.60±27.70    | 907.10±89.06     |
+| **Transform**  | 31.40±3.32     | 1113.00±171.85    | 901.70±14.23     | 662.50±22.54     |
+| **Collision**  | 567.50±26.35   | 14191.00±522.27   | 16345.10±313.43  | 12546.10±219.15  |
+
 ## Framework Structure Overview
 
 The overall framework is divided into three parts: a function-level code instrumentation tool, a compiler that translates CIL into custom bytecode, and a virtual machine that interprets and executes the custom bytecode. 
